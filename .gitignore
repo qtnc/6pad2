@@ -1,0 +1,8 @@
+obj/
+*.exe
+*.dll
+*.a
+*.o
+test*
+old*
+out*

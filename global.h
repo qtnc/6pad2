@@ -1,0 +1,94 @@
+#ifndef ___GLOBAL_H9
+#define ___GLOBAL_H9
+#define UNICODE
+#define _WIN32_IE 0x0400
+#define _WIN32_WINNT 0x501
+#include<windows.h>
+#include<commctrl.h>
+#ifndef __WINDRES
+#include<boost/shared_ptr.hpp>
+#include<cstdio>
+#include<string>
+#include<vector>
+//#include<list>
+#include<algorithm>
+#include<functional>
+#include "windows2.h"
+
+
+#ifdef UNICODE
+typedef std::wstring tstring;
+#define toTString toWString
+#define tstrlen wcslen
+#define tstrrchr wcsrchr
+#define tsnprintf snwprintf
+#else
+typedef std::string tstring;
+#define toTString toString
+#define tstrlen strlen
+#define tstrrchr strrchr
+#define tsnprintf snprintf
+#endif
+#define TSTR(s) tstring(TEXT(s))
+#define wsnprintf snwprintf
+#include "strings.hpp"
+#include "win32api++.hpp"
+#endif//windres
+
+#define LE_DOS 0
+#define LE_UNIX 1
+#define LE_MAC 2
+
+#define CP_UTF16 1200
+#define CP_UTF16_LE 1200
+#define CP_UTF16_BE 1201
+#define CP_UTF16_LE_BOM 1202
+#define CP_UTF16_BE_BOM 1203
+#define CP_UTF8_BOM 65002
+#define CP_ISO_8859_15 28605
+#define CP_MSDOS 850
+
+#define WM_RUNPROC WM_USER + 1563
+
+#define IDC_EDITAREA 1
+#define IDC_TABCTL 2
+#define IDC_STATUSBAR 3
+
+#define IDD_GOTOLINE 901
+#define IDD_SEARCHREPLACE 902
+
+#define IDM_NEW 1000
+#define IDM_OPEN 1001
+#define IDM_SAVE 1002
+#define IDM_SAVE_AS 1003
+#define IDM_CLOSE 1004
+#define IDM_EXIT 1005
+#define IDM_OPEN_NI 1006
+#define IDM_REOPEN 1007
+#define IDM_COPY 2000
+#define IDM_CUT 2001
+#define IDM_PASTE 2002
+#define IDM_UNDO 2003
+#define IDM_REDO 2004
+#define IDM_SELECTALL 2005
+#define IDM_FIND 2006
+#define IDM_FINDNEXT 2007
+#define IDM_FINDPREV 2008
+#define IDM_REPLACE 2009
+#define IDM_GOTOLINE 2010
+#define IDM_ENCODING 2100
+#define IDM_LE_DOS 2200
+#define IDM_LE_UNIX 2201
+#define IDM_LE_MAC 2202
+#define IDM_INDENTATION_TABS 2209
+#define IDM_INDENTATION_SPACES 2210
+#define IDM_AUTOLINEBREAK 2230
+#define IDM_NEXTPAGE 2231
+#define IDM_PREVPAGE 2232
+#define IDM_ABOUT 4000
+#define IDM_CRASH 9999
+
+#ifndef __WINDRES
+using namespace std;
+#endif
+#endif
