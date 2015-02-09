@@ -1,0 +1,15 @@
+*.cpp text
+*.c text
+*.hpp text
+*.h text
+*.rc text
+*.bat text
+*.ini text
+*.lng text
+*.txt text
+*.md text
+*.html text
+*.htm text
+*.py text
+*.pyc binary
+*.pyo binary

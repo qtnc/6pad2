@@ -48,8 +48,8 @@ if (file.size()<=0) return false;
 if (!zone) return false;
 int len = GetWindowTextLength(zone);
 tstring str = GetWindowText(zone);
-if (lineEnding==LE_UNIX) replace(str, TEXT("\r\n"), TEXT("\n"));
-else if (lineEnding==LE_MAC) replace(str, TEXT("\r\n"), TEXT("\r"));
+if (lineEnding==LE_UNIX) str = str_replace(str, TEXT("\r\n"), TEXT("\n"));
+else if (lineEnding==LE_MAC) str = str_replace(str, TEXT("\r\n"), TEXT("\r"));
 string cstr = ConvertToEncoding(str, encoding);
 File fd(file, true);
 if (fd) fd.writeFully(cstr.data(), cstr.size());
@@ -68,8 +68,8 @@ if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), co
 text = ConvertFromEncoding(str, encoding);
 if (lineEnding<0) lineEnding = guessLineEnding(text.c_str(), config.get("defaultLineEnding", LE_DOS));
 if (indentationMode<0) indentationMode = guessIndentationMode(text.c_str(), text.size(), config.get("defaultIndentationMode", 0));
-if (lineEnding==LE_UNIX) replace(text, TEXT("\n"), TEXT("\r\n"));
-else if (lineEnding==LE_MAC) replace(text, TEXT("\r"), TEXT("\r\n"));
+normalizeLineEndings(text);
+for (int i=0, n=text.size(); i<n; i++) if (text[i]==0) text[i]=127;
 }}
 if (zone) {
 int ss, se;

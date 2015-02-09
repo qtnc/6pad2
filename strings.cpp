@@ -139,13 +139,31 @@ static inline bool isSpace (TCHAR c) {
 return c>=0 && c<=32 && c!=10 && c!=13;
 }
 
-void replace (tstring& str, const tstring& needle, const tstring& repl) {
+void normalizeLineEndings (tstring& text) {
+using namespace boost;
+typedef boost::wregex tregex;
+const int options = regex_constants::literal;
+const match_flag_type flags = match_flag_type::format_literal;
+tregex reg2(TEXT("(?:\r\n|\r|\n)"), options);
+text = regex_replace(text, reg2, TEXT("\r\n"), flags);
+}
+
+tstring preg_replace (tstring& str, const tstring& needle, const tstring& repl) {
+using namespace boost;
+typedef boost::wregex tregex;
+const int options = regex_constants::perl | regex_constants::mod_s | regex_constants::collate;
+const match_flag_type flags = match_flag_type::match_default | match_flag_type::format_perl;
+tregex reg(needle, options);
+return regex_replace(str, reg, repl, flags);
+}
+
+tstring str_replace (tstring& str, const tstring& needle, const tstring& repl) {
 using namespace boost;
 typedef boost::wregex tregex;
 const int options = regex_constants::literal;
 const match_flag_type flags = match_flag_type::format_literal;
 tregex reg(needle, options);
-str = regex_replace(str, reg, repl, flags);
+return regex_replace(str, reg, repl, flags);
 }
 
 void PrepareSmartPaste (tstring& text, const tstring& indent) {
@@ -160,9 +178,8 @@ if (j-i<commonIndent) commonIndent=j-i;
 while(i<n && text[i]!='\n') i++;
 }
 tregex reg(TEXT("^") + text.substr(0, commonIndent), options);
-tregex reg2(TEXT("(?:\r\n|\r|\n)"), options);
 text = regex_replace(text, reg, indent, flags);
-text = regex_replace(text, reg2, TEXT("\r\n"), flags);
+normalizeLineEndings(text);
 int pos = text.find_first_not_of(TEXT(" \t"));
 if (pos<text.size()) text.erase(text.begin(), text.begin()+pos);
 }

@@ -60,15 +60,9 @@ template <class T> bool basic_split_iterator<T>::operator!= (const basic_split_i
 
 /// String replacement
 
-/*template <class T> void replace (std::basic_string<T>& str, const std::basic_string<T>& needle, const std::basic_string<T>& repl) {
-for (int pos=0; (pos = str.find(needle))>=0 && pos<str.size(); ) {
-str.erase(str.begin()+pos, str.begin()+needle.size()+pos);
-str.insert(pos, repl);
-pos += repl.size();
-}
-}*/
-
-void replace (tstring& str, const tstring& needle, const tstring& repl);
+tstring str_replace (tstring& str, const tstring& needle, const tstring& repl);
+tstring preg_replace (tstring& str, const tstring& needle, const tstring& repl);
+void normalizeLineEndings (tstring& text) ;
 
 template <class T> void replace (std::basic_string<T>& str, const T* needle, const std::basic_string<T>& repl) { replace(str, std::basic_string<T>(needle), repl); }
 template <class T> void replace (std::basic_string<T>& str, const std::basic_string<T>& needle, const T* repl) { replace(str, needle, std::basic_string<T>(repl)); }

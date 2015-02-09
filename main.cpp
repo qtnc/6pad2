@@ -727,13 +727,21 @@ LRESULT EZHandleTab (HWND hEdit) {
 int sPos=0, ePos=0;
 SendMessage(hEdit, EM_GETSEL, &sPos, &ePos);
 int sLine = SendMessage(hEdit, EM_LINEFROMCHAR, sPos, 0);
+int sOffset = SendMessage(hEdit, EM_LINEINDEX, sLine, 0);
 if (sPos!=ePos) { // There is a selection, indent/deindent
 int eLine = SendMessage(hEdit, EM_LINEFROMCHAR, ePos, 0);
-//todo
-Beep(1000,200);
-}
+int eOffset = SendMessage(hEdit, EM_LINEINDEX, eLine, 0);
+int eLineLen = SendMessage(hEdit, EM_LINELENGTH, ePos, 0);
+if (sLine==eLine) Beep(800,150);
+else {
+tstring str = GetWindowText(hEdit).substr(sOffset, eOffset + eLineLen -sOffset);
+tstring indent = curPage->indentationMode==0? TEXT("\t") : tstring(curPage->indentationMode, ' ');
+if (IsShiftDown()) str = preg_replace(str, TEXT("^")+indent, TEXT(""));
+else str = preg_replace(str, TEXT("^"), indent);
+SendMessage(hEdit, EM_SETSEL, sOffset, eOffset+eLineLen);
+SendMessage(hEdit, EM_REPLACESEL, 0, str.c_str());
+}}
 else { // There is no selection
-int sOffset = SendMessage(hEdit, EM_LINEINDEX, sLine, 0);
 tstring line = EditGetLine(hEdit, sLine, sPos);
 int pos = line.find_first_not_of(TEXT("\t \xA0"));
 if (pos<0 || pos>=line.size()) pos=0;
