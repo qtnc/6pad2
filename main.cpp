@@ -490,7 +490,7 @@ TCHAR* fnBs = tstrrchr(fn, (TCHAR)'\\');
 TCHAR* fnDot = tstrrchr(fn, (TCHAR)'.');
 *fnBs=0;
 *fnDot=0;
-tsnprintf(CLASSNAME, sizeof(CLASSNAME)/sizeof(TCHAR), TEXT("QC9Pad10_%s"), fnBs+1);
+tsnprintf(CLASSNAME, sizeof(CLASSNAME)/sizeof(TCHAR), TEXT("QC6Pad01_%s"), fnBs+1);
 appName = fnBs+1;
 appDir = fn;
 config.load(appDir + TEXT("\\") + appName + TEXT(".ini") );
@@ -537,7 +537,7 @@ return 1;
 {//Create window block
 win = CreateWindowEx(
 WS_EX_CONTROLPARENT | WS_EX_ACCEPTFILES,
-CLASSNAME, TEXT("9Pad++"), 
+CLASSNAME, TEXT("6Pad++"), 
 WS_VISIBLE | WS_OVERLAPPEDWINDOW,
 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 
 HWND_DESKTOP, NULL, hinstance, NULL);
@@ -723,6 +723,22 @@ SendMessage(hEdit, EM_SETSEL, spos, pos);
 return true;
 }
 
+LRESULT EZHandleF8 (HWND hEdit) {
+if (IsShiftDown()) {
+int curPos, markedPos = (int)GetProp(hEdit, TEXT("F8"));
+SendMessage(hEdit, EM_GETSEL, &curPos, 0);
+SendMessage(hEdit, EM_SETSEL, markedPos, curPos);
+SendMessage(hEdit, EM_SCROLLCARET, 0, 0);
+} else {
+int curPos, curPos2;
+SendMessage(hEdit, EM_GETSEL, &curPos, &curPos2);
+if (curPos!=curPos2) {
+SendMessage(hEdit, EM_SETSEL, curPos2, curPos);
+SendMessage(hEdit, EM_SCROLLCARET, 0, 0);
+}
+else SetProp(hEdit, TEXT("F8"), (HANDLE)curPos);
+}}
+
 LRESULT EZHandleTab (HWND hEdit) {
 int sPos=0, ePos=0;
 SendMessage(hEdit, EM_GETSEL, &sPos, &ePos);
@@ -780,6 +796,9 @@ if (IsCtrlDown()) return PageGoToNext(IsShiftDown()? -1 : 1);
 break;
 case VK_HOME:
 if (!IsCtrlDown() && !IsShiftDown()) return EZHandleHome(hwnd, IsAltDown());
+break;
+case VK_F8:
+if (!IsCtrlDown() && !IsAltDown()) return EZHandleF8(hwnd);
 break;
 }}
 else if (msg==WM_KEYUP) {

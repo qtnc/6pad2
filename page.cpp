@@ -30,12 +30,12 @@ HWND hEdit  = CreateWindowEx(0, TEXT("EDIT"), TEXT(""),
 WS_CHILD | WS_TABSTOP | ES_MULTILINE | ES_NOHIDESEL | ES_AUTOVSCROLL | ((flags&PF_AUTOLINEBREAK)? 0:ES_AUTOHSCROLL),
 10, 10, 400, 400,
 parent, (HMENU)(IDC_EDITAREA + count++), hinstance, NULL);
-SendMessage(hEdit, EM_SETSEL, ss, se);
 SendMessage(hEdit, EM_SETLIMITTEXT, 1073741823, 0);
 //SendMessage(hEdit, WM_SETFONT, font, TRUE);
-//int x = curPage->tabSpaces==0? 16 : ABS(curPage->tabSpaces)*4;
-//SendMessage(hEdit, EM_SETTABSTOPS, 1, &x);
+{ int x=16; SendMessage(hEdit, EM_SETTABSTOPS, 1, &x); }
 SetWindowText(hEdit, text.c_str());
+SendMessage(hEdit, EM_SETSEL, ss, se);
+SendMessage(hEdit, EM_SCROLLCARET, 0, 0);
 SetWindowSubclass(hEdit, EditAreaWinProc, 0, 0);
 return zone=hEdit;
 }
