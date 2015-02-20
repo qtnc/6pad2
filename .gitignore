@@ -3,6 +3,7 @@ obj/
 *.dll
 *.a
 *.o
+*.ini
 test*
 old*
 out*
