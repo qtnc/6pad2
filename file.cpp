@@ -1,18 +1,21 @@
 #include "file.h"
 using namespace std;
 
-File::File () : fd(0) { }
-File::File (const tstring& path, bool write): fd(0) { open(path,write); }
+File::File () : fd(0), noclose(false)  { }
+File::File (const tstring& path, bool write): fd(0), noclose(false) { open(path,write); }
 File::~File () { close(); }
 File::operator bool () { return fd && fd!=INVALID_HANDLE_VALUE; }
 
 void File::close () { 
-if (fd) CloseHandle(fd);
+if (fd&&!noclose) CloseHandle(fd);
 fd=0;
 }
 
 bool File::open (const tstring& path, bool write) {
-if (write) fd = CreateFile(path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+if (path==TEXT("STDIN")) { fd = GetStdHandle(STD_INPUT_HANDLE); noclose=true; }
+else if (path==TEXT("STDOUT")) fd = GetStdHandle(STD_OUTPUT_HANDLE);
+else if (path==TEXT("STDERR")) fd = GetStdHandle(STD_ERROR_HANDLE);
+else if (write) fd = CreateFile(path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
 else fd = CreateFile(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 return fd!=INVALID_HANDLE_VALUE;
 }

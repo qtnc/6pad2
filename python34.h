@@ -3,6 +3,7 @@
 #include<python/python.h>
 #include "strings.hpp"
 #include<tuple>
+#include<functional>
 #include<string>
 
 #define GIL_PROTECT RAII_GIL ___RAII_GIL_VAR_##__LINE__;
@@ -92,6 +93,14 @@ static inline std::wstring convert (const wchar_t* s) { return s; }
 static inline const wchar_t* convert2 (const std::wstring& s) { return s.c_str(); }
 };
 
+template<> struct PyTypeSpec<PyObject*> { 
+typedef PyObject* type;
+static constexpr const char c = 'O'; 
+static inline PyObject* convert (PyObject* i) { return i; }
+static inline PyObject* convert2 (PyObject* i) { return i; }
+static inline PyObject* convert3 (PyObject* o) { return o; }
+};
+
 template<class... Args> inline const char* PyTypeSpecs (void) {
 static constexpr const int n = sizeof...(Args);
 static constexpr const char cc[n+1] = { PyTypeSpec<Args>::c... ,0};
@@ -104,7 +113,23 @@ static constexpr const char cc[n+3] = { '(', PyTypeSpec<Args>::c... , ')', 0};
 return cc;
 };
 
-template<class R, class... A> R PyCallFunc (PyObject* func, A... args) {
+struct PyCallback {
+PyObject* func;
+PyCallback (): func(0) {}
+PyCallback (PyObject* x): func(0) { operator=(x); }
+PyCallback (const PyCallback& x): PyCallback(x.func) {}
+PyCallback& operator= (const PyCallback& x) { return operator=(x.func); }
+PyCallback& operator= (PyObject* o) {
+GIL_PROTECT
+if (!PyCallable_Check(o)) o=NULL;
+Py_XINCREF(o);
+Py_XDECREF(func);
+func=o;
+return *this;
+}
+operator bool () { return !!func; }
+template<class R, class... A> R operator() (A... args) {
+GIL_PROTECT
 PyObject* argtuple = Py_BuildValue(PyTypeSpecsTuple<A...>(), PyTypeSpec<A>::convert2(args)...);
 PyObject* pyResult = PyObject_CallObject(func, argtuple);
 Py_XDECREF(argtuple);
@@ -112,6 +137,14 @@ R cResult = PyTypeSpec<R>::convert3(pyResult);
 Py_XDECREF(pyResult);
 return cResult;
 }
+template<class... A> void operator() (A... args) {
+GIL_PROTECT
+PyObject* argtuple = Py_BuildValue(PyTypeSpecsTuple<A...>(), PyTypeSpec<A>::convert2(args)...);
+PyObject* pyResult = PyObject_CallObject(func, argtuple);
+Py_XDECREF(argtuple);
+Py_XDECREF(pyResult);
+}
+};//PyCallback
 
 template<int... S> struct TemplateSequence {};
 template<int N, int... S> struct TemplateSequenceGenerator: TemplateSequenceGenerator<N -1, N -1, S...> {};

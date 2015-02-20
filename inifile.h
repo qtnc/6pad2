@@ -1,10 +1,10 @@
 #ifndef ___INIFILE_H9
 #define ___INIFILE_H9
 #include<string>
-#include<unordered_map>
+#include<map>
 #include "strings.hpp"
 
-struct IniFile: std::unordered_map<string,string>  {
+struct IniFile: std::map<string,string>  {
 bool load (const tstring& fn) ;
 bool save (const tstring& fn) ;
 inline bool contains (const std::string& key)  { return find(key)!=end(); }

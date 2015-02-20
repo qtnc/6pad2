@@ -5,6 +5,7 @@
 
 struct File {
 HANDLE fd;
+bool noclose;
 File();
 File (const tstring& path, bool write=false);
 bool open (const tstring& path, bool write=false);

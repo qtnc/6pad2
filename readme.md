@@ -18,4 +18,8 @@ Main changes compared to 6pad are:
 
 * 24.01.2015: Tab system with independant text areas and properties (encoding, line ending, indentation, auto line wrap)
 * 07.02.2015: Smart paste, taking care of indentation
-* 07.02.2015: Ctrl+C/X when no selection => copy/cut current line
+* 07.02.2015: Ctrl+C/X when no selection copys/cuts current line
+* 14.02.2015: Automatically reopen files opened at last session
+* 14.02.2015: Recent files list; 10 entries by default
+* 20.02.2015: option /stdout to write the output of current file to stdout on exit
+

@@ -1,13 +1,28 @@
 #include "global.h"
-#include<windows.h>
 #include "strings.hpp"
 #include<string>
 #include<cwchar>
 #include<cstdarg>
 #include<boost/regex.hpp>
+#include<boost/algorithm/string.hpp>
 using namespace std;
 
 #define DETECTION_MAX_LOOKUP 16384
+
+vector<tstring> split (const tstring& str, const tstring& delims) {
+using namespace boost;
+vector<tstring> v;
+split(v, str, is_any_of(delims));
+return v;
+}
+
+void toLowerCase (tstring& s) {
+boost::to_lower(s);
+}
+
+void toUpperCase (tstring& s) {
+boost::to_upper(s);
+}
 
 string snprintf (int max, const string& fmt, ...) {
 string out(max+1, '\0');

@@ -10,9 +10,6 @@
 #include<cstdio>
 #include<string>
 #include<vector>
-//#include<list>
-#include<algorithm>
-#include<functional>
 #include "windows2.h"
 
 
@@ -65,6 +62,8 @@ typedef std::string tstring;
 #define IDM_EXIT 1005
 #define IDM_OPEN_NI 1006
 #define IDM_REOPEN 1007
+#define IDM_ABOUT 1899
+#define IDM_RECENT_FILE 1900
 #define IDM_COPY 2000
 #define IDM_CUT 2001
 #define IDM_PASTE 2002
@@ -85,7 +84,7 @@ typedef std::string tstring;
 #define IDM_AUTOLINEBREAK 2230
 #define IDM_NEXTPAGE 2231
 #define IDM_PREVPAGE 2232
-#define IDM_ABOUT 4000
+#define IDM_USER_COMMAND 4000
 #define IDM_CRASH 9999
 
 #ifndef __WINDRES

@@ -5,7 +5,9 @@
 #include "file.h"
 #include "dialogs.h"
 #include "python34.h"
+#include<functional>
 #include<boost/regex.hpp>
+using namespace std;
 
 #define FF_CASE 1
 #define FF_REGEX 2
@@ -39,17 +41,23 @@ vector<tstring> argv;
 vector<shared_ptr<Page>> pages;
 shared_ptr<Page> curPage(0);
 list<FindData> finds;
+list<tstring> recentFiles;
+vector<function<void(void)>> userCommands;
 
 TCHAR CLASSNAME[32] = {0};
+bool firstInstance = false, writeToStdout=false;
 HINSTANCE hinstance = 0;
 HWND win=0, tabctl=0, status=0;
-HMENU menu = 0, menuFormat=0, menuEncoding=0, menuLineEnding=0, menuIndentation=0;
+HMENU menu = 0, menuFormat=0, menuEncoding=0, menuLineEnding=0, menuIndentation=0, menuRecentFiles = 0;
 HACCEL hAccel = 0;
 
 void SaveCurFile (bool saveas = false);
 void GoToLineDialog () ;
 void SearchReplaceDialog (bool);
 BOOL WINAPI PredispatchMessage (MSG&);
+void UpdateRecentFilesMenu (void);
+bool FindAccelerator (int cmd, int& flags, int& key);
+tstring KeyCodeToName (int flags, int vk, bool i18n);
 LRESULT WINAPI AppWinProc (HWND, UINT, WPARAM, LPARAM);
 void PrepareSmartPaste (tstring& text, const tstring& indent);
 
@@ -77,6 +85,7 @@ EnableWindow(p->zone, TRUE);
 SetWindowPos(p->zone, NULL,
 r.left+3, r.top+3, r.right - r.left -6, r.bottom - r.top -6,
 SWP_NOZORDER | SWP_SHOWWINDOW);
+SendMessage(p->zone, EM_SCROLLCARET, 0, 0);
 SetFocus(p->zone);
 SetWindowText(win, (p->name + TEXT(" - ") + appName).c_str() );
 int encidx = -1; for (int i=0; i<encodings.size(); i++) { if (p->encoding==encodings[i]) { encidx=i; break; }}
@@ -202,6 +211,18 @@ SetWindowText(status, tsnprintf(512, msg("Li %d, Col %d.\t%d%%, %d lines"), slin
 }}
 
 bool AppWindowClosing () {
+for (int i=0, j=0; i<pages.size(); i++) {
+shared_ptr<Page> p = pages[i];
+if (!p->zone || (p->flags&PF_NOSAVE) || p->file.size()<=0) continue;
+int pos;
+SendMessage(p->zone, EM_GETSEL, 0, &pos);
+config.set("lastFile" + toString(j), p->file);
+config.set("lastFilePos" + toString(j), pos);
+config.erase("lastFile" + toString(++j));
+}
+if (writeToStdout && curPage) {
+curPage->SaveText(TEXT("STDOUT"));
+}
 for (int i=pages.size() -1; i>=0; i--) if (!PageDelete(pages[i],i)) return false;
 return true;
 }
@@ -252,58 +273,6 @@ tstring text= toTString(hMemData);
 GlobalUnlock(hMem);
 CloseClipboard();
 return text;
-}
-
-bool AddAccelerator (int flags, int key, int cmd) {
-int n = CopyAcceleratorTable(hAccel, NULL, 0);
-ACCEL* accels = (ACCEL*)malloc(sizeof(ACCEL) * (n+1));
-CopyAcceleratorTable(hAccel, accels, n);
-accels[n].fVirt = flags;
-accels[n].key = key;
-accels[n].cmd = cmd;
-HACCEL hNew = CreateAcceleratorTable(accels, n+1);
-if (hNew) {
-DestroyAcceleratorTable(hAccel);
-hAccel = hNew;
-}
-free(accels);
-}
-
-BOOL RemoveAccelerator (int cmd) {
-int n = CopyAcceleratorTable(hAccel, NULL, 0);
-ACCEL* accels = (ACCEL*)malloc(sizeof(ACCEL) * (n+1));
-CopyAcceleratorTable(hAccel, accels, n);
-BOOL found = FALSE;
-int i; for(i=0; i<n; i++) {
-if (accels[i].cmd==cmd) {
-accels[i] = accels[n -1];
-found = TRUE;
-break;
-}}
-if (found) {
-HACCEL hNew = CreateAcceleratorTable(accels, n -1);
-if (hNew) {
-DestroyAcceleratorTable(hAccel);
-hAccel = hNew;
-}}
-free(accels);
-return found;
-}
-
-BOOL FindAccelerator (int cmd, int* flags, int* key) {
-int n = CopyAcceleratorTable(hAccel, NULL, 0);
-ACCEL* accels = (ACCEL*)malloc(sizeof(ACCEL) * (n+1));
-CopyAcceleratorTable(hAccel, accels, n);
-BOOL found = FALSE; int i; 
-for (i=0; i<n; i++) {
-if (accels[i].cmd==cmd) {
-found = TRUE;
-if (flags) *flags = accels[i].fVirt;
-if (key) *key = accels[i].key;
-break;
-}}
-free(accels);
-return found;
 }
 
 void GoToLine (int ln) {
@@ -438,14 +407,20 @@ return true;
 return false;
 }
 
-void OpenFile (const tstring& file, int flags=0) {
-if (OpenFile2(file, flags)) return;
+shared_ptr<Page> OpenFile (const tstring& file, int flags=0) {
+if (OpenFile2(file, flags)) return NULL;
 shared_ptr<Page> cp = curPage;
 shared_ptr<Page> p(new TextPage());
 p->LoadText(file);
 p->name = file.substr(1+file.rfind((TCHAR)'\\'));
 PageAdd(p);
 if (cp&&cp->IsEmpty()) PageDelete(cp);
+auto itrf = std::find(recentFiles.begin(), recentFiles.end(), file);
+if (itrf!=recentFiles.end()) recentFiles.erase(itrf);
+recentFiles.push_front(file);
+if (recentFiles.size()>config.get("nMaxRecentFiles", 10)) recentFiles.pop_back();
+UpdateRecentFilesMenu();
+return p;
 }
 
 void OpenFileDialog (int flags) {
@@ -453,6 +428,16 @@ tstring file = (curPage? curPage->file : tstring(TEXT("")) );
 file = FileDialog(win, FD_OPEN, file, msg("Open file") );
 if (file.size()<=0) return;
 OpenFile(file, flags);
+}
+
+void UpdateRecentFilesMenu (void) {
+for (int i=recentFiles.size() -1; i>=0; i--)  DeleteMenu(menuRecentFiles, i, MF_BYPOSITION);
+int i=0;
+for (const tstring& file: recentFiles) {
+InsertMenu(menuRecentFiles, i, MF_STRING | MF_BYPOSITION, IDM_RECENT_FILE +i, tsnprintf(512, TEXT("&%d. %ls"), i+1, file.c_str() ).c_str() );
+i++;
+}
+DeleteMenu(menuRecentFiles, recentFiles.size(), MF_BYPOSITION);
 }
 
 void I18NMenus (HMENU menu) {
@@ -463,13 +448,15 @@ int len = GetMenuString(menu, i, NULL, 0, MF_BYPOSITION);
 wchar_t buf[len+1];
 GetMenuString(menu, i, buf, len+1, MF_BYPOSITION);
 string oldLabel = toString(buf);
-string newLabel = msgs.get(oldLabel, oldLabel);
+tstring newLabel = msg(oldLabel.c_str());
 MENUITEMINFO mii;
 mii.cbSize = sizeof(MENUITEMINFO);
 mii.fMask = MIIM_ID | MIIM_SUBMENU;
 if (!GetMenuItemInfo(menu, i, TRUE, &mii)) continue;
+int accFlags=0, accKey=0;
 int flg2 = MF_BYPOSITION | (mii.hSubMenu? MF_POPUP : MF_STRING);
-ModifyMenu(menu, i, flg2, mii.wID, toTString(newLabel).c_str() );
+if (FindAccelerator(mii.wID, accFlags, accKey)) newLabel += TEXT("\t\t") + KeyCodeToName(accFlags, accKey, true);
+ModifyMenu(menu, i, flg2, mii.wID, newLabel.c_str() );
 if (mii.hSubMenu) I18NMenus(mii.hSubMenu);
 }}
 
@@ -504,11 +491,16 @@ for (wchar_t** arg = args; *arg; ++arg) argv.push_back(toTString(*arg));
 LocalFree(args);
 }
 for (int i=1; i<argv.size(); i++) {
-const tstring& arg = argv[i];
+tstring arg = argv[i];
 if (arg.size()<=0) continue;
-else if (arg[0]=='-' || arg[0]=='/') { continue; } // options
+else if (arg[0]=='-' || arg[0]=='/') { // options
+arg[0]='/';
+if (arg==TEXT("/stdout")) writeToStdout=true;
+continue; 
+} 
 if (OpenFile2(arg, OF_REUSEOPENEDTABS)) return 0;
 }
+firstInstance = !FindWindow(CLASSNAME,NULL);
 
 {//Register class and controls block
     WNDCLASSEX wincl;
@@ -558,11 +550,19 @@ menuFormat = GetSubMenu(menu,2);
 menuEncoding = GetSubMenu(menuFormat,0);
 menuLineEnding = GetSubMenu(menuFormat,1);
 menuIndentation = GetSubMenu(menuFormat,2);
+menuRecentFiles = GetSubMenu(GetSubMenu(menu, 0), 6);
 for (int i=0; i<encodings.size(); i++) InsertMenu(menuEncoding, i, MF_STRING | MF_BYPOSITION, IDM_ENCODING+i, (TEXT("Encoding")+toTString(encodings[i])).c_str() );
 for (int i=1; i<=8; i++) InsertMenu(menuIndentation, i, MF_STRING | MF_BYPOSITION, IDM_INDENTATION_SPACES -1 +i, tsnprintf(32, msg("%d spaces"), i).c_str() );
 DeleteMenu(menuEncoding, encodings.size(), MF_BYPOSITION);
 I18NMenus(menu);
 }
+
+{//Recent files
+for (int i=0; config.contains("recentFile"+toString(i)); i++) {
+recentFiles.push_back(config.get<tstring>("recentFile"+toString(i), TEXT("") ));
+}
+UpdateRecentFilesMenu();
+}//END Recentfiles
 
 for (int i=1; i<argv.size(); i++) {
 const tstring& arg = argv[i];
@@ -570,6 +570,19 @@ if (arg.size()<=0) continue;
 else if (arg[0]=='-' || arg[0]=='/') { continue; } // options
 OpenFile(arg);
 }
+
+if (firstInstance) {//Reload last opened files
+int mode = config.get("reloadLastFiles",1);
+if (mode==1 && pages.size()>0) mode=0;
+for (int i=0; config.contains("lastFile" + toString(i)); i++) {
+tstring fileName = config.get<tstring>("lastFile" + toString(i), TEXT(""));
+int pos = config.get("lastFilePos" + toString(i), 0);
+config.erase("lastFile" + toString(i));
+config.erase("lastFilePos" + toString(i));
+if (mode<=0) continue;
+shared_ptr<Page> p = OpenFile(fileName);
+SendMessage(p->zone, EM_SETSEL, pos, pos);
+}}
 if (pages.size()<=0) PageAddEmpty(false);
 
 PyStart();
@@ -588,6 +601,10 @@ if (TranslateAccelerator(win, hAccel, &msg)) continue;
 TranslateMessage(&msg);	
 DispatchMessage(&msg);
 }
+{int i=0; for(const tstring& file: recentFiles) {
+config.set("recentFile" + toString(i++), file);
+}}
+config.save(appDir + TEXT("\\") + appName + TEXT(".ini") );
 return msg.wParam;
 }
 
@@ -621,6 +638,18 @@ return true;
 }
 if (cmd>=IDM_INDENTATION_TABS && cmd<=IDM_INDENTATION_SPACES+8) {
 PageSetIndentationMode(curPage, cmd-IDM_INDENTATION_TABS);
+return true;
+}
+if (cmd>=IDM_RECENT_FILE && cmd<IDM_RECENT_FILE+100 && cmd<IDM_RECENT_FILE+recentFiles.size()) {
+const tstring& file = *next(recentFiles.begin(), cmd - IDM_RECENT_FILE);
+auto it = find_if(pages.begin(), pages.end(), [&](shared_ptr<Page>& p){ return p->file==file; });
+if (it!=pages.end())PageActivate(it - pages.begin() );
+else OpenFile(file);
+return true;
+}
+if (cmd>=IDM_USER_COMMAND && cmd<IDM_USER_COMMAND+userCommands.size()) {
+auto userFunc = userCommands[cmd - IDM_USER_COMMAND];
+userFunc();
 return true;
 }
 return false;

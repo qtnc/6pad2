@@ -1,72 +1,18 @@
 #ifndef _____STRINGS_HPP_8_____
 #define _____STRINGS_HPP_8_____
-
 #include "global.h"
 #include<string>
 #include<cstring>
-#include<cwchar>
-#include<algorithm>
 #include<cstdlib>
-
-template<class T>
-struct basic_split_iterator {
-const std::basic_string<T>& str;
-std::basic_string<T> delims;
-int first, last;
-
-basic_split_iterator (const std::basic_string<T>& str, const std::basic_string<T>& delims, int last=0, int first=0) ;
-std::basic_string<T> operator* (void) ;
-std::basic_string<T> rest (void) ;
-void delim (const std::basic_string<T>& delims1) ;
-const std::basic_string<T>& delim (void) ;
-basic_split_iterator<T>& operator++ (void) ;
-bool valid (void) ;
-basic_split_iterator<T>& begin (void) ;
-basic_split_iterator<T>& end (void) ;
-bool operator!= (const basic_split_iterator<T>&) ;
-};
-typedef basic_split_iterator<char> split_iterator;
-typedef basic_split_iterator<wchar_t> wsplit_iterator;
-
-template <class T> basic_split_iterator<T>::basic_split_iterator (const std::basic_string<T>& str1, const std::basic_string<T>& delims1, int last1, int first1) :
-str(str1), delims(delims1), first(first1), last(last1) {
-++(*this);
-}
-
-template <class T> basic_split_iterator<T>& basic_split_iterator<T>::operator++  (void) {
-first = str.find_first_not_of(delims, last);
-last = str.find_first_of(delims, first);
-return *this;
-}
-
-template <class T> std::basic_string<T> basic_split_iterator<T>::operator* (void) {
-return std::basic_string<T>( str.begin()+first, last>=0? str.begin()+last : str.end() );
-}
-
-template <class T> std::basic_string<T> basic_split_iterator<T>::rest (void) {
-return std::basic_string<T>( str.begin()+first, str.end());
-}
-
-template <class T> bool basic_split_iterator<T>::valid (void) {
-return first>=0;
-}
-
-template <class T> const std::basic_string<T>& basic_split_iterator<T>::delim (void) { return delims; }
-template <class T> void basic_split_iterator<T>::delim (const std::basic_string<T>& d) { delims=d; }
-
-template <class T> basic_split_iterator<T>& basic_split_iterator<T>::begin () {  return *this;  }
-template <class T> basic_split_iterator<T>& basic_split_iterator<T>::end () {  return *this;  }
-template <class T> bool basic_split_iterator<T>::operator!= (const basic_split_iterator<T>& unused) {  return valid();  }
-
-/// String replacement
 
 tstring str_replace (tstring& str, const tstring& needle, const tstring& repl);
 tstring preg_replace (tstring& str, const tstring& needle, const tstring& repl);
-void normalizeLineEndings (tstring& text) ;
+std::vector<tstring> split (const tstring& str, const tstring& delims);
 
-template <class T> void replace (std::basic_string<T>& str, const T* needle, const std::basic_string<T>& repl) { replace(str, std::basic_string<T>(needle), repl); }
-template <class T> void replace (std::basic_string<T>& str, const std::basic_string<T>& needle, const T* repl) { replace(str, needle, std::basic_string<T>(repl)); }
-template <class T> void replace (std::basic_string<T>& str, const T* needle, const T* repl) { replace(str, std::basic_string<T>(needle), std::basic_string<T>(repl)); }
+void toLowerCase (tstring&);
+void toUpperCase (tstring&);
+
+void normalizeLineEndings (tstring& text) ;
 
 template <class T> void trim (std::basic_string<T>& s) {
 int first=0, last=s.size()  -1;
@@ -74,14 +20,6 @@ while (first<s.size() && s[first]<32) first++;
 while (last>0 && s[last]<32) last--;
 if (first>0) s.erase(s.begin(), s.begin()+first);
 if (last<s.size()-1) s.erase(s.begin()+last+1, s.end());
-}
-
-template <class T> void toLowerCase (std::basic_string<T>& str) {
-transform(str.begin(), str.end(), tolower);
-}
-
-template <class T> void toUpperCase (std::basic_string<T>& str) {
-transform(str.begin(), str.end(), toupper);
 }
 
 // Sprintf++

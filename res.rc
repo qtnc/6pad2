@@ -121,6 +121,10 @@ MENUITEM "Open in a new &instance...", IDM_OPEN_NI
 MENUITEM "Re&load", IDM_REOPEN
 MENUITEM "&Save", IDM_SAVE
 MENUITEM "Sa&ve as...", IDM_SAVE_AS
+POPUP "&Recent files"
+BEGIN
+MENUITEM "Dummy", IDM_CRASH
+END
 MENUITEM "&Close", IDM_CLOSE
 MENUITEM "E&xit", IDM_EXIT
 END
