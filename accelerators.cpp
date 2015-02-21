@@ -90,6 +90,11 @@ key = KEYNAMES[toString(s)];
 return !!key;
 }
 
+int AddUserCommand (std::function<void(void)> f) {
+int cmd = IDM_USER_COMMAND + userCommands.size();
+userCommands.push_back(f);
+return cmd;
+}
 
 static void LoadAccelTable (void) {
 int n = CopyAcceleratorTable(hAccel, NULL, 0);

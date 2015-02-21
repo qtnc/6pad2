@@ -1,0 +1,3 @@
+redirect stdout/stderr
+http://stackoverflow.com/questions/4307187/how-to-catch-python-stdout-in-c-code/8335297#8335297
+http://stackoverflow.com/questions/1956407/how-to-redirect-stderr-in-python-via-python-c-api

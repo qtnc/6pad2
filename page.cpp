@@ -7,6 +7,7 @@ LRESULT CALLBACK EditAreaWinProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UIN
 
 extern HINSTANCE hinstance;
 extern IniFile config, msgs;
+extern tstring configFileName;
 
 bool TextPage::IsEmpty ()  {
 return file.size()<=0 && GetWindowTextLength(zone)<=0;
@@ -53,6 +54,7 @@ else if (lineEnding==LE_MAC) str = str_replace(str, TEXT("\r\n"), TEXT("\r"));
 string cstr = ConvertToEncoding(str, encoding);
 File fd(file, true);
 if (fd) fd.writeFully(cstr.data(), cstr.size());
+if (file==configFileName) config.load(configFileName);
 return true; 
 }
 

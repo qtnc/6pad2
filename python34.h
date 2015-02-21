@@ -93,6 +93,13 @@ static inline std::wstring convert (const wchar_t* s) { return s; }
 static inline const wchar_t* convert2 (const std::wstring& s) { return s.c_str(); }
 };
 
+template<> struct PyTypeSpec<const char*> { 
+typedef const char* type;
+static constexpr const char c = 's'; 
+static inline const char* convert (const char* s) { return s; }
+static inline const char* convert2 (const char*  s) { return s; }
+};
+
 template<> struct PyTypeSpec<PyObject*> { 
 typedef PyObject* type;
 static constexpr const char c = 'O'; 
@@ -146,6 +153,22 @@ Py_XDECREF(pyResult);
 }
 };//PyCallback
 
+template<> struct PyTypeSpec<PyCallback> { 
+typedef PyCallback type;
+static constexpr const char c = 'O'; 
+static inline PyCallback convert (const PyCallback& i) { return i; }
+static inline PyCallback convert2 (const PyCallback& i) { return i; }
+static inline PyCallback convert3 (PyObject* o) { return o; }
+};
+
+template<> struct PyTypeSpec<const PyCallback&> { 
+typedef PyCallback type;
+static constexpr const char c = 'O'; 
+static inline PyCallback convert (const PyCallback& i) { return i; }
+static inline PyCallback convert2 (const PyCallback& i) { return i; }
+static inline PyCallback convert3 (PyObject* o) { return o; }
+};
+
 template<int... S> struct TemplateSequence {};
 template<int N, int... S> struct TemplateSequenceGenerator: TemplateSequenceGenerator<N -1, N -1, S...> {};
 template<int... S> struct TemplateSequenceGenerator<0, S...> { typedef TemplateSequence<S...> sequence; };
@@ -156,10 +179,14 @@ template<int... S> static int PyArg_ParseTuple (TemplateSequence<S...> seq, PyOb
 
 template<class R, class... A> struct PyCTupleCallSpec {
 template<int... S> static R call (TemplateSequence<S...> seq, R(*f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {   return f(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
+template<int... S> static R call (TemplateSequence<S...> seq, R(__stdcall *f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {   return f(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
+template<class C, int... S> static R callmeth (TemplateSequence<S...> seq, C& c, R(C::*f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {   return c.*f(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
 };
 
 template<class... A> struct PyCTupleCallSpec<void, A...> {
 template<int... S> static void call (TemplateSequence<S...> seq, void(*f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {  f(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
+template<int... S> static void call (TemplateSequence<S...> seq, void(__stdcall *f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {  f(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
+template<class C, int... S> static void callmeth (TemplateSequence<S...> seq, C& c, void(C::*f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {   c.*f(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
 };
 
 template<class CFunc> struct PyFuncSpec {
@@ -177,9 +204,38 @@ if (!PyParseTupleSpec<A...>::PyArg_ParseTuple(seq, pyArgs, PyTypeSpecs<A...>(), 
 PyCTupleCallSpec<void,A...>::call(seq, cfunc, argtuple);
 Py_RETURN_NONE;
 }
+template<class R, class... A> static inline PyObject* func2 (R(__stdcall *cfunc)(A...), PyObject* pySelf, PyObject* pyArgs) {
+typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq;
+std::tuple<typename PyTypeSpec<A>::type...> argtuple;
+if (!PyParseTupleSpec<A...>::PyArg_ParseTuple(seq, pyArgs, PyTypeSpecs<A...>(), argtuple)) return NULL;
+R result = PyCTupleCallSpec<R,A...>::call(seq, cfunc, argtuple);
+return Py_BuildValue(PyTypeSpecs<R>(), PyTypeSpec<R>::convert2(result) );
+}
+template<class... A> static inline PyObject* func2 (void(*__stdcall cfunc)(A...), PyObject* pySelf, PyObject* pyArgs) {
+typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq;
+std::tuple<typename PyTypeSpec<A>::type...> argtuple;
+if (!PyParseTupleSpec<A...>::PyArg_ParseTuple(seq, pyArgs, PyTypeSpecs<A...>(), argtuple)) return NULL;
+PyCTupleCallSpec<void,A...>::call(seq, cfunc, argtuple);
+Py_RETURN_NONE;
+}
+template<class R, class O, class... A> static inline PyObject* func2 (R(O::*cfunc)(A...), PyObject* pySelf, PyObject* pyArgs) {
+typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq;
+std::tuple<typename PyTypeSpec<A>::type...> argtuple;
+if (!PyParseTupleSpec<A...>::PyArg_ParseTuple(seq, pyArgs, PyTypeSpecs<A...>(), argtuple)) return NULL;
+R result = PyCTupleCallSpec<R,A...>::callmeth(seq, *(O*)(pySelf), cfunc, argtuple);
+return Py_BuildValue(PyTypeSpecs<R>(), PyTypeSpec<R>::convert2(result) );
+}
+template<class O, class... A> static inline PyObject* func2 (void(O::*cfunc)(A...), PyObject* pySelf, PyObject* pyArgs) {
+typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq;
+std::tuple<typename PyTypeSpec<A>::type...> argtuple;
+if (!PyParseTupleSpec<A...>::PyArg_ParseTuple(seq, pyArgs, PyTypeSpecs<A...>(), argtuple)) return NULL;
+PyCTupleCallSpec<void,A...>::callmeth(seq, *(O*)(pySelf), cfunc, argtuple);
+Py_RETURN_NONE;
+}
 template<CFunc cfunc> static PyObject* func (PyObject* pySelf, PyObject* pyArgs) { return func2(cfunc, pySelf, pyArgs); }
 };
 
-#define PyDecl(n,f) {(n), (PyFuncSpec<decltype(f)>::func<f>), METH_VARARGS, NULL}
+#define PyDecl(n,f,d) {(n), (PyFuncSpec<decltype(f)>::func<f>), METH_VARARGS, (d)}
+#define PyDeclEnd {NULL, NULL, 0, NULL}
 
 #endif

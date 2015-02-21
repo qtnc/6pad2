@@ -1,6 +1,7 @@
 #define __WINDRES
 #include "global.h"
 
+"init.py" 257 init.py
 
 "accel" ACCELERATORS
 BEGIN

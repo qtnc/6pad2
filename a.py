@@ -1,8 +1,10 @@
-def f1 ():
-	def f2 ():
-		print('yes!')
-	
-	print(f2)
-	f2()
+import window
+def func () :
+	window.beep(4*392,220)
+	window.beep(4*293,220)
+	window.beep(4*494,220)
+	window.beep(4*392,220)
 
-print(f2)
+re = window.addAccelerator('Ctrl+E', func)
+print(re)
+

@@ -34,7 +34,7 @@ inline bool operator!= (const FindData& f) { return !(*this==f); }
 tregex newRegex (bool);
 };
 
-tstring appPath, appDir, appName;
+tstring appPath, appDir, appName, configFileName;
 IniFile msgs, config;
 vector<int> encodings = { CP_ACP, CP_UTF8, CP_UTF8_BOM, CP_UTF16_LE, CP_UTF16_LE_BOM, CP_UTF16_BE, CP_UTF16_BE_BOM, CP_ISO_8859_15, CP_MSDOS };
 vector<tstring> argv;
@@ -45,13 +45,14 @@ list<tstring> recentFiles;
 vector<function<void(void)>> userCommands;
 
 TCHAR CLASSNAME[32] = {0};
-bool firstInstance = false, writeToStdout=false;
+bool firstInstance = false, writeToStdout=false, headless=false;
 HINSTANCE hinstance = 0;
 HWND win=0, tabctl=0, status=0;
 HMENU menu = 0, menuFormat=0, menuEncoding=0, menuLineEnding=0, menuIndentation=0, menuRecentFiles = 0;
 HACCEL hAccel = 0;
 
 void SaveCurFile (bool saveas = false);
+shared_ptr<Page> OpenFile (const tstring& file, int flags=0);
 void GoToLineDialog () ;
 void SearchReplaceDialog (bool);
 BOOL WINAPI PredispatchMessage (MSG&);
@@ -275,6 +276,10 @@ CloseClipboard();
 return text;
 }
 
+void ConsolePrint (const tstring& s) {
+printf("%ls", s.c_str());
+}
+
 void GoToLine (int ln) {
 HWND edit = GetCurEditArea();
 int pos = SendMessage(edit, EM_LINEINDEX, ln, 0);
@@ -384,6 +389,10 @@ if (file==page->file) {
 SendMessage(tabctl, TCM_SETCURFOCUS, i, 0);
 return true;
 }}
+if (1==config.get("instanceMode", 0)) {
+OpenFile(file);
+return true;
+}
 return false;
 }
 
@@ -407,7 +416,7 @@ return true;
 return false;
 }
 
-shared_ptr<Page> OpenFile (const tstring& file, int flags=0) {
+shared_ptr<Page> OpenFile (const tstring& file, int flags) {
 if (OpenFile2(file, flags)) return NULL;
 shared_ptr<Page> cp = curPage;
 shared_ptr<Page> p(new TextPage());
@@ -480,7 +489,8 @@ TCHAR* fnDot = tstrrchr(fn, (TCHAR)'.');
 tsnprintf(CLASSNAME, sizeof(CLASSNAME)/sizeof(TCHAR), TEXT("QC6Pad01_%s"), fnBs+1);
 appName = fnBs+1;
 appDir = fn;
-config.load(appDir + TEXT("\\") + appName + TEXT(".ini") );
+configFileName = appDir + TEXT("\\") + appName + TEXT(".ini");
+config.load(configFileName);
 msgs.load(appDir + TEXT("\\") + appName + TEXT(".lng") );
 }
 
@@ -496,6 +506,7 @@ if (arg.size()<=0) continue;
 else if (arg[0]=='-' || arg[0]=='/') { // options
 arg[0]='/';
 if (arg==TEXT("/stdout")) writeToStdout=true;
+else if (arg==TEXT("/headless")) headless=true;
 continue; 
 } 
 if (OpenFile2(arg, OF_REUSEOPENEDTABS)) return 0;
@@ -564,6 +575,9 @@ recentFiles.push_back(config.get<tstring>("recentFile"+toString(i), TEXT("") ));
 UpdateRecentFilesMenu();
 }//END Recentfiles
 
+PyStart();
+AppWindowOpened();
+
 for (int i=1; i<argv.size(); i++) {
 const tstring& arg = argv[i];
 if (arg.size()<=0) continue;
@@ -572,7 +586,7 @@ OpenFile(arg);
 }
 
 if (firstInstance) {//Reload last opened files
-int mode = config.get("reloadLastFiles",1);
+int mode = config.get("reloadLastFilesMode",0);
 if (mode==1 && pages.size()>0) mode=0;
 for (int i=0; config.contains("lastFile" + toString(i)); i++) {
 tstring fileName = config.get<tstring>("lastFile" + toString(i), TEXT(""));
@@ -585,12 +599,11 @@ SendMessage(p->zone, EM_SETSEL, pos, pos);
 }}
 if (pages.size()<=0) PageAddEmpty(false);
 
-PyStart();
 time = GetTickCount() -time;
 printf("Init time = %d ms\r\n", time);
 
-ShowWindow(win, nWindowStile);
-AppWindowOpened();
+if (headless) PostQuitMessage(0);
+else ShowWindow(win, nWindowStile);
 PageActivated(pages[0]);
 
 MSG msg;
@@ -601,6 +614,7 @@ if (TranslateAccelerator(win, hAccel, &msg)) continue;
 TranslateMessage(&msg);	
 DispatchMessage(&msg);
 }
+
 {int i=0; for(const tstring& file: recentFiles) {
 config.set("recentFile" + toString(i++), file);
 }}
@@ -610,8 +624,14 @@ return msg.wParam;
 
 bool ActionCommand (int cmd) {
 switch(cmd){
-case IDM_OPEN: OpenFileDialog(OF_REUSEOPENEDTABS); return true;
-case IDM_OPEN_NI: OpenFileDialog(OF_NEWINSTANCE); return true;
+case IDM_OPEN: 
+if (2==config.get("instanceMode",0)) OpenFileDialog(OF_NEWINSTANCE); 
+else OpenFileDialog(OF_REUSEOPENEDTABS);
+return true;
+case IDM_OPEN_NI: 
+if (1==config.get("instanceMode",0)) OpenFileDialog(OF_REUSEOPENEDTABS);
+else OpenFileDialog(OF_NEWINSTANCE); 
+return true;
 case IDM_REOPEN: PageReopen(curPage); return true;
 case IDM_SAVE: SaveCurFile(); return true;
 case IDM_SAVE_AS: SaveCurFile(true); return true;
@@ -901,7 +921,8 @@ DialogBoxParam(IDD_GOTOLINE, win, GoToLineDlgProc, NULL);
 
 INT_PTR CALLBACK SearchReplaceDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
 switch (umsg) {
-case WM_INITDIALOG :
+case WM_INITDIALOG : {
+FindData fd = finds.size()>0? finds.front() : FindData(TEXT(""), TEXT(""), 0);
 SetWindowText(hwnd, msg(!lp? "Find" : "Search and replace"));
 SetDlgItemText(hwnd, IDOK, msg(lp? "Replace &all" : "&OK") );
 SetDlgItemText(hwnd, IDCANCEL, msg("Ca&ncel"));
@@ -915,21 +936,18 @@ SetDlgItemText(hwnd, 1006, msg("&Down"));
 EnableDlgItem(hwnd, 1002, lp);
 EnableDlgItem(hwnd, 1005, !lp);
 EnableDlgItem(hwnd, 1006, !lp);
-//SetDlgItemText(hwnd, 1001, curSearch);
-//SetDlgItemText(hwnd, 1002, curReplace);
-//SendMessage(GetDlgItem(hwnd, 1003), BM_SETCHECK, (searchFlags&1)?BST_CHECKED:BST_UNCHECKED, 0);
-//SendMessage(GetDlgItem(hwnd, 1007), BM_SETCHECK, (searchFlags&2)?BST_CHECKED:BST_UNCHECKED, 0);
-//SendMessage(GetDlgItem(hwnd, 1004), BM_SETCHECK, searchRegex?BST_CHECKED:BST_UNCHECKED, 0);
-//SendMessage(GetDlgItem(hwnd, searchUpward?1005:1006), BM_SETCHECK, BST_CHECKED, 0);
-//if (searchList) {
-//HWND hCb = GetDlgItem(hwnd,1001);
-//int i,n; for (i=0, n=l_len(searchList); i<n; i++) SendMessage(hCb, CB_ADDSTRING, 0, l_item(searchList,i));
-//}
-//if (replaceList) {
-//HWND hCb = GetDlgItem(hwnd,1002);
-//int i,n; for (i=0, n=l_len(replaceList); i<n; i++) SendMessage(hCb, CB_ADDSTRING, 0, l_item(replaceList,i));
-//}
+SetDlgItemText(hwnd, 1001, fd.findText.c_str() );
+SetDlgItemText(hwnd, 1002, fd.replaceText.c_str() );
+SendMessage(GetDlgItem(hwnd, 1003), BM_SETCHECK, (fd.flags&FF_CASE)?BST_CHECKED:BST_UNCHECKED, 0);
+SendMessage(GetDlgItem(hwnd, 1004), BM_SETCHECK, (fd.flags&FF_REGEX)?BST_CHECKED:BST_UNCHECKED, 0);
+SendMessage(GetDlgItem(hwnd, (fd.flags&FF_UPWARDS)?1005:1006), BM_SETCHECK, BST_CHECKED, 0);
+HWND hFindCb = GetDlgItem(hwnd,1001), hReplCb = GetDlgItem(hwnd,1002);
+for (FindData& f: finds) {
+SendMessage(hFindCb, CB_ADDSTRING, 0, f.findText.c_str() );
+SendMessage(hReplCb, CB_ADDSTRING, 0, f.replaceText.c_str() );
+}
 return TRUE;
+}//WM_INITDIALOG
 case WM_COMMAND :
 switch (LOWORD(wp)) {
 case IDOK : {
