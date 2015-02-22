@@ -15,6 +15,8 @@ extern vector<tstring> argv;
 extern "C" FILE* msvcfopen (const char* name, const char* ax) ;
 extern "C" void msvcfclose (FILE*);
 
+bool PyRegister_MyObj (PyObject* m);
+
 tstring msg (const char* name);
 void ConsolePrint (const tstring& str);
 void SetClipboardText (const tstring&);
@@ -69,6 +71,7 @@ PyModuleDef_HEAD_INIT,
 
 PyMODINIT_FUNC PyInit_6padMain (void) {
 PyObject* mod = PyModule_Create(&_6padMainMod);
+PyRegister_MyObj(mod);
 return mod;
 }
 

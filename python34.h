@@ -182,7 +182,7 @@ template<int... S> static int PyArg_ParseTuple (TemplateSequence<S...> seq, PyOb
 template<class R, class... A> struct PyCTupleCallSpec {
 template<int... S> static R call (TemplateSequence<S...> seq, R(*f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {   return f(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
 template<int... S> static R call (TemplateSequence<S...> seq, R(__stdcall *f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {   return f(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
-template<class C, int... S> static R callmeth (TemplateSequence<S...> seq, C& c, R(C::*f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {   return c.*f(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
+template<class C, int... S> static R callmeth (TemplateSequence<S...> seq, C& c, R(C::*f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {   return (c.*f)(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
 };
 
 template<class... A> struct PyCTupleCallSpec<void, A...> {
@@ -239,13 +239,13 @@ template<CFunc cfunc> static PyObject* func (PyObject* pySelf, PyObject* pyArgs)
 
 template<class G, class S> struct PyAttrSpec {
 template<class O, class A> static inline PyObject* get2 (A(O::*getf)(void), PyObject* self ) {
-A result = ((O*)(self)) ->*getf();
+A result = ((*(O*)self).*getf)();
 return Py_BuildValue(PyTypeSpecs<A>(), PyTypeSpec<A>::convert2(result) );
 }
 template<class O, class A> static inline int set2 (void(O::*setf)(A), PyObject* self, PyObject* pyVal) {
 A cVal = PyTypeSpec<A>::convert3(pyVal);
-((O*)(self)) ->*setf(cVal);
-return 1;
+((*(O*)self).*setf)(cVal);
+return 0;
 }
 template<G getf> static PyObject* getter (PyObject* self, void* unused) { return get2(getf, self); }
 template<S setf> static int setter (PyObject* self, PyObject* val, void* unused) { return set2(setf, self, val); }
@@ -254,7 +254,7 @@ template<S setf> static int setter (PyObject* self, PyObject* val, void* unused)
 #define PyToCType(t,x) (PyTypeSpec<t>::convert3(x))
 #define PyToPyType(x) (Py_BuildValue(PyTypeSpecs<decltype(x)>(), PyTypeSpec<decltype(x)>::convert2(x)))
 #define PyDecl(n,f) {(n), (PyFuncSpec<decltype(f)>::func<f>), METH_VARARGS, NULL}
-#define PyAttr(n,g,s) {(n), (PyAttrSpec<decltype(g), decltype(s)>::getter<g>), (PyAttrSpec<decltype(g), decltype(s)>::setter<s>), NULL, NULL}
+#define PyAccessor(n,g,s) {(n), (PyAttrSpec<decltype(g), decltype(s)>::getter<g>), (PyAttrSpec<decltype(g), decltype(s)>::setter<s>), NULL, NULL}
 #define PyDeclEnd {0, 0, 0, 0}
 
 
