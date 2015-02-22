@@ -47,16 +47,16 @@ return IDYES==MessageBox(win, str.c_str(), title.c_str(), MB_YESNO | MB_ICONEXCL
 }
 
 static PyMethodDef _6padMainDefs[] = {
-PyDecl("print", ConsolePrint, "Print message to console"),
-PyDecl("beep", Beep, "Emit sound from PC speakers"),
-PyDecl("messageBeep", MessageBeep, "Emit default windows sound"),
-PyDecl("messageBox", PyMsgBox, "Shows a message box"),
-PyDecl("alert", PyAlert, "Shows an alert box with OK button"),
-PyDecl("confirm", PyConfirm, "Shows a confirmation dialog box with Yes and No buttons"),
-PyDecl("getTranslation", msg, "Get the translation of a message"),
-PyDecl("setClipboardText", SetClipboardText, "Overwrites cliboard text"),
-PyDecl("getClipboardText", GetClipboardText, "Return clipboard text"),
-PyDecl("addAccelerator", PyAddAccelerator, "Add an accelerator"),
+PyDecl("print", ConsolePrint),
+PyDecl("beep", Beep),
+PyDecl("messageBeep", MessageBeep),
+PyDecl("messageBox", PyMsgBox),
+PyDecl("alert", PyAlert),
+PyDecl("confirm", PyConfirm),
+PyDecl("getTranslation", msg),
+PyDecl("setClipboardText", SetClipboardText),
+PyDecl("getClipboardText", GetClipboardText),
+PyDecl("addAccelerator", PyAddAccelerator),
 PyDeclEnd
 };
 

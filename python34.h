@@ -76,6 +76,7 @@ typedef char* type;
 static constexpr const char c = 's'; 
 static inline std::string convert (const char* s) { return s; }
 static inline const char* convert2 (const std::string& s) { return s.c_str(); }
+static inline string convert3 (PyObject* o) { return toString(PyUnicode_AsUnicode(o)); }
 };
 
 template<> struct PyTypeSpec<std::wstring> { 
@@ -91,6 +92,7 @@ typedef wchar_t* type;
 static constexpr const char c = 'u'; 
 static inline std::wstring convert (const wchar_t* s) { return s; }
 static inline const wchar_t* convert2 (const std::wstring& s) { return s.c_str(); }
+static inline wstring convert3 (PyObject* o) { return toWString(PyUnicode_AsUnicode(o)); }
 };
 
 template<> struct PyTypeSpec<const char*> { 
@@ -235,7 +237,25 @@ Py_RETURN_NONE;
 template<CFunc cfunc> static PyObject* func (PyObject* pySelf, PyObject* pyArgs) { return func2(cfunc, pySelf, pyArgs); }
 };
 
-#define PyDecl(n,f,d) {(n), (PyFuncSpec<decltype(f)>::func<f>), METH_VARARGS, (d)}
-#define PyDeclEnd {NULL, NULL, 0, NULL}
+template<class G, class S> struct PyAttrSpec {
+template<class O, class A> static inline PyObject* get2 (A(O::*getf)(void), PyObject* self ) {
+A result = ((O*)(self)) ->*getf();
+return Py_BuildValue(PyTypeSpecs<A>(), PyTypeSpec<A>::convert2(result) );
+}
+template<class O, class A> static inline int set2 (void(O::*setf)(A), PyObject* self, PyObject* pyVal) {
+A cVal = PyTypeSpec<A>::convert3(pyVal);
+((O*)(self)) ->*setf(cVal);
+return 1;
+}
+template<G getf> static PyObject* getter (PyObject* self, void* unused) { return get2(getf, self); }
+template<S setf> static int setter (PyObject* self, PyObject* val, void* unused) { return set2(setf, self, val); }
+};
+
+#define PyToCType(t,x) (PyTypeSpec<t>::convert3(x))
+#define PyToPyType(x) (Py_BuildValue(PyTypeSpecs<decltype(x)>(), PyTypeSpec<decltype(x)>::convert2(x)))
+#define PyDecl(n,f) {(n), (PyFuncSpec<decltype(f)>::func<f>), METH_VARARGS, NULL}
+#define PyAttr(n,g,s) {(n), (PyAttrSpec<decltype(g), decltype(s)>::getter<g>), (PyAttrSpec<decltype(g), decltype(s)>::setter<s>), NULL, NULL}
+#define PyDeclEnd {0, 0, 0, 0}
+
 
 #endif
