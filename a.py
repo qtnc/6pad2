@@ -12,5 +12,5 @@ print(o)
 o.val += 7
 o.val **= 2
 print(o.val+2)
-
+o.val='hello'
 

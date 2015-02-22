@@ -28,7 +28,10 @@ typedef int type;
 static constexpr const char c = 'i'; 
 static inline int convert (int i) { return i; }
 static inline int convert2 (int i) { return i; }
-static inline int convert3 (PyObject* o) { return PyLong_AsLong(o); }
+static inline int convert3 (PyObject* o) { 
+if (!PyLong_Check(o)) { PyErr_SetString(PyExc_TypeError, "int expected"); return 0; }
+return PyLong_AsLong(o); 
+}
 };
 
 template<> struct PyTypeSpec<DWORD> { 
@@ -36,7 +39,10 @@ typedef DWORD type;
 static constexpr const char c = 'I'; 
 static inline DWORD convert (DWORD i) { return i; }
 static inline DWORD convert2 (DWORD i) { return i; }
-static inline DWORD convert3 (PyObject* o) { return PyLong_AsLongLong(o); }
+static inline DWORD convert3 (PyObject* o) { 
+if (!PyLong_Check(o)) { PyErr_SetString(PyExc_TypeError, "int expected"); return 0; }
+return PyLong_AsLongLong(o); 
+}
 };
 
 template<> struct PyTypeSpec<size_t> { 
@@ -44,7 +50,10 @@ typedef size_t type;
 static constexpr const char c = 'n'; 
 static inline size_t convert (size_t i) { return i; }
 static inline size_t convert2 (size_t i) { return i; }
-static inline int convert3 (PyObject* o) { return PyLong_AsLongLong(o); }
+static inline int convert3 (PyObject* o) { 
+if (!PyLong_Check(o)) { PyErr_SetString(PyExc_TypeError, "int expected"); return 0; }
+return PyLong_AsLongLong(o); 
+}
 };
 
 template<> struct PyTypeSpec<double> { 
@@ -52,7 +61,10 @@ typedef double type;
 static constexpr const char c = 'd'; 
 static inline double convert (double i) { return i; }
 static inline double convert2 (double i) { return i; }
-static inline double convert3 (PyObject* o) { return PyFloat_AsDouble(o); }
+static inline double convert3 (PyObject* o) { 
+if (!PyFloat_Check(o)) { PyErr_SetString(PyExc_TypeError, "float expected"); return 0; }
+return PyFloat_AsDouble(o); 
+}
 };
 
 template<> struct PyTypeSpec<bool> { 
@@ -60,7 +72,10 @@ typedef bool type;
 static constexpr const char c = 'p'; 
 static inline bool convert (bool i) { return i; }
 static inline bool convert2 (bool i) { return i; }
-static inline bool convert3 (PyObject* o) { return PyLong_AsLong(o); }
+static inline bool convert3 (PyObject* o) { 
+if (!PyLong_Check(o)) { PyErr_SetString(PyExc_TypeError, "int expected"); return false; }
+return PyLong_AsLong(o); 
+}
 };
 
 template<> struct PyTypeSpec<std::string> { 
@@ -68,7 +83,10 @@ typedef char* type;
 static constexpr const char c = 's'; 
 static inline std::string convert (const char* s) { return s; }
 static inline const char* convert2 (const std::string& s) { return s.c_str(); }
-static inline string convert3 (PyObject* o) { return toString(PyUnicode_AsUnicode(o)); }
+static inline string convert3 (PyObject* o) { 
+if (!PyUnicode_Check(o)) { PyErr_SetString(PyExc_TypeError, "str expected"); return ""; }
+return toString(PyUnicode_AsUnicode(o)); 
+}
 };
 
 template<> struct PyTypeSpec<const std::string&> { 
@@ -76,7 +94,10 @@ typedef char* type;
 static constexpr const char c = 's'; 
 static inline std::string convert (const char* s) { return s; }
 static inline const char* convert2 (const std::string& s) { return s.c_str(); }
-static inline string convert3 (PyObject* o) { return toString(PyUnicode_AsUnicode(o)); }
+static inline string convert3 (PyObject* o) { 
+if (!PyUnicode_Check(o)) { PyErr_SetString(PyExc_TypeError, "str expected"); return ""; }
+return toString(PyUnicode_AsUnicode(o)); 
+}
 };
 
 template<> struct PyTypeSpec<std::wstring> { 
@@ -84,7 +105,10 @@ typedef wchar_t* type;
 static constexpr const char c = 'u'; 
 static inline std::wstring convert (const wchar_t* s) { return s; }
 static inline const wchar_t* convert2 (const std::wstring& s) { return s.c_str(); }
-static inline wstring convert3 (PyObject* o) { return toWString(PyUnicode_AsUnicode(o)); }
+static inline wstring convert3 (PyObject* o) { 
+if (!PyUnicode_Check(o)) { PyErr_SetString(PyExc_TypeError, "str expected"); return L""; }
+return toWString(PyUnicode_AsUnicode(o)); 
+}
 };
 
 template<> struct PyTypeSpec<const std::wstring&> { 
@@ -92,7 +116,10 @@ typedef wchar_t* type;
 static constexpr const char c = 'u'; 
 static inline std::wstring convert (const wchar_t* s) { return s; }
 static inline const wchar_t* convert2 (const std::wstring& s) { return s.c_str(); }
-static inline wstring convert3 (PyObject* o) { return toWString(PyUnicode_AsUnicode(o)); }
+static inline wstring convert3 (PyObject* o) { 
+if (!PyUnicode_Check(o)) { PyErr_SetString(PyExc_TypeError, "str expected"); return L""; }
+return toWString(PyUnicode_AsUnicode(o)); 
+}
 };
 
 template<> struct PyTypeSpec<const char*> { 
@@ -160,7 +187,10 @@ typedef PyCallback type;
 static constexpr const char c = 'O'; 
 static inline PyCallback convert (const PyCallback& i) { return i; }
 static inline PyCallback convert2 (const PyCallback& i) { return i; }
-static inline PyCallback convert3 (PyObject* o) { return o; }
+static inline PyCallback convert3 (PyObject* o) { 
+if (!PyCallable_Check(o)) { PyErr_SetString(PyExc_TypeError, "object must be callable"); return 0; }
+return o; 
+}
 };
 
 template<> struct PyTypeSpec<const PyCallback&> { 
@@ -168,7 +198,10 @@ typedef PyCallback type;
 static constexpr const char c = 'O'; 
 static inline PyCallback convert (const PyCallback& i) { return i; }
 static inline PyCallback convert2 (const PyCallback& i) { return i; }
-static inline PyCallback convert3 (PyObject* o) { return o; }
+static inline PyCallback convert3 (PyObject* o) { 
+if (!PyCallable_Check(o)) { PyErr_SetString(PyExc_TypeError, "object must be callable"); return 0; }
+return o; 
+}
 };
 
 template<int... S> struct TemplateSequence {};
@@ -244,6 +277,7 @@ return Py_BuildValue(PyTypeSpecs<A>(), PyTypeSpec<A>::convert2(result) );
 }
 template<class O, class A> static inline int set2 (void(O::*setf)(A), PyObject* self, PyObject* pyVal) {
 A cVal = PyTypeSpec<A>::convert3(pyVal);
+if (PyErr_Occurred()) return -1;
 ((*(O*)self).*setf)(cVal);
 return 0;
 }
