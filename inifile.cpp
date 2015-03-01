@@ -1,4 +1,4 @@
-#include "inifile.h"
+#include "IniFile.h"
 #include "file.h"
 
 bool IniFile::save (const tstring& fn) {

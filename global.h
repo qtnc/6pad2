@@ -51,6 +51,7 @@ typedef std::string tstring;
 #define IDC_TABCTL 2
 #define IDC_STATUSBAR 3
 
+#define IDD_CONSOLE 900
 #define IDD_GOTOLINE 901
 #define IDD_SEARCHREPLACE 902
 
@@ -84,8 +85,11 @@ typedef std::string tstring;
 #define IDM_AUTOLINEBREAK 2230
 #define IDM_NEXTPAGE 2231
 #define IDM_PREVPAGE 2232
+#define IDM_OPEN_CONSOLE 2400
 #define IDM_USER_COMMAND 4000
-#define IDM_CRASH 9999
+#define IDM_NEXT_MODLESS 19997
+#define IDM_PREV_MODLESS 19998
+#define IDM_CRASH 19999
 
 #ifndef __WINDRES
 using namespace std;

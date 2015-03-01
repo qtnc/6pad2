@@ -4,6 +4,7 @@
 #include "inifile.h"
 #include "file.h"
 #include "dialogs.h"
+#include "Thread.h"
 #include "python34.h"
 #include<functional>
 #include<boost/regex.hpp>
@@ -43,19 +44,23 @@ shared_ptr<Page> curPage(0);
 list<FindData> finds;
 list<tstring> recentFiles;
 vector<function<void(void)>> userCommands;
+vector<HWND> modlessWindows;
+list<tstring> consoleInput;
 
 TCHAR CLASSNAME[32] = {0};
 bool firstInstance = false, writeToStdout=false, headless=false;
 HINSTANCE hinstance = 0;
-HWND win=0, tabctl=0, status=0;
+HWND win=0, tabctl=0, status=0, consoleWin=0;
 HMENU menu = 0, menuFormat=0, menuEncoding=0, menuLineEnding=0, menuIndentation=0, menuRecentFiles = 0;
-HACCEL hAccel = 0;
+HACCEL hAccel = 0, hGlobAccel=0;
+HANDLE consoleInputEvent=0;
+CRITICAL_SECTION csConsoleInput;
 
 void SaveCurFile (bool saveas = false);
 shared_ptr<Page> OpenFile (const tstring& file, int flags=0);
 void GoToLineDialog () ;
 void SearchReplaceDialog (bool);
-BOOL WINAPI PredispatchMessage (MSG&);
+void OpenConsoleWindow (void);
 void UpdateRecentFilesMenu (void);
 bool FindAccelerator (int cmd, int& flags, int& key);
 tstring KeyCodeToName (int flags, int vk, bool i18n);
@@ -117,25 +122,25 @@ void PageOpened (shared_ptr<Page> p) { }
 void PageSetLineEnding (shared_ptr<Page> p, int le) {
 if (!p) return;
 p->lineEnding = le;
-CheckMenuRadioItem(menuLineEnding, 0, 2, p->lineEnding, MF_BYPOSITION);
+if (p==curPage) CheckMenuRadioItem(menuLineEnding, 0, 2, p->lineEnding, MF_BYPOSITION);
 }
 
 void PageSetEncoding (shared_ptr<Page> p, int enc) {
 if (!p) return;
 p->encoding = encodings[enc];
-CheckMenuRadioItem(menuEncoding, 0, encodings.size(), enc, MF_BYPOSITION);
+if (p==curPage) CheckMenuRadioItem(menuEncoding, 0, encodings.size(), enc, MF_BYPOSITION);
 }
 
 void PageSetIndentationMode (shared_ptr<Page> p, int im) {
 p->indentationMode = im;
-CheckMenuRadioItem(menuIndentation, 0, 8, p->indentationMode, MF_BYPOSITION);
+if (p==curPage) CheckMenuRadioItem(menuIndentation, 0, 8, p->indentationMode, MF_BYPOSITION);
 }
 
 void PageSetAutoLineBreak (shared_ptr<Page> p, bool alb) {
 if (!p) return;
 if (alb) p->flags |= PF_AUTOLINEBREAK;
 else p->flags &=~PF_AUTOLINEBREAK;
-CheckMenuItem(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND | (p->flags&PF_AUTOLINEBREAK? MF_CHECKED : MF_UNCHECKED));
+if (p==curPage) CheckMenuItem(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND | (p->flags&PF_AUTOLINEBREAK? MF_CHECKED : MF_UNCHECKED));
 p->CreateEditArea(tabctl);
 if (p==curPage) PageActivated(p);
 }
@@ -276,8 +281,18 @@ CloseClipboard();
 return text;
 }
 
-void ConsolePrint (const tstring& s) {
+tstring ConsoleRead (void) {
+while (consoleInput.size()<=0) WaitForSingleObject(consoleInputEvent, INFINITE);
+SCOPE_LOCK(csConsoleInput);
+tstring s = consoleInput.front() + TEXT("\n");
+consoleInput.pop_front();
+return s;
+}
+
+void ConsolePrint (const tstring& s2) {
+tstring s=s2; s = preg_replace(s, TEXT("(?:\r\n|\n|\r)"), TEXT("\r\n"));
 printf("%ls", s.c_str());
+if (consoleWin) SendMessage(consoleWin, WM_COMMAND, 999, &s);
 }
 
 void GoToLine (int ln) {
@@ -556,6 +571,7 @@ WS_VISIBLE | WS_CHILD | WS_BORDER | SS_NOPREFIX | SS_LEFT,
 5, r.bottom -32, r.right -10, 27, 
 win, (HMENU)IDC_STATUSBAR, hinstance, NULL);
 hAccel = LoadAccelerators(hinstance, TEXT("accel"));
+hGlobAccel = LoadAccelerators(hinstance, TEXT("globaccel"));
 menu = GetMenu(win);
 menuFormat = GetSubMenu(menu,2);
 menuEncoding = GetSubMenu(menuFormat,0);
@@ -575,7 +591,9 @@ recentFiles.push_back(config.get<tstring>("recentFile"+toString(i), TEXT("") ));
 UpdateRecentFilesMenu();
 }//END Recentfiles
 
-PyStart();
+consoleInputEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+InitializeCriticalSection(&csConsoleInput);
+Thread::start(PyStart);
 AppWindowOpened();
 
 for (int i=1; i<argv.size(); i++) {
@@ -608,11 +626,12 @@ PageActivated(pages[0]);
 
 MSG msg;
 while (GetMessage(&msg,NULL,0,0)) {
-if (PredispatchMessage(msg)) continue;
-//if (IsDialogMessage(win, &msg)) continue;
+if (TranslateAccelerator(win, hGlobAccel, &msg)) continue;
+for (HWND hWin: modlessWindows) if (IsDialogMessage(hWin, &msg)) goto endmsgloop; // continue x2
 if (TranslateAccelerator(win, hAccel, &msg)) continue;
 TranslateMessage(&msg);	
 DispatchMessage(&msg);
+endmsgloop: ;
 }
 
 {int i=0; for(const tstring& file: recentFiles) {
@@ -622,7 +641,20 @@ config.save(appDir + TEXT("\\") + appName + TEXT(".ini") );
 return msg.wParam;
 }
 
-bool ActionCommand (int cmd) {
+void GoToNextModlessWindow (int dist) {
+int n = modlessWindows.size();
+if (n<=0) {
+SetForegroundWindow(win);
+return;
+}
+HWND hWin = GetForegroundWindow();
+int curPos = (win==hWin? n : (find(modlessWindows.begin(), modlessWindows.end(), hWin) -modlessWindows.begin() ));
+int nextPos = (curPos + dist + n +1)%(n+1);
+SetForegroundWindow(nextPos==n? win : modlessWindows[n]);
+Beep(800,150);
+}
+
+bool ActionCommand (HWND hwnd, int cmd) {
 switch(cmd){
 case IDM_OPEN: 
 if (2==config.get("instanceMode",0)) OpenFileDialog(OF_NEWINSTANCE); 
@@ -646,11 +678,14 @@ case IDM_FIND: SearchReplaceDialog(false); return true;
 case IDM_REPLACE: SearchReplaceDialog(true); return true;
 case IDM_FINDNEXT: FindNext(); return true;
 case IDM_FINDPREV: FindPrev(); return true;
-case IDM_NEXTPAGE: PageGoToNext(1); break;
-case IDM_PREVPAGE: PageGoToNext(-1); break;
-case IDM_EXIT: SendMessage(win, WM_CLOSE, 0, 0); return true;
 case IDM_LE_DOS: case IDM_LE_UNIX: case IDM_LE_MAC: PageSetLineEnding(curPage, cmd-IDM_LE_DOS); return true;
 case IDM_AUTOLINEBREAK: PageSetAutoLineBreak(curPage, curPage&&!(curPage->flags&PF_AUTOLINEBREAK)); return true;
+case IDM_OPEN_CONSOLE: OpenConsoleWindow(); break;
+case IDM_NEXTPAGE: PageGoToNext(1); break;
+case IDM_PREVPAGE: PageGoToNext(-1); break;
+case IDM_NEXT_MODLESS: GoToNextModlessWindow(1); return true;
+case IDM_PREV_MODLESS: GoToNextModlessWindow(-1); return true;
+case IDM_EXIT: SendMessage(win, WM_CLOSE, 0, 0); return true;
 }
 if (cmd>=IDM_ENCODING && cmd<IDM_ENCODING+encodings.size() ) {
 PageSetEncoding(curPage, cmd-IDM_ENCODING);
@@ -678,10 +713,6 @@ return false;
 inline bool IsCtrlDown () { return GetKeyState(VK_CONTROL)<0; }
 inline bool IsShiftDown () { return GetKeyState(VK_SHIFT)<0; }
 inline bool IsAltDown () { return GetKeyState(VK_MENU)<0; }
-
-BOOL WINAPI PredispatchMessage (MSG& msg) {
-return false;
-}
 
 int EZGetNextParagPos (HWND hEdit, int pos) {
 int nl=0, len = GetWindowTextLength(hEdit);
@@ -885,6 +916,71 @@ SendMessage(hwnd, EM_SETSEL, lindex, lindex+llen);
 return DefSubclassProc(hwnd, msg, wp, lp);
 }
 
+INT_PTR consoleDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
+switch (umsg) {
+case WM_INITDIALOG : {
+HWND hEdit = GetDlgItem(hwnd,1001);
+SetWindowText(hwnd, msg("Python console"));
+SetDlgItemText(hwnd, 1001, TEXT(">>>"));
+SetDlgItemText(hwnd, 2000, msg("&Input")+TEXT(":"));
+SetDlgItemText(hwnd, 2001, msg("&Output")+TEXT(":"));
+SetDlgItemText(hwnd, 1003, msg("E&val"));
+SetDlgItemText(hwnd, 1004, msg("Clea&r"));
+SetDlgItemText(hwnd, IDCANCEL, msg("&Close"));
+//SendMessage(hEdit, EM_SETLIMITTEXT, 67108864, 0);
+//SendMessage(hEdit, WM_SETFONT, font, TRUE);
+//int xx = curPage->tabSpaces==0? 16 : ABS(curPage->tabSpaces)*4;
+//SendMessage(hEdit, EM_SETTABSTOPS, 1, &xx);
+SetDlgItemFocus(hwnd, 1002);
+modlessWindows.push_back(hwnd);
+}return TRUE;
+case WM_COMMAND :
+switch(LOWORD(wp)) {
+case 1003 : {
+tstring line = GetDlgItemText(hwnd, 1002);
+SetDlgItemText(hwnd, 1002, TEXT(""));
+SetDlgItemFocus(hwnd, 1002);
+ConsolePrint(line + TEXT("\r\n"));
+SCOPE_LOCK(csConsoleInput);
+consoleInput.push_back(line);
+if (consoleInput.size()==1) SetEvent(consoleInputEvent);
+}break;
+case 1004 :
+SetDlgItemText(hwnd, 1001, TEXT(">>>"));
+break;
+case IDCANCEL : {
+consoleWin = NULL;
+modlessWindows.erase(find(modlessWindows.begin(), modlessWindows.end(), hwnd));
+DestroyWindow(hwnd);
+GoToNextModlessWindow(0);
+}break;
+case 999: {
+tstring& str = *(tstring*)(lp);
+HWND hEdit = GetDlgItem(hwnd, 1001);
+int n = GetWindowTextLength(hEdit), ss, se;
+preg_replace(str, TEXT("(?:\r\n|\n|\r)"), TEXT("\r\n"));
+SendMessage(hEdit, EM_GETSEL, &ss, &se);
+SendMessage(hEdit, EM_SETSEL, n, n);
+SendMessage(hEdit, EM_REPLACESEL, 0, str.c_str());
+SendMessage(hEdit, EM_SETSEL, ss, se);
+SendMessage(hEdit, EM_SCROLLCARET, 0, 0);
+}break; }
+if (HIWORD(wp)==EN_SETFOCUS && LOWORD(wp)==1002) SendDlgItemMessage(hwnd,1002,EM_SETSEL,0,-1);
+break;
+case WM_ACTIVATE:
+SetDlgItemFocus(hwnd, 1002);
+break;
+}
+return FALSE;
+}
+
+void OpenConsoleWindow () {
+if (!consoleWin) consoleWin = CreateDialogParam(IDD_CONSOLE, win, consoleDlgProc, NULL);
+if (consoleWin) {
+ShowWindow(consoleWin, SW_SHOW);
+SetForegroundWindow(consoleWin);
+}}
+
 INT_PTR CALLBACK GoToLineDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
 switch (umsg) {
 case WM_INITDIALOG : {
@@ -972,7 +1068,7 @@ DialogBoxParam(IDD_SEARCHREPLACE, win, SearchReplaceDlgProc, replace);
 LRESULT WINAPI AppWinProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 switch(msg){
 case WM_COMMAND:
-if (ActionCommand(LOWORD(wp))) return TRUE;
+if (ActionCommand(hwnd, LOWORD(wp))) return TRUE;
 break;
 case WM_NOTIFY : switch (((LPNMHDR)lp)->code) {
 case TCN_SELCHANGING : 
@@ -986,10 +1082,8 @@ SendMessage(tabctl, TCM_HIGHLIGHTITEM, i, TRUE);
 }break;//TCN_CHANGE
 }break;//notifications
 case WM_RUNPROC : {
-typedef std::function<void()> Proc;
 Proc* proc = (Proc*)lp;
 (*proc)();
-delete proc;
 return true;
 }break;
 case WM_COPYDATA: {

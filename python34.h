@@ -157,7 +157,7 @@ PyCallback (const PyCallback& x): PyCallback(x.func) {}
 PyCallback& operator= (const PyCallback& x) { return operator=(x.func); }
 PyCallback& operator= (PyObject* o) {
 GIL_PROTECT
-if (!PyCallable_Check(o)) o=NULL;
+if (o && !PyCallable_Check(o)) o=NULL;
 Py_XINCREF(o);
 Py_XDECREF(func);
 func=o;

@@ -1,4 +1,4 @@
-#include "file.h"
+#include "File.h"
 using namespace std;
 
 File::File () : fd(0), noclose(false)  { }

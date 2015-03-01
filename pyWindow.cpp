@@ -10,6 +10,7 @@ extern tstring appPath, appDir, appName, configFileName;
 extern IniFile config;
 extern bool headless;
 extern HWND win;
+
 extern vector<tstring> argv;
 
 extern "C" FILE* msvcfopen (const char* name, const char* ax) ;
@@ -19,6 +20,7 @@ bool PyRegister_MyObj (PyObject* m);
 
 tstring msg (const char* name);
 void ConsolePrint (const tstring& str);
+tstring ConsoleRead (void);
 void SetClipboardText (const tstring&);
 tstring GetClipboardText (void);
 int AddUserCommand (std::function<void(void)> f);
@@ -48,6 +50,14 @@ static int PyConfirm (const tstring& str, const tstring& title) {
 return IDYES==MessageBox(win, str.c_str(), title.c_str(), MB_YESNO | MB_ICONEXCLAMATION);
 }
 
+static tstring ConsoleReadImpl (void) {
+tstring s;
+Py_BEGIN_ALLOW_THREADS
+s = ConsoleRead();
+Py_END_ALLOW_THREADS
+return s;
+}
+
 static PyMethodDef _6padMainDefs[] = {
 PyDecl("print", ConsolePrint),
 PyDecl("beep", Beep),
@@ -59,14 +69,14 @@ PyDecl("getTranslation", msg),
 PyDecl("setClipboardText", SetClipboardText),
 PyDecl("getClipboardText", GetClipboardText),
 PyDecl("addAccelerator", PyAddAccelerator),
+PyDecl("ConsoleReadImpl", ConsoleReadImpl),
 PyDeclEnd
 };
 
 static PyModuleDef _6padMainMod = {
 PyModuleDef_HEAD_INIT,
 "window",
-"6pad++ window module",
--1,  _6padMainDefs 
+NULL, -1,  _6padMainDefs 
 };
 
 PyMODINIT_FUNC PyInit_6padMain (void) {
@@ -79,6 +89,8 @@ void PyStart (void) {
 Py_SetProgramName(const_cast<wchar_t*>(toWString(argv[0]).c_str()));
 PyImport_AppendInittab("window", PyInit_6padMain);;
 Py_Initialize();
+//PySys_SetPath(appDir.c_str());
+PyEval_InitThreads();
 GIL_PROTECT
 {
 Resource res(TEXT("init.py"),257);
@@ -92,5 +104,13 @@ if (fp) {
 PyRun_SimpleFile(fp, pyfn.c_str() );
 msvcfclose(fp);
 }
-// Ohter initialization stuff
+// Ohter initialization stuff goes here
+
+// From now on, make this thread sleep forever
+// For a yet unknown reason, if we don't do this, the python console window hangs
+// Any clue why this is the case is welcome
+//PyRun_SimpleString("from time import sleep");
+//PyRun_SimpleString("while(1): sleep(60000)");
+PyRun_SimpleString("import code");
+PyRun_SimpleString("code.interact()");
 }

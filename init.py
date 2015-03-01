@@ -1,10 +1,15 @@
-import window
-import sys
+import sys, window, traceback
 
-class ConsoleRedirect:
+class Console:
 	def write (self, text):
 		window.print(text)
+	def print (self, text):
+		window.print(text)
+	def readline (self):
+		return window.ConsoleReadImpl()
 
-_console = ConsoleRedirect()
-sys.stderr = _console
-sys.stdout = _console
+console = Console()
+sys.stderr = console
+sys.stdout = console
+sys.stdin = console
+window.console = console

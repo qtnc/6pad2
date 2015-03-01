@@ -6,11 +6,13 @@
 #define SendMessage(h,m,w,l) SendMessageW((HWND)(h), (UINT)(m), (WPARAM)(w), (LPARAM)(l))
 #define SendDlgItemMessage(h,i,m,w,l) SendDlgItemMessageW((HWND)(h), (UINT)(i), (UINT)(m), (WPARAM)(w), (LPARAM)(l))
 #define DialogBoxParam(t,p,f,u) DialogBoxParamW(hinstance, (LPCTSTR)(t), p, (DLGPROC)(f), (LPARAM)(u) )
+#define CreateDialogParam(i,p,f,u) CreateDialogParamW(hinstance, (LPCTSTR)i, p, (DLGPROC)f, (LPARAM)u)
 #define CallProc(f) SendMessageW(win, WM_RUNPROC, 0, (LPARAM)( new std::function<void()>(f) ))
 #else
 #define SendMessage(h,m,w,l) SendMessageA((HWND)(h), (UINT)(m), (WPARAM)(w), (LPARAM)(l))
 #define SendDlgItemMessage(h,i,m,w,l) SendDlgItemMessageA((HWND)(h), (UINT)(i), (UINT)(m), (WPARAM)(w), (LPARAM)(l))
 #define DialogBoxParam(t,p,f,u) DialogBoxParamA(hinstance, (LPCTSTR)(t), p, (DLGPROC)(f), (LPARAM)(u) )
+#define CreateDialogParam(i,p,f,u) CreateDialogParamA(hinstance, (LPCTSTR)i, p, (DLGPROC)f, (LPARAM)u)
 #define CallProc(f) SendMessageA(win, WM_RUNPROC, 0, (LPARAM)( new std::function<void()>(f) ))
 #endif
 
