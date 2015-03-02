@@ -285,10 +285,19 @@ template<G getf> static PyObject* getter (PyObject* self, void* unused) { return
 template<S setf> static int setter (PyObject* self, PyObject* val, void* unused) { return set2(setf, self, val); }
 };
 
+template<class G> struct PyAttrSpec2 {
+template<class O, class A> static inline PyObject* get2 (A(O::*getf)(void), PyObject* self ) {
+A result = ((*(O*)self).*getf)();
+return Py_BuildValue(PyTypeSpecs<A>(), PyTypeSpec<A>::convert2(result) );
+}
+template<G getf> static PyObject* getter (PyObject* self, void* unused) { return get2(getf, self); }
+};
+
 #define PyToCType(t,x) (PyTypeSpec<t>::convert3(x))
 #define PyToPyType(x) (Py_BuildValue(PyTypeSpecs<decltype(x)>(), PyTypeSpec<decltype(x)>::convert2(x)))
 #define PyDecl(n,f) {(n), (PyFuncSpec<decltype(f)>::func<f>), METH_VARARGS, NULL}
 #define PyAccessor(n,g,s) {(n), (PyAttrSpec<decltype(g), decltype(s)>::getter<g>), (PyAttrSpec<decltype(g), decltype(s)>::setter<s>), NULL, NULL}
+#define PyReadOnlyAccessor(n,g) {(n), (PyAttrSpec2<decltype(g)>::getter<g>), NULL, NULL, NULL}
 #define PyDeclEnd {0, 0, 0, 0}
 
 
