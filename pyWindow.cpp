@@ -27,6 +27,9 @@ int AddUserCommand (std::function<void(void)> f);
 bool AddAccelerator (int flags, int key, int cmd);
 bool KeyNameToCode (const tstring& kn, int& flags, int& key);
 
+bool PyRegister_MenuItem (PyObject* m);
+PyObject* PyMenuItem_GetMenuBar (void);
+
 static int PyAddAccelerator (const tstring& kn, PyCallback cb) {
 int k=0, kf=0;
 KeyNameToCode(kn, kf, k);
@@ -69,6 +72,7 @@ PyDecl("getTranslation", msg),
 PyDecl("setClipboardText", SetClipboardText),
 PyDecl("getClipboardText", GetClipboardText),
 PyDecl("addAccelerator", PyAddAccelerator),
+PyDecl("getMenuBar", PyMenuItem_GetMenuBar),
 PyDecl("ConsoleReadImpl", ConsoleReadImpl),
 PyDeclEnd
 };
@@ -81,6 +85,7 @@ NULL, -1,  _6padMainDefs
 
 PyMODINIT_FUNC PyInit_6padMain (void) {
 PyObject* mod = PyModule_Create(&_6padMainMod);
+PyRegister_MenuItem(mod);
 PyRegister_MyObj(mod);
 return mod;
 }
@@ -112,5 +117,5 @@ msvcfclose(fp);
 //PyRun_SimpleString("from time import sleep");
 //PyRun_SimpleString("while(1): sleep(60000)");
 PyRun_SimpleString("import code");
-PyRun_SimpleString("code.interact()");
+PyRun_SimpleString("code.interact(banner='')");
 }

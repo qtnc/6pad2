@@ -17,12 +17,14 @@
 typedef std::wstring tstring;
 #define toTString toWString
 #define tstrlen wcslen
+#define tstrdup wcsdup
 #define tstrrchr wcsrchr
 #define tsnprintf snwprintf
 #else
 typedef std::string tstring;
 #define toTString toString
 #define tstrlen strlen
+#define tstrdup strdup
 #define tstrrchr strrchr
 #define tsnprintf snprintf
 #endif

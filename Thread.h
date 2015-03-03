@@ -18,7 +18,7 @@ private:
 void init (Proc*);
 };
 
-template<class F> inline void runInEDT (const F& cf) {
+template<class F> inline void RunInEDT (const F& cf) {
 Proc f(cf);
 SendMessage(win, WM_RUNPROC, 0, &f);
 }
