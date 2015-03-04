@@ -13,6 +13,7 @@ bool AddAccelerator (int flags, int key, int cmd);
 bool FindAccelerator (int cmd, int& flags, int& key);
 tstring KeyCodeToName (int flags, int vk, bool i18n); 
 bool KeyNameToCode (const tstring& kn, int& flags, int& key);
+bool ActionCommand (HWND hwnd, int cmd);
 
 struct PyMenuItem { 
     PyObject_HEAD
@@ -37,7 +38,7 @@ int getItemCount (void);
 PyObject* getItem (int n);
 PyObject* getItemByName (const tstring&);
 PyObject* getParent (void) { return parent; }
-PyObject* addItem (tstring label, PyCallback action, const tstring& accelerator, int pos);
+PyObject* addItem (tstring label, PyCallback action, const tstring& accelerator, const tstring& name, int pos);
 };
 
 static void PyMenuItemDealloc (PyObject* pySelf) {
@@ -59,7 +60,16 @@ static int PyMenuItem_MapLen (PyObject * o) {
 return ((PyMenuItem*)o) ->getItemCount();
 }
 
+static PyObject* PyMenuItem_CallAction (PyObject* o, PyObject* args, PyObject* kwds) {
+PyMenuItem* self = (PyMenuItem*)o;
+ActionCommand(win, self->cmd);
+Py_RETURN_NONE;
+}
+
 static PyObject* PyMenuItem_MapGetItem (PyObject* o, PyObject* key) {
+PyObject* re = PyObject_GenericGetAttr(o,key);
+if (re) return re;
+PyErr_Clear();
 PyMenuItem* self = (PyMenuItem*)o;
 if (PyLong_Check(key)) {
 return self->getItem(PyLong_AsLong(key));
@@ -72,18 +82,17 @@ else { Py_RETURN_NONE; }
 }
 
 static PyObject* PyMenuItem_AddItem (PyObject* o, PyObject* args, PyObject* dic) {
-static const char* KWLST[] = {"action", "label", "index", "accelerator", NULL};
+static const char* KWLST[] = {"action", "label", "index", "accelerator", "name", NULL};
 PyMenuItem& self = *(PyMenuItem*)o;
-const wchar_t *label=0, *accelerator=0;
-int index=1<<30, length = self.getItemCount();
+const wchar_t *label=0, *accelerator=0, *name=0;
+int index=-1, length = self.getItemCount();
 PyObject* action = NULL;
 if (!self.submenu) { PyErr_SetString(PyExc_ValueError, "not a submenu"); return NULL; }
-if (!PyArg_ParseTupleAndKeywords(args, dic, "Ou|iu", (char**)KWLST, &action, &label, &index, &accelerator)) return NULL;
+if (!PyArg_ParseTupleAndKeywords(args, dic, "Ou|iuu", (char**)KWLST, &action, &label, &index, &accelerator, &name)) return NULL;
 if (!PyCallable_Check(action)) { PyErr_SetString(PyExc_ValueError, "action must be callable"); return NULL; }
-if (index<0) index+=length;
-else if (index==1<<30) index = length;
+if (index<0) index+=length+1;
 if (index>length) { PyErr_SetString(PyExc_ValueError, "index out of range"); return NULL; }
-return self.addItem(label, action, accelerator?accelerator:TEXT(""), index);
+return self.addItem(label, action, accelerator?accelerator:TEXT(""), name?name:TEXT(""), index);
 }
 
 static PyMethodDef PyMenuItemMethods[] = {
@@ -124,9 +133,9 @@ static PyTypeObject PyMenuItemType = {
     0,                         /* tp_as_sequence */ 
   &PyMenuItemMapping,                         /* tp_as_mapping */ 
     0,                         /* tp_hash  */ 
-    0,                         /* tp_call */ 
+    PyMenuItem_CallAction,                         /* tp_call */ 
     0,                         /* tp_str */ 
-    0,                         /* tp_getattro */ 
+    PyMenuItem_MapGetItem,                         /* tp_getattro */ 
     0,                         /* tp_setattro */ 
     0,                         /* tp_as_buffer */ 
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,        /* tp_flags */ 
@@ -284,12 +293,13 @@ it->popup = false;
 return (PyObject*)it;
 }
 
-PyObject* PyMenuItem::addItem (tstring  label, PyCallback action, const tstring& accelerator, int pos) {
+PyObject* PyMenuItem::addItem (tstring  label, PyCallback action, const tstring& accelerator, const tstring& name, int pos) {
 if (!submenu) { Py_RETURN_NONE; }
 int cmd = AddUserCommand([=]()mutable{ action(); }), kf=0, key=0;
 if (accelerator.size()>0 && KeyNameToCode(accelerator, kf, key)) AddAccelerator(kf, key, cmd);
 if (key) label += TEXT("\t\t") + KeyCodeToName(kf, key, true);
 InsertMenu(submenu, pos, MF_STRING | MF_BYPOSITION, cmd, label.c_str() );
+if (name.size()>0) SetMenuName(submenu, pos, name.c_str());
 DrawMenuBar(win);
 return getItem(pos);
 }
