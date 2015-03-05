@@ -3,6 +3,22 @@
 
 "init.py" 257 init.py
 
+"menuNames" 257 BEGIN
+0, "file", 0,
+1, "edit", 0,
+2, "format", 0,
+3, "tools", 0,
+4, "help", 0,
+1000, "new", 0,
+1001, "open", 0,
+1002, "save", 0,
+1003, "saveAs",0,
+1004, "close", 0,
+1005, "exit", 0,
+1006, "openInNewInstance", 0,
+1007, "reload", 0
+END
+
 "accel" ACCELERATORS
 BEGIN
 "^C", IDM_COPY

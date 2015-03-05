@@ -8,4 +8,3 @@ def func () :
 mb = window.getMenuBar()
 mb[0].name='file'
 mb.file.add(label='&Beep!', accelerator='Ctrl+E', index=-2, action=func)
-

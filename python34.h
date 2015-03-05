@@ -221,7 +221,7 @@ template<class C, int... S> static R callmeth (TemplateSequence<S...> seq, C& c,
 template<class... A> struct PyCTupleCallSpec<void, A...> {
 template<int... S> static void call (TemplateSequence<S...> seq, void(*f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {  f(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
 template<int... S> static void call (TemplateSequence<S...> seq, void(__stdcall *f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {  f(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
-template<class C, int... S> static void callmeth (TemplateSequence<S...> seq, C& c, void(C::*f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {   c.*f(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
+template<class C, int... S> static void callmeth (TemplateSequence<S...> seq, C& c, void(C::*f)(A...), std::tuple<typename PyTypeSpec<A>::type...>& args) {   (c.*f)(  PyTypeSpec<typename std::tuple_element<S, std::tuple<A...>>::type>::convert(std::get<S>(args))...);  }
 };
 
 template<class CFunc> struct PyFuncSpec {
