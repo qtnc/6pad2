@@ -4,19 +4,33 @@
 "init.py" 257 init.py
 
 "menuNames" 257 BEGIN
-0, "file", 0,
+0, "file", 0, 
 1, "edit", 0,
-2, "format", 0,
-3, "tools", 0,
-4, "help", 0,
-1000, "new", 0,
-1001, "open", 0,
-1002, "save", 0,
-1003, "saveAs",0,
-1004, "close", 0,
-1005, "exit", 0,
-1006, "openInNewInstance", 0,
-1007, "reload", 0
+2, "format", 0, 
+3, "tools", 0, 
+4, "help", 0, 
+IDM_NEW, "new", 0, 
+IDM_OPEN, "open", 0, 
+IDM_SAVE, "save", 0, 
+IDM_SAVE_AS, "saveAs", 0, 
+IDM_CLOSE, "close", 0, 
+IDM_EXIT, "exit", 0, 
+IDM_OPEN_NI, "openInNewInstance", 0, 
+IDM_REOPEN, "reload", 0, 
+IDM_ABOUT, "about", 0, 
+IDM_COPY, "copy", 0,
+IDM_PASTE, "paste", 0,
+IDM_CUT, "cut", 0,
+IDM_UNDO, "undo", 0,
+IDM_REDO, "redo", 0,
+IDM_SELECTALL, "selectAll", 0,
+IDM_FIND, "find", 0,
+IDM_FINDNEXT, "findNext", 0,
+IDM_FINDPREV, "findPrev", 0,
+IDM_REPLACE, "replace", 0,
+IDM_GOTOLINE, "goto", 0,
+IDM_OPEN_CONSOLE, "console", 0,
+0xFFFF
 END
 
 "accel" ACCELERATORS

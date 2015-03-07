@@ -5,6 +5,7 @@
 #include "file.h"
 #include "dialogs.h"
 #include "Thread.h"
+#include "Resource.h"
 #include "python34.h"
 #include<functional>
 #include<boost/regex.hpp>
@@ -484,6 +485,22 @@ ModifyMenu(menu, i, flg2, mii.wID, newLabel.c_str() );
 if (mii.hSubMenu) I18NMenus(mii.hSubMenu);
 }}
 
+void SetMenuName (HMENU, int, BOOL, LPCTSTR);
+void SetMenuNamesFromResource (HMENU menu) {
+Resource res(TEXT("menuNames"),257);
+const char *str, *data = (const char*)res.data();
+WORD cmd=0;
+int count=0;
+while(cmd!=0xFFFF){
+if (++count>24) break;
+cmd = *(const WORD*)(data);
+if (cmd==0xFFFF) break;
+data += sizeof(WORD);
+str = data;
+data += 2+strlen(str);
+SetMenuName(menu, cmd, cmd<1000, toTString(str).c_str() );
+}}
+
 extern "C" int WINAPI WinMain (HINSTANCE hThisInstance,                      HINSTANCE hPrevInstance,                      LPSTR lpszArgument,                      int nWindowStile) {
 hinstance = hThisInstance;
 long long time = GetTickCount();
@@ -582,6 +599,7 @@ for (int i=0; i<encodings.size(); i++) InsertMenu(menuEncoding, i, MF_STRING | M
 for (int i=1; i<=8; i++) InsertMenu(menuIndentation, i, MF_STRING | MF_BYPOSITION, IDM_INDENTATION_SPACES -1 +i, tsnprintf(32, msg("%d spaces"), i).c_str() );
 DeleteMenu(menuEncoding, encodings.size(), MF_BYPOSITION);
 I18NMenus(menu);
+SetMenuNamesFromResource(menu);
 }
 
 {//Recent files
@@ -650,8 +668,7 @@ return;
 HWND hWin = GetForegroundWindow();
 int curPos = (win==hWin? n : (find(modlessWindows.begin(), modlessWindows.end(), hWin) -modlessWindows.begin() ));
 int nextPos = (curPos + dist + n +1)%(n+1);
-SetForegroundWindow(nextPos==n? win : modlessWindows[n]);
-Beep(800,150);
+SetForegroundWindow(nextPos==n? win : modlessWindows[nextPos]);
 }
 
 bool ActionCommand (HWND hwnd, int cmd) {
@@ -1084,6 +1101,7 @@ SendMessage(tabctl, TCM_HIGHLIGHTITEM, i, TRUE);
 case WM_RUNPROC : {
 Proc* proc = (Proc*)lp;
 (*proc)();
+if (wp) delete proc;
 return true;
 }break;
 case WM_COPYDATA: {

@@ -2,6 +2,7 @@
 #include "strings.hpp"
 #include "python34.h"
 #include "Resource.h"
+#include "Thread.h"
 #include "inifile.h"
 #include<functional>
 using namespace std;
@@ -103,6 +104,7 @@ char* code = (char*)res.copy();
 PyRun_SimpleString(code);
 delete[] code;
 }
+RunSync([](){});//Barrier to wait for the main loop to start
 string pyfn = toString(appName + TEXT(".py"));
 FILE* fp = msvcfopen(pyfn.c_str(), "r");
 if (fp) {

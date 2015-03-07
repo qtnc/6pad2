@@ -18,9 +18,14 @@ private:
 void init (Proc*);
 };
 
-template<class F> inline void RunInEDT (const F& cf) {
+template<class F> inline void RunSync (const F& cf, bool del = false) {
 Proc f(cf);
-SendMessage(win, WM_RUNPROC, 0, &f);
+SendMessage(win, WM_RUNPROC, del, &f);
+}
+
+template<class F> inline void RunAsync (const F& cf, bool del = true) {
+Proc* f = new Proc(cf);
+PostMessage(win, WM_RUNPROC, del, &f);
 }
 
 struct RAII_CRITICAL_SECTION {
