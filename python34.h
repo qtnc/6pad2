@@ -163,7 +163,7 @@ Py_XDECREF(func);
 func=o;
 return *this;
 }
-operator bool () { return !!func; }
+operator bool () { return !!func && func!=Py_None; }
 template<class R, class... A> R operator() (A... args) {
 GIL_PROTECT
 PyObject* argtuple = Py_BuildValue(PyTypeSpecsTuple<A...>(), PyTypeSpec<A>::convert2(args)...);

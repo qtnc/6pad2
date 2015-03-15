@@ -3,7 +3,7 @@
 using namespace std;
 
 extern HACCEL hAccel;
-extern vector<function<void(void)>> userCommands;
+extern unordered_map<int, function<void(void)>> userCommands;
 
 extern tstring msg (const char* name);
 
@@ -90,10 +90,22 @@ key = KEYNAMES[toString(s)];
 return !!key;
 }
 
-int AddUserCommand (std::function<void(void)> f) {
-int cmd = IDM_USER_COMMAND + userCommands.size();
-userCommands.push_back(f);
+int AddUserCommand (std::function<void(void)> f, int cmd) {
+if (cmd<=0) {
+cmd = IDM_USER_COMMAND;
+while(userCommands[cmd]) cmd++;
+}
+userCommands[cmd] = f;
 return cmd;
+}
+
+bool RemoveUserCommand (int cmd) {
+auto it = userCommands.find(cmd);
+if (it!=userCommands.end()) {
+userCommands.erase(it);
+return true;
+}
+return false;
 }
 
 static void LoadAccelTable (void) {

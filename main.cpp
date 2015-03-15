@@ -7,6 +7,7 @@
 #include "Thread.h"
 #include "Resource.h"
 #include "python34.h"
+#include<unordered_map>
 #include<functional>
 #include<boost/regex.hpp>
 using namespace std;
@@ -44,7 +45,7 @@ vector<shared_ptr<Page>> pages;
 shared_ptr<Page> curPage(0);
 list<FindData> finds;
 list<tstring> recentFiles;
-vector<function<void(void)>> userCommands;
+unordered_map<int, function<void(void)>> userCommands;
 vector<HWND> modlessWindows;
 list<tstring> consoleInput;
 
@@ -719,9 +720,9 @@ if (it!=pages.end())PageActivate(it - pages.begin() );
 else OpenFile(file);
 return true;
 }
-if (cmd>=IDM_USER_COMMAND && cmd<IDM_USER_COMMAND+userCommands.size()) {
-auto userFunc = userCommands[cmd - IDM_USER_COMMAND];
-userFunc();
+if (cmd>=IDM_USER_COMMAND && cmd<0xF000) {
+auto it = userCommands.find(cmd);
+if (it!=userCommands.end()) (it->second)();
 return true;
 }
 return false;

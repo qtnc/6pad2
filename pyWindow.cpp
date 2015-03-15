@@ -24,12 +24,13 @@ void ConsolePrint (const tstring& str);
 tstring ConsoleRead (void);
 void SetClipboardText (const tstring&);
 tstring GetClipboardText (void);
-int AddUserCommand (std::function<void(void)> f);
+int AddUserCommand (std::function<void(void)> f, int cmd=0);
 bool AddAccelerator (int flags, int key, int cmd);
 bool KeyNameToCode (const tstring& kn, int& flags, int& key);
 
 bool PyRegister_MenuItem (PyObject* m);
 PyObject* PyMenuItem_GetMenuBar (void);
+PyObject* PyMenuItem_CreatePopupMenu (void);
 
 static int PyAddAccelerator (const tstring& kn, PyCallback cb) {
 int k=0, kf=0;
@@ -47,11 +48,21 @@ return MessageBox(win, str.c_str(), title.c_str(), flags);
 }
 
 static void PyAlert (const tstring& str, const tstring& title) {
+Py_BEGIN_ALLOW_THREADS
+RunSync([&]()mutable{
 MessageBox(win, str.c_str(), title.c_str(), MB_OK | MB_ICONASTERISK);
+});//RunSync
+Py_END_ALLOW_THREADS
 }
 
 static int PyConfirm (const tstring& str, const tstring& title) {
-return IDYES==MessageBox(win, str.c_str(), title.c_str(), MB_YESNO | MB_ICONEXCLAMATION);
+bool re = false;
+Py_BEGIN_ALLOW_THREADS
+RunSync([&]()mutable{
+re = (IDYES==MessageBox(win, str.c_str(), title.c_str(), MB_YESNO | MB_ICONEXCLAMATION));
+});//RunSync
+Py_END_ALLOW_THREADS
+return re;
 }
 
 static tstring ConsoleReadImpl (void) {
@@ -74,6 +85,7 @@ PyDecl("setClipboardText", SetClipboardText),
 PyDecl("getClipboardText", GetClipboardText),
 PyDecl("addAccelerator", PyAddAccelerator),
 PyDecl("getMenuBar", PyMenuItem_GetMenuBar),
+PyDecl("createPopupMenu", PyMenuItem_CreatePopupMenu),
 PyDecl("ConsoleReadImpl", ConsoleReadImpl),
 PyDeclEnd
 };
