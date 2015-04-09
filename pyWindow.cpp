@@ -32,6 +32,8 @@ bool PyRegister_MenuItem (PyObject* m);
 PyObject* PyMenuItem_GetMenuBar (void);
 PyObject* PyMenuItem_CreatePopupMenu (void);
 
+bool PyRegister_EditorTab(PyObject* m);
+
 static int PyAddAccelerator (const tstring& kn, PyCallback cb) {
 int k=0, kf=0;
 KeyNameToCode(kn, kf, k);
@@ -99,6 +101,7 @@ NULL, -1,  _6padMainDefs
 PyMODINIT_FUNC PyInit_6padMain (void) {
 PyObject* mod = PyModule_Create(&_6padMainMod);
 PyRegister_MenuItem(mod);
+PyRegister_EditorTab(mod);
 PyRegister_MyObj(mod);
 return mod;
 }

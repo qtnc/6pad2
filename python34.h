@@ -2,6 +2,7 @@
 #define ___PYTHON___HPP___9
 #include<python/python.h>
 #include "strings.hpp"
+#include "variant.h"
 #include<tuple>
 #include<functional>
 #include<string>
@@ -128,6 +129,16 @@ static constexpr const char c = 's';
 static inline const char* convert (const char* s) { return s; }
 static inline const char* convert2 (const char*  s) { return s; }
 };
+
+template<> struct PyTypeSpec<var> {
+static var convert3 (PyObject* o) {
+if (o==Py_None) return var();
+else if (o==Py_True) return true;
+else if (o==Py_False) return false;
+else if (PyLong_Check(o)) return (int)(PyLong_AsLong(o));
+else if (PyUnicode_Check(o)) return toTString(PyUnicode_AsUnicode(o));
+else PyErr_SetString(PyExc_TypeError, "none, bool, int or str  expected"); 
+}};
 
 template<> struct PyTypeSpec<PyObject*> { 
 typedef PyObject* type;
