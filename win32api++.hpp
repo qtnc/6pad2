@@ -16,6 +16,8 @@
 #define CallProc(f) SendMessageA(win, WM_RUNPROC, 0, (LPARAM)( new std::function<void()>(f) ))
 #endif
 
+#define EnableMenuItem2(m,i,t,e) EnableMenuItem(m, i, (t) | ((e)? MF_ENABLED : MF_GRAYED | MF_DISABLED))
+
 #define CREATED_TIME 0
 #define LAST_ACCESSED_TIME 1
 #define LAST_MODIFIED_TIME 2
@@ -32,6 +34,7 @@ tstring GetDlgItemText (HWND, int);
 
 tstring EditGetLine (HWND hEdit) ;
 tstring EditGetLine (HWND hEdit, int line, int lineindex=-1);
+tstring EditGetSelectedText (HWND hEdit);
 
 unsigned long long GetFileTime (LPCTSTR, int);
 

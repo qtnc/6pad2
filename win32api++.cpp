@@ -28,6 +28,17 @@ tstring EditGetLine (HWND hEdit) {
 return EditGetLine(hEdit, SendMessage(hEdit, EM_LINEFROMCHAR, -1, 0));
 }
 
+tstring EditGetSelectedText (HWND hEdit) {
+DWORD sStart=0, sEnd=0;
+SendMessage(hEdit, EM_GETSEL, &sStart, &sEnd);
+if (sStart==sEnd) return TEXT("");
+HLOCAL hLoc = (HLOCAL)SendMessage(hEdit, EM_GETHANDLE, 0, 0);
+LPCTSTR text = (LPCTSTR)LocalLock(hLoc);
+tstring str(text + sStart, text + sEnd);
+LocalUnlock(hLoc);
+return str;
+}
+
 static unsigned long long filetimeTo1970 (unsigned long long l) {
 static unsigned long long rep = 0;
 if (!rep) {

@@ -1,9 +1,9 @@
-Encoding0=Default encoding
-Encoding28605=ISO-8859-15
-Encoding65001=UTF-8
-Encoding65002=UTF-8+BOM
-Encoding1200=UTF-16Le
-Encoding1201=UTF-16Be
+Encoding0=&Default encoding
+Encoding28605=ISO-8859-1&5
+Encoding65001=UTF-&8
+Encoding65002=UTF-8+BO&M
+Encoding1200=UTF-16&Le
+Encoding1201=UTF-16&Be
 Encoding1202=UTF-16Le+BOM
 Encoding1203=UTF-16Be+BOM
 Encoding850=MS-DOS IBM 850

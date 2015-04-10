@@ -28,7 +28,7 @@ IDM_FIND, "find", 0,
 IDM_FINDNEXT, "findNext", 0,
 IDM_FINDPREV, "findPrev", 0,
 IDM_REPLACE, "replace", 0,
-IDM_GOTOLINE, "goto", 0,
+IDM_GOTOLINE, "goTo", 0,
 IDM_OPEN_CONSOLE, "console", 0,
 0xFFFF
 END
