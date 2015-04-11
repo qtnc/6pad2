@@ -245,9 +245,8 @@ MoveWindow(edit, r.left+3, r.top+3, r.right-r.left -6, r.bottom-r.top -6, TRUE);
 listeners.dispatch("appWindowResized");
 }
 
-void AppAddEvent (const string& type, const PyCallback& cb) {
-listeners.add(type, cb);
-}
+void AppAddEvent (const string& type, const PyCallback& cb) { listeners.add(type, cb); }
+void AppRemoveEvent (const string& type, const PyCallback& cb) { listeners.remove(type, cb); }
 
 bool SetClipboardText (const tstring&  text2) {
 wstring text = toWString(text2);

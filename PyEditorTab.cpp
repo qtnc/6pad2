@@ -27,6 +27,7 @@ void setEncoding (int e) { PageSetEncoding(page,e); }
 void setIndentationMode (int i) { PageSetIndentationMode(page,i); }
 void setAutoLineBreak (int b) { PageSetAutoLineBreak(page,b); }
 void addEvent (const string& type, const PyCallback& cb) { page->addEvent(type,cb); }
+void removeEvent (const string& type, const PyCallback& cb) { page->removeEvent(type,cb); }
 int getTextLength () { return page->GetAllTextLength(); }
 tstring getSelectedText () { return page->GetSelectedText(); }
 void setSelectedText (const tstring& s) { page->SetSelectedText(s); }
@@ -63,6 +64,7 @@ return 0;
 
 static PyMethodDef PyEditorTabMethods[] = {
 PyDecl("addEvent", &PyEditorTab::addEvent),
+PyDecl("removeEvent", &PyEditorTab::removeEvent),
 PyDecl("select", &PyEditorTab::setSelection),
 PyDecl("line", &PyEditorTab::getLine),
 PyDecl("lineLength", &PyEditorTab::getLineLength),

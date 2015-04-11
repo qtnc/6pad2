@@ -183,6 +183,8 @@ o=x;
 return *this;
 }
 ~PySafeObject  () { operator=(NULL); }
+inline bool operator== (PyObject* x) { return x==o; }
+inline bool operator== (const PySafeObject& x) { return x.o==o; }
 inline PyObject* operator* () { return o; }
 inline operator bool () { return !!o && o!=Py_None && o!=Py_False; }
 };
@@ -202,6 +204,7 @@ func=o;
 return *this;
 }
 ~PyCallback () { operator=(NULL); }
+inline bool operator== (const PyCallback& pcb) { return func==pcb.func; }
 inline operator bool () const { return !!func && func!=Py_None; }
 template<class R, class... A> R operator() (A... args) const {
 GIL_PROTECT

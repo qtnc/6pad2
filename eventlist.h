@@ -9,6 +9,7 @@ struct EventCallback {
 const PyCallback pycb;
 const void* stdcb;
 EventCallback (const PyCallback& cb): pycb(cb), stdcb(0) {}
+bool operator== (const EventCallback& cb) { return cb.pycb==pycb && cb.stdcb==stdcb; }
 template<class R, class... A> EventCallback (const std::function<R(A...)>& cb): pycb(), stdcb(&cb) {}
 template<class... A> EventCallback (const std::function<void(A...)>& cb): pycb(), stdcb(&cb) {}
 template<class R,class... A> R operator() (A... args) {
@@ -32,7 +33,7 @@ f(args...);
 struct eventlist {
 std::unordered_multimap<std::string, EventCallback> m;
 void add (const std::string& type, const EventCallback& cb);
-void remove (const std::string& type, const EventCallback& cb);
+bool remove (const std::string& type, const EventCallback& cb);
 
 template<class R, R initial, class... A> R dispatch (const string& type, A... args) {
 R r = initial;

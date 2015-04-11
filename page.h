@@ -70,6 +70,7 @@ virtual void FindReplace (const tstring& search, const tstring& replace, bool ca
 template<class R, class... A> inline R dispatchEvent (A... args) { return listeners.dispatch<R>(*pyData, args...); }
 template<class... A> inline void dispatchEvent (A... args) { listeners.dispatch(*pyData, args...); }
 inline void addEvent (const std::string& type, const PyCallback& cb) { listeners.add(type,cb); }
+inline void removeEvent (const std::string& type, const PyCallback& cb) { listeners.remove(type,cb); }
 };
 
 struct TextPage: Page {

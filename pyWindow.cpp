@@ -25,6 +25,7 @@ tstring msg (const char* name);
 void ConsolePrint (const tstring& str);
 tstring ConsoleRead (void);
 void AppAddEvent (const string&, const PyCallback&);
+void AppRemoveEvent (const string&, const PyCallback&);
 void SetClipboardText (const tstring&);
 tstring GetClipboardText (void);
 int AddUserCommand (std::function<void(void)> f, int cmd=0);
@@ -116,10 +117,15 @@ PyDecl("getTabCount", PyEditorTabs_getTabCount),
 PyDecl("getTab", PyEditorTabs_getTab),
 PyDecl("getCurrentTab", PyEditorTabs_getCurTab),
 
-// Misc functions
+// Global events management
 PyDecl("addEvent", AppAddEvent),
+PyDecl("removeEvent", AppRemoveEvent),
+
+// Clipboard management
 PyDecl("setClipboardText", SetClipboardText),
 PyDecl("getClipboardText", GetClipboardText),
+
+// Misc functions
 PyDecl("ConsoleReadImpl", ConsoleReadImpl),
 PyDeclEnd
 };
