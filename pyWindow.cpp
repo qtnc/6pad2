@@ -3,6 +3,7 @@
 #include "python34.h"
 #include "Resource.h"
 #include "Thread.h"
+#include "page.h"
 #include "inifile.h"
 #include<functional>
 using namespace std;
@@ -11,7 +12,8 @@ extern tstring appPath, appDir, appName, configFileName;
 extern IniFile config;
 extern bool headless;
 extern HWND win;
-
+extern shared_ptr<Page> curPage;
+extern vector<shared_ptr<Page>> pages;
 extern vector<tstring> argv;
 
 extern "C" FILE* msvcfopen (const char* name, const char* ax) ;
@@ -22,6 +24,7 @@ bool PyRegister_MyObj (PyObject* m);
 tstring msg (const char* name);
 void ConsolePrint (const tstring& str);
 tstring ConsoleRead (void);
+void AppAddEvent (const string&, const PyCallback&);
 void SetClipboardText (const tstring&);
 tstring GetClipboardText (void);
 int AddUserCommand (std::function<void(void)> f, int cmd=0);
@@ -67,6 +70,20 @@ Py_END_ALLOW_THREADS
 return re;
 }
 
+static int PyEditorTabs_getTabCount () {
+return pages.size();
+}
+
+static PyObject* PyEditorTabs_getCurTab () {
+if (curPage) return curPage->GetPyData();
+else {Py_RETURN_NONE;}
+}
+
+static PyObject* PyEditorTabs_getTab (int i) {
+if (i>=0 && i<pages.size()) return pages[i]->GetPyData();
+else {Py_RETURN_NONE;}
+}
+
 static tstring ConsoleReadImpl (void) {
 tstring s;
 Py_BEGIN_ALLOW_THREADS
@@ -76,18 +93,33 @@ return s;
 }
 
 static PyMethodDef _6padMainDefs[] = {
+// Overload of print, to be able to print in python console GUI
 PyDecl("print", ConsolePrint),
+
+// Basic dialog boxes and related functions
 PyDecl("beep", Beep),
 PyDecl("messageBeep", MessageBeep),
 PyDecl("messageBox", PyMsgBox),
 PyDecl("alert", PyAlert),
 PyDecl("confirm", PyConfirm),
+
+// Translation management
 PyDecl("getTranslation", msg),
-PyDecl("setClipboardText", SetClipboardText),
-PyDecl("getClipboardText", GetClipboardText),
+
+// Menus and accelerators management
 PyDecl("addAccelerator", PyAddAccelerator),
 PyDecl("getMenuBar", PyMenuItem_GetMenuBar),
 PyDecl("createPopupMenu", PyMenuItem_CreatePopupMenu),
+
+// Tabs management
+PyDecl("getTabCount", PyEditorTabs_getTabCount),
+PyDecl("getTab", PyEditorTabs_getTab),
+PyDecl("getCurrentTab", PyEditorTabs_getCurTab),
+
+// Misc functions
+PyDecl("addEvent", AppAddEvent),
+PyDecl("setClipboardText", SetClipboardText),
+PyDecl("getClipboardText", GetClipboardText),
 PyDecl("ConsoleReadImpl", ConsoleReadImpl),
 PyDeclEnd
 };

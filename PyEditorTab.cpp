@@ -13,6 +13,7 @@ struct PyEditorTab {
     PyObject_HEAD
 shared_ptr<Page> page;
 bool isClosed () { return !!page; }
+bool isModified () { return page->IsModified(); }
 tstring getName () { return page->name; }
 tstring getFile () { return page->file; }
 void setName (const tstring& s) { page->name=s; }
@@ -25,6 +26,25 @@ void setLineEnding (int le) { PageSetLineEnding(page,le); }
 void setEncoding (int e) { PageSetEncoding(page,e); }
 void setIndentationMode (int i) { PageSetIndentationMode(page,i); }
 void setAutoLineBreak (int b) { PageSetAutoLineBreak(page,b); }
+void addEvent (const string& type, const PyCallback& cb) { page->addEvent(type,cb); }
+int getTextLength () { return page->GetAllTextLength(); }
+tstring getSelectedText () { return page->GetSelectedText(); }
+void setSelectedText (const tstring& s) { page->SetSelectedText(s); }
+tstring getText () { return page->GetAllText(); }
+void setText (const tstring& s) { page->SetAllText(s); }
+int getSelectionStart () { return page->GetSelectionStart(); }
+int getSelectionEnd () { return page->GetSelectionEnd(); }
+void setSelectionStart (int s) { page->SetSelectionStart(s); }
+void setSelectionEnd (int s) { page->SetSelectionEnd(s); }
+void setSelection (int s, int e) { page->SetSelection(s,e); }
+int getLineLength (int l) { return page->GetLineLength(l); }
+tstring getLine (int l) { return page->GetLine(l); }
+int getLineStartIndex (int l) { return page->GetLineStartIndex(l); }
+int getLineEndIndex (int l) { return page->GetLineStartIndex(l) + page->GetLineLength(l); }
+int getLineOfPos (int pos) { return page->GetLineOfPos(pos); }
+void replaceTextRange (int start, int end, const tstring& str) { page->ReplaceTextRange(start, end, str); }
+void deleteTextRange (int start, int end) { replaceTextRange(start, end, TEXT("")); }
+void insertTextAt (int pos, const tstring& str) { replaceTextRange(pos, pos, str); }
 };
 
 static void PyEditorTabDealloc (PyObject* pySelf) {
@@ -42,6 +62,16 @@ return 0;
 }
 
 static PyMethodDef PyEditorTabMethods[] = {
+PyDecl("addEvent", &PyEditorTab::addEvent),
+PyDecl("select", &PyEditorTab::setSelection),
+PyDecl("line", &PyEditorTab::getLine),
+PyDecl("lineLength", &PyEditorTab::getLineLength),
+PyDecl("lineOfOffset", &PyEditorTab::getLineOfPos),
+PyDecl("lineStartOffset", &PyEditorTab::getLineStartIndex),
+PyDecl("lineEndOffset", &PyEditorTab::getLineEndIndex),
+PyDecl("replace", &PyEditorTab::replaceTextRange),
+PyDecl("insert", &PyEditorTab::insertTextAt),
+PyDecl("delete", &PyEditorTab::deleteTextRange),
 PyDeclEnd
 };
 
@@ -49,10 +79,16 @@ static PyGetSetDef PyEditorTabAccessors[] = {
 PyAccessor("name", &PyEditorTab::getName, &PyEditorTab::setName),
 PyAccessor("file", &PyEditorTab::getFile, &PyEditorTab::setFile),
 PyReadOnlyAccessor("closed", &PyEditorTab::isClosed),
+PyReadOnlyAccessor("modified", &PyEditorTab::isModified),
 PyAccessor("lineEnding", &PyEditorTab::getLineEnding, &PyEditorTab::setLineEnding),
 PyAccessor("encoding", &PyEditorTab::getEncoding, &PyEditorTab::setEncoding),
-PyAccessor("indentation", &PyEditorTab::getIndentationMode, &PyEditorTab::setIndentationMode),
+PyAccessor("indentationType", &PyEditorTab::getIndentationMode, &PyEditorTab::setIndentationMode),
 PyAccessor("autoLineBreak", &PyEditorTab::getAutoLineBreak, &PyEditorTab::setAutoLineBreak),
+PyAccessor("selectionStart", &PyEditorTab::getSelectionStart, &PyEditorTab::setSelectionStart),
+PyAccessor("selectionEnd", &PyEditorTab::getSelectionEnd, &PyEditorTab::setSelectionEnd),
+PyAccessor("selectedText", &PyEditorTab::getSelectedText, &PyEditorTab::setSelectedText),
+PyAccessor("text", &PyEditorTab::getText, &PyEditorTab::setText),
+PyReadOnlyAccessor("textLength", &PyEditorTab::getTextLength),
 PyDeclEnd
 };
 
@@ -95,6 +131,12 @@ NULL,             /* tp_members */
     (initproc)PyEditorTabInit,      /* tp_init */ 
     0,                         /* tp_alloc */ 
 }; 
+
+PyObject* CreatePyEditorTabObject (Page* p) {
+PyEditorTab* it = PyEditorTabNew(&PyEditorTabType, NULL, NULL);
+it->page = shared_ptr<Page>(p);
+return (PyObject*)it;
+}
 
 bool PyRegister_EditorTab (PyObject* m) {
 PyEditorTabType.tp_new = (decltype(PyEditorTabType.tp_new))PyEditorTabNew;

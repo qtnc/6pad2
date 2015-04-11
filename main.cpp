@@ -7,9 +7,10 @@
 #include "Thread.h"
 #include "Resource.h"
 #include "python34.h"
+#include "eventlist.h"
+#include<list>
 #include<unordered_map>
 #include<functional>
-#include<boost/regex.hpp>
 using namespace std;
 
 #define OF_REUSEOPENEDTABS 1
@@ -24,6 +25,7 @@ vector<shared_ptr<Page>> pages;
 shared_ptr<Page> curPage(0);
 list<tstring> recentFiles;
 unordered_map<int, function<void(void)>> userCommands;
+eventlist listeners;
 vector<HWND> modlessWindows;
 list<tstring> consoleInput;
 
@@ -195,6 +197,7 @@ return true;
 }
 
 bool AppWindowClosing () {
+if (!listeners.dispatch<bool, true>("appWindowClosing")) return false;
 for (int i=0, j=0; i<pages.size(); i++) {
 shared_ptr<Page> p = pages[i];
 if (!p->zone || (p->flags&PF_NOSAVE) || p->file.size()<=0) continue;
@@ -211,15 +214,22 @@ for (int i=pages.size() -1; i>=0; i--) if (!PageDelete(pages[i],i)) return false
 return true;
 }
 
-void AppWindowClosed () { }
+void AppWindowClosed () { 
+listeners.dispatch("appWindowClosed");
+}
 
-void AppWindowOpened () { }
+void AppWindowOpened () { 
+listeners.dispatch("appWindowOpened");
+}
 
-void AppWindowActivated () { }
+void AppWindowActivated () {
+listeners.dispatch("appWindowActivated");
+}
 
 void AppWindowGainedFocus () {
 HWND hEdit = GetCurEditArea();
 if (hEdit) SetFocus(hEdit);
+listeners.dispatch("appWindowGainedFocus");
 }
 
 void AppWindowResized () {
@@ -231,7 +241,13 @@ if (edit) {
 r.left = 5; r.top = 5; r.right -= 10; r.bottom -= 49;
 SendMessage(tabctl, TCM_ADJUSTRECT, FALSE, &r);
 MoveWindow(edit, r.left+3, r.top+3, r.right-r.left -6, r.bottom-r.top -6, TRUE);
-}}
+}
+listeners.dispatch("appWindowResized");
+}
+
+void AppAddEvent (const string& type, const PyCallback& cb) {
+listeners.add(type, cb);
+}
 
 bool SetClipboardText (const tstring&  text2) {
 wstring text = toWString(text2);

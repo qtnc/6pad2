@@ -57,6 +57,77 @@ void TextPage::SelectAll () {
 SendMessage(zone, EM_SETSEL, 0, -1);
 }
 
+void TextPage::GetSelection (int& start, int& end) {
+SendMessage(zone, EM_GETSEL, &start, &end);
+}
+
+tstring TextPage::GetSelectedText ()  {
+return EditGetSelectedText(zone);
+}
+
+int TextPage::GetAllTextLength () {
+return GetWindowTextLength(zone);
+}
+
+tstring TextPage::GetAllText ()  {
+return GetWindowText(zone);
+}
+
+tstring TextPage::GetLine (int line) {
+return EditGetLine(zone, line);
+}
+
+int TextPage::GetLineCount ()  {
+return SendMessage(zone, EM_GETLINECOUNT, 0, 0);
+}
+
+int TextPage::GetLineLength (int line) {
+return SendMessage(zone, EM_LINELENGTH, GetLineStartIndex(line), 0);
+}
+
+int TextPage::GetLineStartIndex (int line) {
+return SendMessage(zone, EM_LINEINDEX, line, 0);
+}
+
+int TextPage::GetLineOfPos (int pos) {
+return SendMessage(zone, EM_LINEFROMCHAR, pos, 0);
+}
+
+void TextPage::SetSelection (int start, int end) {
+SendMessage(zone, EM_SETSEL, start, end);
+SendMessage(zone, EM_SCROLLCARET, 0, 0);
+}
+
+void TextPage::SetAllText (const tstring& str) {
+int start, end;
+SendMessage(zone, EM_GETSEL, &start, &end);
+SetWindowText(zone, str);
+SendMessage(zone, EM_SETSEL, start, end);
+}
+
+void TextPage::ReplaceTextRange (int start, int end, const tstring& str) {
+int oldStart, oldEnd;
+SendMessage(zone, EM_GETSEL, &oldStart, &oldEnd);
+if (start>=0||end>=0) SendMessage(zone, EM_SETSEL, start, end);
+SendMessage(zone, EM_REPLACESEL, 0, str.c_str());
+SendMessage(zone, EM_SETSEL, oldStart, oldEnd);
+SendMessage(zone, EM_SCROLLCARET, 0, 0);
+}
+
+void TextPage::SetSelectedText (const tstring& str) {
+int start;
+SendMessage(zone, EM_GETSEL, &start, 0);
+SendMessage(zone, EM_REPLACESEL, 0, str.c_str());
+SendMessage(zone, EM_SETSEL, start, start+str.size());
+SendMessage(zone, EM_SCROLLCARET, 0, 0);
+}
+
+PyObject* CreatePyEditorTabObject (Page*);
+PyObject* TextPage::GetPyData () {
+if (!pyData) pyData = CreatePyEditorTabObject(this);
+return *pyData;
+}
+
 tregex FindData::newRegex (bool findOnly) {
 using namespace boost;
 int options =
@@ -203,7 +274,7 @@ void TextPage::UpdateStatusBar () {
 if (zone) StatusBarUpdate(zone);
 }
 
-INT_PTR CALLBACK GoToLineDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
+static INT_PTR CALLBACK GoToLineDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
 static TextPage* page = 0;
 switch (umsg) {
 case WM_INITDIALOG : {
@@ -239,7 +310,7 @@ void TextPage::GoToDialog () {
 DialogBoxParam(IDD_GOTOLINE, win, GoToLineDlgProc, this);
 }
 
-INT_PTR CALLBACK FindReplaceDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
+static INT_PTR CALLBACK FindReplaceDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
 static TextPage* page = 0;
 switch (umsg) {
 case WM_INITDIALOG : {
