@@ -1,10 +1,11 @@
 #include "global.h"
 #include "strings.hpp"
+#include "page.h"
 #include "python34.h"
-#include "Resource.h"
-#include "Thread.h"
 #include "page.h"
 #include "inifile.h"
+#include "Resource.h"
+#include "Thread.h"
 #include<functional>
 using namespace std;
 
@@ -16,14 +17,11 @@ extern shared_ptr<Page> curPage;
 extern vector<shared_ptr<Page>> pages;
 extern vector<tstring> argv;
 
-extern "C" FILE* msvcfopen (const char* name, const char* ax) ;
-extern "C" void msvcfclose (FILE*);
-
-bool PyRegister_MyObj (PyObject* m);
+struct PyWindow { 
+    PyObject_HEAD 
+};
 
 tstring msg (const char* name);
-void ConsolePrint (const tstring& str);
-tstring ConsoleRead (void);
 void AppAddEvent (const string&, const PyCallback&);
 void AppRemoveEvent (const string&, const PyCallback&);
 void SetClipboardText (const tstring&);
@@ -32,17 +30,14 @@ int AddUserCommand (std::function<void(void)> f, int cmd=0);
 bool AddAccelerator (int flags, int key, int cmd);
 bool KeyNameToCode (const tstring& kn, int& flags, int& key);
 
-bool PyRegister_MenuItem (PyObject* m);
 PyObject* PyMenuItem_GetMenuBar (void);
 PyObject* PyMenuItem_CreatePopupMenu (void);
-
-bool PyRegister_EditorTab(PyObject* m);
 
 static int PyAddAccelerator (const tstring& kn, PyCallback cb) {
 int k=0, kf=0;
 KeyNameToCode(kn, kf, k);
 if (k<=0) return 0;
-function<void(void)> f = [=]()mutable{ cb(); };
+function<void(void)> f = [=]()mutable{  cb(); };
 int cmd = AddUserCommand(f);
 if (cmd<=0) return 0;
 if (AddAccelerator(kf, k, cmd)) return cmd;
@@ -85,18 +80,21 @@ if (i>=0 && i<pages.size()) return pages[i]->GetPyData();
 else {Py_RETURN_NONE;}
 }
 
-static tstring ConsoleReadImpl (void) {
-tstring s;
-Py_BEGIN_ALLOW_THREADS
-s = ConsoleRead();
-Py_END_ALLOW_THREADS
-return s;
+static void PyWindowDealloc (PyObject* pySelf) {
+PyWindow* self = (PyWindow*)pySelf;
+Py_TYPE(pySelf)->tp_free(pySelf);
 }
 
-static PyMethodDef _6padMainDefs[] = {
-// Overload of print, to be able to print in python console GUI
-PyDecl("print", ConsolePrint),
+static PyWindow* PyWindowNew (PyTypeObject* type, PyObject* args, PyObject* kwds) {
+PyWindow* self = (PyWindow*)(type->tp_alloc(type, 0));
+return self;
+}
 
+static int PyWindowInit (PyWindow* self, PyObject* args, PyObject* kwds) {
+return 0;
+}
+
+static PyMethodDef PyWindowMethods[] = {
 // Basic dialog boxes and related functions
 PyDecl("beep", Beep),
 PyDecl("messageBeep", MessageBeep),
@@ -109,13 +107,10 @@ PyDecl("getTranslation", msg),
 
 // Menus and accelerators management
 PyDecl("addAccelerator", PyAddAccelerator),
-PyDecl("getMenuBar", PyMenuItem_GetMenuBar),
 PyDecl("createPopupMenu", PyMenuItem_CreatePopupMenu),
 
 // Tabs management
-PyDecl("getTabCount", PyEditorTabs_getTabCount),
-PyDecl("getTab", PyEditorTabs_getTab),
-PyDecl("getCurrentTab", PyEditorTabs_getCurTab),
+PyDecl("page", PyEditorTabs_getTab),
 
 // Global events management
 PyDecl("addEvent", AppAddEvent),
@@ -125,52 +120,69 @@ PyDecl("removeEvent", AppRemoveEvent),
 PyDecl("setClipboardText", SetClipboardText),
 PyDecl("getClipboardText", GetClipboardText),
 
-// Misc functions
-PyDecl("ConsoleReadImpl", ConsoleReadImpl),
 PyDeclEnd
 };
 
-static PyModuleDef _6padMainMod = {
-PyModuleDef_HEAD_INIT,
-"window",
-NULL, -1,  _6padMainDefs 
+static PyGetSetDef PyWindowAccessors[] = {
+
+// Tabs management
+PyReadOnlyAccessor("curPage", PyEditorTabs_getCurTab),
+PyReadOnlyAccessor("pageCount", PyEditorTabs_getTabCount),
+
+// Menus and accelerators management
+PyReadOnlyAccessor("menus", PyMenuItem_GetMenuBar),
+
+PyDeclEnd
 };
 
-PyMODINIT_FUNC PyInit_6padMain (void) {
-PyObject* mod = PyModule_Create(&_6padMainMod);
-PyRegister_MenuItem(mod);
-PyRegister_EditorTab(mod);
-PyRegister_MyObj(mod);
-return mod;
+static PyTypeObject PyWindowType = { 
+    PyVarObject_HEAD_INIT(NULL, 0) 
+    "window.Window",             /* tp_name */ 
+    sizeof(PyWindow), /* tp_basicsize */ 
+    0,                         /* tp_itemsize */ 
+    PyWindowDealloc,                         /* tp_dealloc */ 
+    0,                         /* tp_print */ 
+    0,                         /* tp_getattr */ 
+    0,                         /* tp_setattr */ 
+    0,                         /* tp_reserved */ 
+    0,                         /* tp_repr */ 
+    0,                         /* tp_as_number */ 
+    0,                         /* tp_as_sequence */ 
+    0,                         /* tp_as_mapping */ 
+    0,                         /* tp_hash  */ 
+    0,                         /* tp_call */ 
+    0,                         /* tp_str */ 
+    0,                         /* tp_getattro */ 
+    0,                         /* tp_setattro */ 
+    0,                         /* tp_as_buffer */ 
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,        /* tp_flags */ 
+    NULL,           /* tp_doc */
+    0,                         /* tp_traverse */ 
+    0,                         /* tp_clear */ 
+    0,                         /* tp_richcompare */ 
+    0,                         /* tp_weaklistoffset */ 
+    0,                         /* tp_iter */ 
+    0,                         /* tp_iternext */ 
+    PyWindowMethods,             /* tp_methods */ 
+NULL,             /* tp_members */ 
+    PyWindowAccessors,                         /* tp_getset */ 
+    0,                         /* tp_base */ 
+    0,                         /* tp_dict */ 
+    0,                         /* tp_descr_get */ 
+    0,                         /* tp_descr_set */ 
+    0,                         /* tp_dictoffset */ 
+    (initproc)PyWindowInit,      /* tp_init */ 
+    0,                         /* tp_alloc */ 
+}; 
+
+bool PyRegister_Window (PyObject* m) {
+//PyWindowType.tp_new = (decltype(PyWindowType.tp_new))PyWindowNew;
+if (PyType_Ready(&PyWindowType) < 0)          return false;
+Py_INCREF(&PyWindowType); 
+PyModule_AddObject(m, "Window", (PyObject*)&PyWindowType); 
+return true;
 }
 
-void PyStart (void) {
-Py_SetProgramName(const_cast<wchar_t*>(toWString(argv[0]).c_str()));
-PyImport_AppendInittab("window", PyInit_6padMain);;
-Py_Initialize();
-//PySys_SetPath(appDir.c_str());
-PyEval_InitThreads();
-GIL_PROTECT
-{
-Resource res(TEXT("init.py"),257);
-char* code = (char*)res.copy();
-PyRun_SimpleString(code);
-delete[] code;
-}
-RunSync([](){});//Barrier to wait for the main loop to start
-string pyfn = toString(appName + TEXT(".py"));
-FILE* fp = msvcfopen(pyfn.c_str(), "r");
-if (fp) {
-PyRun_SimpleFile(fp, pyfn.c_str() );
-msvcfclose(fp);
-}
-// Ohter initialization stuff goes here
-
-// From now on, make this thread sleep forever
-// For a yet unknown reason, if we don't do this, the python console window hangs
-// Any clue why this is the case is welcome
-//PyRun_SimpleString("from time import sleep");
-//PyRun_SimpleString("while(1): sleep(60000)");
-PyRun_SimpleString("import code");
-PyRun_SimpleString("code.interact(banner='')");
+PyObject* CreatePyWindowObject () {
+return (PyObject*)PyWindowNew(&PyWindowType, NULL, NULL);
 }

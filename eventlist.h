@@ -32,6 +32,7 @@ f(args...);
 
 struct eventlist {
 std::unordered_multimap<std::string, EventCallback> m;
+eventlist();
 void add (const std::string& type, const EventCallback& cb);
 bool remove (const std::string& type, const EventCallback& cb);
 

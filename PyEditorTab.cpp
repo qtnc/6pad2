@@ -16,7 +16,7 @@ bool isClosed () { return !!page; }
 bool isModified () { return page->IsModified(); }
 tstring getName () { return page->name; }
 tstring getFile () { return page->file; }
-void setName (const tstring& s) { page->name=s; }
+void setName (const tstring& s) { page->SetName(s); }
 void setFile (const tstring& s) { page->file=s; }
 int getLineEnding () { return page->lineEnding; }
 int getEncoding () { return page->encoding; }
@@ -96,7 +96,7 @@ PyDeclEnd
 
 static PyTypeObject PyEditorTabType = { 
     PyVarObject_HEAD_INIT(NULL, 0) 
-    "window.EditorTab",             /* tp_name */ 
+    "sixpad.EditorTab",             /* tp_name */ 
     sizeof(PyEditorTab), /* tp_basicsize */ 
     0,                         /* tp_itemsize */ 
     PyEditorTabDealloc,                         /* tp_dealloc */ 
@@ -135,13 +135,14 @@ NULL,             /* tp_members */
 }; 
 
 PyObject* CreatePyEditorTabObject (Page* p) {
+GIL_PROTECT
 PyEditorTab* it = PyEditorTabNew(&PyEditorTabType, NULL, NULL);
 it->page = shared_ptr<Page>(p);
 return (PyObject*)it;
 }
 
 bool PyRegister_EditorTab (PyObject* m) {
-PyEditorTabType.tp_new = (decltype(PyEditorTabType.tp_new))PyEditorTabNew;
+//PyEditorTabType.tp_new = (decltype(PyEditorTabType.tp_new))PyEditorTabNew;
 if (PyType_Ready(&PyEditorTabType) < 0)          return false;
 Py_INCREF(&PyEditorTabType); 
 PyModule_AddObject(m, "EditorTab", (PyObject*)&PyEditorTabType); 

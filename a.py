@@ -1,5 +1,7 @@
-import window
 import sys
+import sixpad
+from sixpad import window
+
 def func4 () :
 	pop = window.createPopupMenu()
 	i1 = pop.add(label='Item 1')
@@ -12,9 +14,17 @@ def func4 () :
 	re = pop.show()
 	window.alert('Result=' + str(re), 'Info')
 
-def func () :
-	window.getCurrentTab().selectedText *= 2
+def f2 (self, key):
+	window.beep(1760, 80)
+	print(self)
+	window.beep(880, 80)
+	print(key)
+	window.beep(1320, 80)
+	return True
 
-menus = window.getMenuBar()
-menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
+def func () :
+	window.curPage.addEvent('keyDown', f2)
+	#callUnknownFunction()
+
+window.menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
 

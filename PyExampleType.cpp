@@ -37,7 +37,7 @@ PyDeclEnd
 
 static PyTypeObject PyMyObjType = { 
     PyVarObject_HEAD_INIT(NULL, 0) 
-    "window.MyObj",             /* tp_name */ 
+    "sixpad.MyObj",             /* tp_name */ 
     sizeof(PyMyObj), /* tp_basicsize */ 
     0,                         /* tp_itemsize */ 
     PyMyObjDealloc,                         /* tp_dealloc */ 

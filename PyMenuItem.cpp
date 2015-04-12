@@ -154,7 +154,7 @@ NULL
 
 static PyTypeObject PyMenuItemType = { 
     PyVarObject_HEAD_INIT(NULL, 0) 
-    "window.MenuItem",             /* tp_name */ 
+    "sixpad.MenuItem",             /* tp_name */ 
     sizeof(PyMenuItem), /* tp_basicsize */ 
     0,                         /* tp_itemsize */ 
     PyMenuItemDealloc,                         /* tp_dealloc */ 
@@ -418,7 +418,7 @@ return re;
 PyObject* PyMenuItem::addItem (tstring  label, PyCallback action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator) {
 if (!submenu) { Py_RETURN_NONE; }
 int cmd = pos+1, kf=0, key= 0;
-if (action && !isSeparator && !isSubmenu) cmd = AddUserCommand([=]()mutable{ action(); });
+if (action && !isSeparator && !isSubmenu) cmd = AddUserCommand([=]()mutable{  action(); });
 if (cmd && accelerator.size()>0 && KeyNameToCode(accelerator, kf, key)) AddAccelerator(kf, key, cmd);
 if (key) label += TEXT("\t\t") + KeyCodeToName(kf, key, true);
 PyObject* re = NULL;

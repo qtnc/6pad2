@@ -1,15 +1,20 @@
-import sys, window, traceback
+import sys, traceback, sixpad
+
+sysRead = sixpad.sysRead
+sysPrint = sixpad.sysPrint
+sixpad.sysRead = None
+sixpad.sysPrint = None
 
 class Console:
 	def write (self, text):
-		window.print(text)
+		sysPrint(text)
 	def print (self, text):
-		window.print(text)
+		sysPrint(text)
 	def readline (self):
-		return window.ConsoleReadImpl()
+		return sysRead()
 
 console = Console()
 sys.stderr = console
 sys.stdout = console
 sys.stdin = console
-window.console = console
+sixpad.console = console

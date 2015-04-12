@@ -57,6 +57,7 @@ else return NULL;
 
 bool PageDeactivated (shared_ptr<Page> p) {
 if (!p) return true;
+if (!p->dispatchEvent<bool, true>("pageDeactivated")) return false;
 ShowWindow(p->zone, SW_HIDE);
 EnableWindow(p->zone, FALSE);
 return true;
@@ -96,9 +97,11 @@ EnableMenuItem2(menuFormat, 1, MF_BYPOSITION, !(p->flags&PF_NOLINEENDING));
 EnableMenuItem2(menuFormat, 2, MF_BYPOSITION, !(p->flags&PF_NOINDENTATION));
 EnableMenuItem2(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND, !(p->flags&PF_NOAUTOLINEBREAK));
 curPage = p;
+curPage->dispatchEvent("pageActivated");
 }
 
 bool PageClosing (shared_ptr<Page> p) {
+if (!p->dispatchEvent<bool, true>("pageClosing")) return false;
 if (!p->IsModified()) return true;
 int re = MessageBox(win, tsnprintf(512, msg("Save changes to %s?"), p->name.c_str()).c_str(), p->name.c_str(), MB_ICONEXCLAMATION  | MB_YESNOCANCEL);
 if (re==IDYES) { 
@@ -111,9 +114,13 @@ return true;
 else return re==IDNO;
 }
 
-void PageClosed (shared_ptr<Page> p) { }
+void PageClosed (shared_ptr<Page> p) { 
+p->dispatchEvent("pageClosed");
+}
 
-void PageOpened (shared_ptr<Page> p) { }
+void PageOpened (shared_ptr<Page> p) { 
+p->dispatchEvent("pageOpened");
+}
 
 void PageSetLineEnding (shared_ptr<Page> p, int le) {
 if (!p) return;
@@ -143,6 +150,18 @@ if (p==curPage) PageActivated(p);
 
 void PageActivate (int i) {
 SendMessage(tabctl, TCM_SETCURFOCUS, i, 0);
+}
+
+void PageSetName (shared_ptr<Page> p, const tstring& name) {
+if (!p) return;
+int pos = std::find(pages.begin(), pages.end(), p) -pages.begin();
+if (pos<0 || pos>=pages.size()) return;
+p->name = name;
+TCITEM it;
+it.mask = TCIF_TEXT;
+it.pszText = (LPTSTR)(p->name.c_str());
+SendMessage(tabctl, TCM_SETITEM, pos, &it);
+if (curPage==p) SetWindowText(win, (p->name + TEXT(" - ") + appName).c_str() );
 }
 
 void PageAdd (shared_ptr<Page> p, bool focus = true) {
@@ -285,6 +304,7 @@ return s;
 void ConsolePrint (const tstring& s2) {
 tstring s=s2; s = preg_replace(s, TEXT("(?:\r\n|\n|\r)"), TEXT("\r\n"));
 printf("%ls", s.c_str());
+fflush(stdout);
 if (consoleWin) SendMessage(consoleWin, WM_COMMAND, 999, &s);
 }
 

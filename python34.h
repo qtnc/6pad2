@@ -7,14 +7,14 @@
 #include<functional>
 #include<string>
 
-#define GIL_PROTECT RAII_GIL ___RAII_GIL_VAR_##__LINE__;
+#define GIL_PROTECT RAII_GIL ___RAII_GIL_VAR_##__LINE__; 
 
 typedef PyObject*(*PyCFunc)(PyObject*,PyObject*);
 
 struct RAII_GIL {
 PyGILState_STATE gil;
-RAII_GIL():  gil(PyGILState_Ensure()) {}
-~RAII_GIL(){ PyGILState_Release(gil); }
+RAII_GIL():  gil(PyGILState_Ensure()) { }
+~RAII_GIL(){  PyGILState_Release(gil); }
 };
 
 void PyStart (void);
@@ -210,6 +210,7 @@ template<class R, class... A> R operator() (A... args) const {
 GIL_PROTECT
 PyObject* argtuple = Py_BuildValue(PyTypeSpecsTuple<A...>(), PyTypeSpec<A>::convert2(args)...);
 PyObject* pyResult = PyObject_CallObject(func, argtuple);
+if (!pyResult) PyErr_Print();
 Py_XDECREF(argtuple);
 R cResult = PyTypeSpec<R>::convert3(pyResult);
 Py_XDECREF(pyResult);
@@ -219,6 +220,7 @@ template<class... A> void operator() (A... args) const {
 GIL_PROTECT
 PyObject* argtuple = Py_BuildValue(PyTypeSpecsTuple<A...>(), PyTypeSpec<A>::convert2(args)...);
 PyObject* pyResult = PyObject_CallObject(func, argtuple);
+if (!pyResult) PyErr_Print();
 Py_XDECREF(argtuple);
 Py_XDECREF(pyResult);
 }
@@ -312,34 +314,40 @@ Py_RETURN_NONE;
 template<CFunc cfunc> static PyObject* func (PyObject* pySelf, PyObject* pyArgs) { return func2(cfunc, pySelf, pyArgs); }
 };
 
-template<class G, class S> struct PyAttrSpec {
-template<class O, class A> static inline PyObject* get2 (A(O::*getf)(void), PyObject* self ) {
-A result = ((*(O*)self).*getf)();
-return Py_BuildValue(PyTypeSpecs<A>(), PyTypeSpec<A>::convert2(result) );
-}
+template<class S> struct PySetterSpec {
 template<class O, class A> static inline int set2 (void(O::*setf)(A), PyObject* self, PyObject* pyVal) {
 A cVal = PyTypeSpec<A>::convert3(pyVal);
 if (PyErr_Occurred()) return -1;
 ((*(O*)self).*setf)(cVal);
 return 0;
 }
-template<G getf> static PyObject* getter (PyObject* self, void* unused) { return get2(getf, self); }
-template<S setf> static int setter (PyObject* self, PyObject* val, void* unused) { return set2(setf, self, val); }
+template<class A> static inline int set2 (void(*setf)(A), PyObject* self, PyObject* pyVal) {
+A cVal = PyTypeSpec<A>::convert3(pyVal);
+if (PyErr_Occurred()) return -1;
+setf(cVal);
+return 0;
+}
+template<S setf> static inline int setter (PyObject* self, PyObject* val, void* unused) { return set2(setf, self, val); }
 };
 
-template<class G> struct PyAttrSpec2 {
+template<class G> struct PyGetterSpec {
 template<class O, class A> static inline PyObject* get2 (A(O::*getf)(void), PyObject* self ) {
 A result = ((*(O*)self).*getf)();
 return Py_BuildValue(PyTypeSpecs<A>(), PyTypeSpec<A>::convert2(result) );
 }
-template<G getf> static PyObject* getter (PyObject* self, void* unused) { return get2(getf, self); }
+template<class A> static inline PyObject* get2 (A(*getf)(void), PyObject* self ) {
+A result = getf();
+return Py_BuildValue(PyTypeSpecs<A>(), PyTypeSpec<A>::convert2(result) );
+}
+template<G getf> static inline PyObject* getter (PyObject* self, void* unused) { return get2(getf, self); }
 };
 
 #define PyToCType(t,x) (PyTypeSpec<t>::convert3(x))
 #define PyToPyType(x) (Py_BuildValue(PyTypeSpecs<decltype(x)>(), PyTypeSpec<decltype(x)>::convert2(x)))
 #define PyDecl(n,f) {(n), (PyFuncSpec<decltype(f)>::func<f>), METH_VARARGS, NULL}
-#define PyAccessor(n,g,s) {(n), (PyAttrSpec<decltype(g), decltype(s)>::getter<g>), (PyAttrSpec<decltype(g), decltype(s)>::setter<s>), NULL, NULL}
-#define PyReadOnlyAccessor(n,g) {(n), (PyAttrSpec2<decltype(g)>::getter<g>), NULL, NULL, NULL}
+#define PyAccessor(n,g,s) {(n), (PyGetterSpec<decltype(g)>::getter<g>), (PySetterSpec<decltype(s)>::setter<s>), NULL, NULL}
+#define PyWriteOnlyAccessor(n,s) {(n), NULL, (PySetterSpec<decltype(s)>::setter<s>), NULL, NULL}
+#define PyReadOnlyAccessor(n,g) {(n), (PyGetterSpec<decltype(g)>::getter<g>), NULL, NULL, NULL}
 #define PyDeclEnd {0, 0, 0, 0}
 
 

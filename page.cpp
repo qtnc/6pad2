@@ -37,6 +37,9 @@ void SetClipboardText (const tstring&);
 tstring GetClipboardText (void);
 void PrepareSmartPaste (tstring& text, const tstring& indent);
 bool PageGoToNext (int);
+void PageSetName (shared_ptr<Page> p, const tstring& name);
+
+void Page::SetName (const tstring& name) { PageSetName(shared_from_this(),name); }
 
 void TextPage::GoTo (int ln) {
 if (!zone) return;
@@ -373,10 +376,6 @@ void TextPage::FindReplaceDialog () {
 FindReplaceDlg2(*this,true);
 }
 
-inline bool IsCtrlDown () { return GetKeyState(VK_CONTROL)<0; }
-inline bool IsShiftDown () { return GetKeyState(VK_SHIFT)<0; }
-inline bool IsAltDown () { return GetKeyState(VK_MENU)<0; }
-
 static int EZGetNextParagPos (HWND hEdit, int pos) {
 int nl=0, len = GetWindowTextLength(hEdit);
 HLOCAL hLoc = (HLOCAL)SendMessage(hEdit, EM_GETHANDLE, 0, 0);
@@ -499,12 +498,13 @@ if (IsShiftDown()) str = preg_replace(str, TEXT("^")+indent, TEXT(""));
 else str = preg_replace(str, TEXT("^"), indent);
 SendMessage(hEdit, EM_SETSEL, sOffset, eOffset+eLineLen);
 SendMessage(hEdit, EM_REPLACESEL, 0, str.c_str());
+SendMessage(hEdit, EM_SETSEL, sOffset, sOffset+str.size());
 }}
 else { // There is no selection
 tstring line = EditGetLine(hEdit, sLine, sPos);
 int pos = line.find_first_not_of(TEXT("\t \xA0"));
-if (pos<0 || pos>=line.size()) pos=0;
-if (sPos >= sOffset+pos+1) { Beep(1000,200); return true; }
+if (pos<0) pos = line.size();
+if (sPos > sOffset+pos) { Beep(1000,200); return true; }
 if (IsShiftDown()) {
 for (int i=0; i<1 || i<curPage->indentationMode; i++) SendMessage(hEdit, WM_CHAR, VK_BACK, 0);
 return true;
@@ -516,11 +516,13 @@ return curPage->indentationMode>0;
 
 static LRESULT CALLBACK EditAreaWinProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, TextPage* curPage) {
 if (msg==WM_CHAR) {
+if (!curPage->dispatchEvent<bool, true>("keyPressed", (int)LOWORD(wp) )) return true;
 switch(LOWORD(wp)) {
 case VK_RETURN: return EZHandleEnter(hwnd);
 case VK_TAB: if (EZHandleTab(curPage, hwnd)) return true; break;
 }}
 else if (msg==WM_KEYDOWN) {
+if (!curPage->dispatchEvent<bool, true>("keyDown", (int)LOWORD(wp) )) return true;
 switch(LOWORD(wp)) {
 case VK_DOWN:
 if (IsCtrlDown()) {
@@ -528,7 +530,7 @@ if (IsShiftDown()) return EZHandleCtrlShiftDown(hwnd);
 else return EZHandleCtrlDown(hwnd);
 }
 break;
-case VK_UP: 
+case VK_UP:
 if (IsCtrlDown()) {
 if (IsShiftDown()) return EZHandleCtrlShiftUp(hwnd);
 else return EZHandleCtrlUp(hwnd);
@@ -545,8 +547,17 @@ if (!IsCtrlDown() && !IsAltDown()) return EZHandleF8(hwnd);
 break;
 }}
 else if (msg==WM_KEYUP) {
+if (!curPage->dispatchEvent<bool, true>("keyUp", (int)LOWORD(wp) )) return true;
 StatusBarUpdate(hwnd);
 }
+else if (msg==WM_SYSKEYDOWN) {
+switch(LOWORD(wp)) {
+// Alt+up/down/right/left: to be done later
+case VK_UP: break;
+case VK_DOWN: break;
+case VK_LEFT: break;
+case VK_RIGHT: break;
+}}
 else if (msg==WM_PASTE) {
 tstring line = EditGetLine(hwnd);
 tstring str = GetClipboardText();

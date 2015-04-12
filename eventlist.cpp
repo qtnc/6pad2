@@ -1,7 +1,10 @@
 #include "eventlist.h"
 
+eventlist::eventlist () { }
+
 void eventlist::add (const string& type, const EventCallback& cb) {
-m.insert(pair<string,EventCallback>(type,cb));
+pair<string,EventCallback> x(type,cb);
+m.insert(x);
 }
 
 bool eventlist::remove (const string& type, const EventCallback& cb) {

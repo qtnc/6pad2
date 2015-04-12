@@ -4,6 +4,7 @@
 *.h text
 *.rc text
 *.bat text
+*.jss text
 *.ini text
 *.lng text
 *.txt text

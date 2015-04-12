@@ -36,6 +36,10 @@ tstring EditGetLine (HWND hEdit) ;
 tstring EditGetLine (HWND hEdit, int line, int lineindex=-1);
 tstring EditGetSelectedText (HWND hEdit);
 
+inline bool IsCtrlDown () { return GetKeyState(VK_CONTROL)<0; }
+inline bool IsShiftDown () { return GetKeyState(VK_SHIFT)<0; }
+inline bool IsAltDown () { return GetKeyState(VK_MENU)<0; }
+
 unsigned long long GetFileTime (LPCTSTR, int);
 
 #endif
