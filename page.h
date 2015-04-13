@@ -70,6 +70,7 @@ virtual void FindPrev ()  {}
 virtual void FindReplace (const tstring& search, const tstring& replace, bool caseSensitive, bool isRegex) {}
 
 template<class R, R initial, class... A> inline R dispatchEvent (const string& type, A... args) { return listeners.dispatch<R,initial>(type, *pyData, args...); }
+template<class... A> inline var dispatchEvent (const string& type, const var& def, A... args) { return listeners.dispatch(type, def, *pyData, args...); }
 template<class... A> inline void dispatchEvent (const string& type, A... args) { listeners.dispatch(type, *pyData, args...); }
 inline void addEvent (const std::string& type, const PyCallback& cb) { listeners.add(type,cb); }
 inline void removeEvent (const std::string& type, const PyCallback& cb) { listeners.remove(type,cb); }

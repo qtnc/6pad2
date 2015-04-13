@@ -147,6 +147,7 @@ else if (o==Py_False) return false;
 else if (PyLong_Check(o)) return (int)(PyLong_AsLong(o));
 else if (PyUnicode_Check(o)) return toTString(PyUnicode_AsUnicode(o));
 else PyErr_SetString(PyExc_TypeError, "none, bool, int or str  expected"); 
+return var();
 }};
 
 template<> struct PyTypeSpec<PyObject*> { 

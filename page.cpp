@@ -404,14 +404,27 @@ LocalUnlock(hLoc);
 return realBegPos;
 }
 
-static LRESULT EZHandleEnter (HWND hEdit) {
-int pos=0, nLine=0;
+static LRESULT __fastcall EZHandleEnter (TextPage* page, HWND hEdit) {
+int pos=0, nLine=0, addIndent=0;
 SendMessage(hEdit, EM_GETSEL, &pos, 0);
 nLine = SendMessage(hEdit, EM_LINEFROMCHAR, pos, 0);
-tstring line = EditGetLine(hEdit, nLine, pos);
+tstring addString, line = EditGetLine(hEdit, nLine, pos);
+var re = page->dispatchEvent("enter", var(), line);
+switch(re.getType()) {
+case T_NULL: break;
+case T_BOOL: if (!re) return false; break;
+case T_INT: addIndent = re.toInt(); break;
+case T_STR: addString = re.toTString(); break;
+}
 pos = line.find_first_not_of(TEXT("\t \xA0"));
-if (pos<0 || pos>=line.size()) pos=0;
-tstring repl = TEXT("\r\n") + line.substr(0, pos);
+if (pos<0 || pos>=line.size()) pos=line.size();
+if (addIndent<0) pos = max(0, pos + addIndent * max(1, page->indentationMode));
+line = line.substr(0,pos);
+if (addIndent>0) for (int i=0, n=min(addIndent,100); i<n; i++) {
+if (page->indentationMode<=0) line += TEXT("\t");
+else line += tstring(page->indentationMode, ' ');
+}
+tstring repl = TEXT("\r\n") + line + addString;
 SendMessage(hEdit, EM_REPLACESEL, TRUE, (LPARAM)repl.c_str() );
 SendMessage(hEdit, EM_SCROLLCARET, 0, 0);
 return true;
@@ -518,7 +531,7 @@ static LRESULT CALLBACK EditAreaWinProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM 
 if (msg==WM_CHAR) {
 if (!curPage->dispatchEvent<bool, true>("keyPressed", (int)LOWORD(wp) )) return true;
 switch(LOWORD(wp)) {
-case VK_RETURN: return EZHandleEnter(hwnd);
+case VK_RETURN: return EZHandleEnter(curPage, hwnd);
 case VK_TAB: if (EZHandleTab(curPage, hwnd)) return true; break;
 }}
 else if (msg==WM_KEYDOWN) {

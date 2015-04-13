@@ -44,6 +44,14 @@ r = (it->second).operator()<R>(args...);
 return r;
 }
 
+template<class... A> var dispatch (const string& type, const var& def, A... args) {
+var r = def;
+for (auto it = m.find(type); it!=m.end(); ++it) {
+r = (it->second).operator()<var>(args...);
+}
+return r;
+}
+
 template<class... A> void dispatch (const string& type, A... args) {
 for (auto it = m.find(type); it!=m.end(); ++it) {
 (it->second)(args...);

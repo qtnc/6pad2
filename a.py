@@ -14,17 +14,13 @@ def func4 () :
 	re = pop.show()
 	window.alert('Result=' + str(re), 'Info')
 
-def f2 (self, key):
-	window.beep(1760, 80)
-	print(self)
-	window.beep(880, 80)
-	print(key)
-	window.beep(1320, 80)
-	return True
+def f2 (self, line):
+	print(line)
+	return False
 
 def func () :
-	window.curPage.addEvent('keyDown', f2)
-	#callUnknownFunction()
+	window.curPage.addEvent('enter', f2)
+
 
 window.menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
 
