@@ -9,10 +9,12 @@ void PageSetEncoding (shared_ptr<Page> p, int enc);
 void PageSetIndentationMode (shared_ptr<Page> p, int im);
 void PageSetAutoLineBreak (shared_ptr<Page> p, bool alb);
 
+extern vector<shared_ptr<Page>> pages;
+
 struct PyEditorTab { 
     PyObject_HEAD
 shared_ptr<Page> page;
-bool isClosed () { return !!page; }
+bool isClosed () {  return !page || std::find(pages.begin(), pages.end(), page)==pages.end(); }
 bool isModified () { return page->IsModified(); }
 tstring getName () { return page->name; }
 tstring getFile () { return page->file; }
@@ -84,7 +86,7 @@ PyReadOnlyAccessor("closed", &PyEditorTab::isClosed),
 PyReadOnlyAccessor("modified", &PyEditorTab::isModified),
 PyAccessor("lineEnding", &PyEditorTab::getLineEnding, &PyEditorTab::setLineEnding),
 PyAccessor("encoding", &PyEditorTab::getEncoding, &PyEditorTab::setEncoding),
-PyAccessor("indentationType", &PyEditorTab::getIndentationMode, &PyEditorTab::setIndentationMode),
+PyAccessor("indentation", &PyEditorTab::getIndentationMode, &PyEditorTab::setIndentationMode),
 PyAccessor("autoLineBreak", &PyEditorTab::getAutoLineBreak, &PyEditorTab::setAutoLineBreak),
 PyAccessor("selectionStart", &PyEditorTab::getSelectionStart, &PyEditorTab::setSelectionStart),
 PyAccessor("selectionEnd", &PyEditorTab::getSelectionEnd, &PyEditorTab::setSelectionEnd),

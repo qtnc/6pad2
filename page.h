@@ -29,14 +29,18 @@ HWND zone=0;
 PySafeObject pyData;
 eventlist listeners;
 
-virtual HWND CreateEditArea (HWND parent)=0;
+virtual void CreateZone (HWND parent)=0;
+virtual void ResizeZone (const RECT&) = 0;
+virtual void HideZone () =0;
+virtual void ShowZone (const RECT&) =0;
+virtual void FocusZone () =0;
 virtual PyObject* GetPyData () { return *pyData; }
 virtual bool IsEmpty () =0;
 virtual bool IsModified () = 0;
 virtual tstring LoadText (const tstring& fn = TEXT(""), bool guessFormat = true)  =0;
 virtual bool SaveText (const tstring& fn = TEXT("")) =0;
 
-virtual void UpdateStatusBar () {}
+virtual void UpdateStatusBar (HWND) {}
 virtual void GetSelection (int& start, int& end) = 0;
 virtual tstring GetSelectedText ()  =0;
 virtual int GetAllTextLength ()  = 0;
@@ -61,7 +65,8 @@ virtual void Copy ()  { SendMessage(zone, WM_COPY, 0, 0); }
 virtual void Cut ()  { SendMessage(zone, WM_CUT, 0, 0); }
 virtual void Paste ()  { SendMessage(zone, WM_PASTE, 0, 0); }
 virtual void SelectAll () {}
-virtual void GoTo (int pos) {}
+virtual void SetCurrentPosition (int pos) {}
+virtual int GetCurrentPosition () = 0;
 virtual void GoToDialog () {}
 virtual void FindDialog ()  {}
 virtual void FindReplaceDialog ()  {}
@@ -79,12 +84,16 @@ inline void removeEvent (const std::string& type, const PyCallback& cb) { listen
 struct TextPage: Page {
 virtual bool IsEmpty () ;
 virtual bool IsModified () ;
-virtual HWND CreateEditArea (HWND parent);
+virtual void CreateZone (HWND parent);
+virtual void ResizeZone (const RECT&);
+virtual void HideZone ();
+virtual void ShowZone (const RECT&);
+virtual void FocusZone ();
 virtual tstring LoadText (const tstring& fn = TEXT(""), bool guessFormat=true ) ;
 virtual bool SaveText (const tstring& fn = TEXT(""));
 
 virtual PyObject* GetPyData ();
-virtual void UpdateStatusBar () ;
+virtual void UpdateStatusBar (HWND) ;
 virtual void GetSelection (int& start, int& end);
 virtual tstring GetSelectedText () ;
 virtual tstring GetAllText () ;
@@ -100,13 +109,16 @@ virtual void SetSelectedText (const tstring& str);
 virtual void SetAllText (const tstring& str);
 
 virtual void SelectAll () ;
-virtual void GoTo (int);
+virtual int GetCurrentPosition ();
+virtual void SetCurrentPosition  (int);
 virtual void GoToDialog ();
 virtual void FindDialog () ;
 virtual void FindReplaceDialog () ;
 virtual void FindNext ();
 virtual void FindPrev () ;
 virtual void FindReplace (const tstring& search, const tstring& replace, bool caseSensitive, bool isRegex);
+
+static inline Page* create () { return new TextPage(); }
 };
 
 #endif

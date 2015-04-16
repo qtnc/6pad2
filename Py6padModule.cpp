@@ -1,23 +1,37 @@
 #include "global.h"
 #include "strings.hpp"
+#include "IniFile.h"
 #include "python34.h"
 #include "Resource.h"
 #include "Thread.h"
 using namespace std;
 
+extern IniFile config;
 extern tstring appPath, appDir, appName, configFileName;
 extern vector<tstring> argv;
 
 extern "C" FILE* msvcfopen (const char* name, const char* ax) ;
 extern "C" void msvcfclose (FILE*);
-extern tstring ConsoleRead (void);
-extern void ConsolePrint (const tstring& str);
+tstring ConsoleRead (void);
+void ConsolePrint (const tstring& str);
+void SetClipboardText (const tstring&);
+tstring GetClipboardText (void);
+tstring msg (const char* name);
 
 bool PyRegister_MyObj (PyObject* m);
 bool PyRegister_Window (PyObject* m); 
 bool PyRegister_EditorTab(PyObject* m);
 bool PyRegister_MenuItem (PyObject* m);
 PyObject* CreatePyWindowObject ();
+
+static bool PyInclude (const string& fn) {
+FILE* fp = msvcfopen(fn.c_str(), "r");
+if (fp) {
+PyRun_SimpleFile(fp, fn.c_str() );
+msvcfclose(fp);
+}
+return !!fp;
+}
 
 static tstring ConsoleReadImpl (void) {
 tstring s;
@@ -27,7 +41,25 @@ Py_END_ALLOW_THREADS
 return s;
 }
 
+static tstring GetCurrentDirectory2 (void) {
+TCHAR buf[300] = {0};
+GetCurrentDirectory(300, buf);
+return buf;
+}
+
 static PyMethodDef _6padMainDefs[] = {
+// Translation management
+PyDecl("getTranslation", msg),
+
+// Clipboard management
+PyDecl("setClipboardText", SetClipboardText),
+PyDecl("getClipboardText", GetClipboardText),
+
+// FIle and directory management
+PyDecl("include", PyInclude),
+PyDecl("getCurrentDirectory", GetCurrentDirectory2),
+PyDecl("setCurrentDirectory", SetCurrentDirectory),
+
 // Overload of print, to be able to print in python console GUI
 PyDecl("sysPrint", ConsolePrint),
 // Console read for interactive interpreter ithin python console GUI
@@ -65,12 +97,10 @@ PyRun_SimpleString(code);
 delete[] code;
 }
 RunSync([](){});//Barrier to wait for the main loop to start
-string pyfn = toString(appName + TEXT(".py"));
-FILE* fp = msvcfopen(pyfn.c_str(), "r");
-if (fp) {
-PyRun_SimpleFile(fp, pyfn.c_str() );
-msvcfclose(fp);
-}
+string pyfn = toString(appDir + TEXT("\\") + appName + TEXT(".py"));
+PyInclude(pyfn);
+for (auto it = config.find("extension"); it!=config.end(); ++it) PyInclude(it->second);
+
 // Ohter initialization stuff goes here
 
 // From now on, make this thread sleep forever

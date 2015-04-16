@@ -41,11 +41,16 @@ void PageSetName (shared_ptr<Page> p, const tstring& name);
 
 void Page::SetName (const tstring& name) { PageSetName(shared_from_this(),name); }
 
-void TextPage::GoTo (int ln) {
+void TextPage::SetCurrentPosition (int pos) {
 if (!zone) return;
-int pos = SendMessage(zone, EM_LINEINDEX, ln, 0);
 SendMessage(zone, EM_SETSEL, pos, pos);
 SendMessage(zone, EM_SCROLLCARET, 0, 0);
+}
+
+int TextPage::GetCurrentPosition () {
+int pos=0;
+SendMessage(zone, EM_GETSEL, 0, &pos);
+return pos;
 }
 
 bool TextPage::IsEmpty ()  {
@@ -257,7 +262,7 @@ if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 return text;
 }
 
-static void StatusBarUpdate (HWND hEdit) {
+static void StatusBarUpdate (HWND hEdit, HWND status) {
 int spos=0, epos=0;
 SendMessage(hEdit, EM_GETSEL, &spos, &epos);
 int sline = SendMessage(hEdit, EM_LINEFROMCHAR, spos, 0);
@@ -265,16 +270,16 @@ int scolumn = spos - SendMessage(hEdit, EM_LINEINDEX, sline, 0);
 if (spos!=epos) {
 int eline = SendMessage(hEdit, EM_LINEFROMCHAR, epos, 0);
 int ecolumn = epos - SendMessage(hEdit, EM_LINEINDEX, eline, 0);
-SetWindowText(status, tsnprintf(512, msg("Li %d, Col %d to Li %d, Col %d"), sline, scolumn, eline, ecolumn));
+SetWindowText(status, tsnprintf(512, msg("Li %d, Col %d to Li %d, Col %d"), 1+sline, 1+scolumn, 1+eline, 1+ecolumn));
 } else {
 int nlines = SendMessage(hEdit, EM_GETLINECOUNT, 0, 0);
 int max = GetWindowTextLength(hEdit);
 int prc = max? 100 * spos / max :0;
-SetWindowText(status, tsnprintf(512, msg("Li %d, Col %d.\t%d%%, %d lines"), sline, scolumn, prc, nlines));
+SetWindowText(status, tsnprintf(512, msg("Li %d, Col %d.\t%d%%, %d lines"), 1+sline, 1+scolumn, prc, nlines));
 }}
 
-void TextPage::UpdateStatusBar () {
-if (zone) StatusBarUpdate(zone);
+void TextPage::UpdateStatusBar (HWND hStatus) {
+if (zone) StatusBarUpdate(zone, hStatus);
 }
 
 static INT_PTR CALLBACK GoToLineDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
@@ -302,7 +307,8 @@ else --num;
 int max = SendMessage(edit, EM_GETLINECOUNT, 0, 0);
 if (num<0) num=0;
 else if (num>=max) num=max-1;
-page->GoTo(num);
+int pos = SendMessage(edit, EM_LINEINDEX, num, 0);
+page->SetCurrentPosition(pos);
 }
 case IDCANCEL : EndDialog(hwnd, wp); return TRUE;
 }}
@@ -561,7 +567,7 @@ break;
 }}
 else if (msg==WM_KEYUP) {
 if (!curPage->dispatchEvent<bool, true>("keyUp", (int)LOWORD(wp) )) return true;
-StatusBarUpdate(hwnd);
+StatusBarUpdate(hwnd, status);
 }
 else if (msg==WM_SYSKEYDOWN) {
 switch(LOWORD(wp)) {
@@ -603,7 +609,7 @@ SendMessage(hwnd, EM_SETSEL, lindex, lindex+llen);
 return DefSubclassProc(hwnd, msg, wp, lp);
 }
 
-HWND TextPage::CreateEditArea (HWND parent) {
+void TextPage::CreateZone (HWND parent) {
 static int count = 0;
 tstring text;
 int ss=0, se=0;
@@ -624,7 +630,29 @@ SetWindowText(hEdit, text.c_str());
 SendMessage(hEdit, EM_SETSEL, ss, se);
 SendMessage(hEdit, EM_SCROLLCARET, 0, 0);
 SetWindowSubclass(hEdit, (SUBCLASSPROC)EditAreaWinProc, 0, (DWORD_PTR)this);
-return zone=hEdit;
+zone=hEdit;
 }
+
+void TextPage::HideZone () {
+ShowWindow(zone, SW_HIDE);
+EnableWindow(zone, FALSE);
+}
+
+void TextPage::ShowZone (const RECT& r) {
+EnableWindow(zone, TRUE);
+SetWindowPos(zone, NULL,
+r.left+3, r.top+3, r.right - r.left -6, r.bottom - r.top -6,
+SWP_NOZORDER | SWP_SHOWWINDOW);
+SendMessage(zone, EM_SCROLLCARET, 0, 0);
+}
+
+void TextPage::FocusZone () {
+SetFocus(zone);
+}
+
+void TextPage::ResizeZone (const RECT& r) {
+MoveWindow(zone, r.left+3, r.top+3, r.right-r.left -6, r.bottom-r.top -6, TRUE);
+}
+
 
 

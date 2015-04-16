@@ -4,7 +4,12 @@
 #include<map>
 #include "strings.hpp"
 
-struct IniFile: std::map<string,string>  {
+struct IniFile: private std::multimap<string,string>  {
+typedef std::multimap<string,string> super;
+using super::find;
+using super::erase;
+using super::begin;
+using super::end;
 bool load (const tstring& fn) ;
 bool save (const tstring& fn) ;
 inline bool contains (const std::string& key)  { return find(key)!=end(); }
@@ -13,7 +18,7 @@ auto it = find(key);
 if (it==end()) return def;
 else return it->second;
 }
-inline void set3 (const std::string& key, const string& value) { (*this)[key]=value; }
+inline void set3 (const std::string& key, const std::string& value) { insert(pair<std::string,std::string>(key,value)); }
 template<class T> inline T get (const std::string& key, T def) { return fromString<T>(get3(key, toString(def))); }
 template<class T> inline T get (const char*  key, T def) { return get<T>(string(key), def); }
 template<class T> inline void set (const std::string& key, const T& value) { set3(key, toString(value)); }

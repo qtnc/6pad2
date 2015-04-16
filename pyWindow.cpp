@@ -24,8 +24,6 @@ struct PyWindow {
 tstring msg (const char* name);
 void AppAddEvent (const string&, const PyCallback&);
 void AppRemoveEvent (const string&, const PyCallback&);
-void SetClipboardText (const tstring&);
-tstring GetClipboardText (void);
 int AddUserCommand (std::function<void(void)> f, int cmd=0);
 bool AddAccelerator (int flags, int key, int cmd);
 bool KeyNameToCode (const tstring& kn, int& flags, int& key);
@@ -75,9 +73,14 @@ if (curPage) return curPage->GetPyData();
 else {Py_RETURN_NONE;}
 }
 
-static PyObject* PyEditorTabs_getTab (int i) {
-if (i>=0 && i<pages.size()) return pages[i]->GetPyData();
-else {Py_RETURN_NONE;}
+static PyObject* PyEditorTabs_getTabList () {
+PyObject* list = PyList_New(pages.size());
+for (int i=0, n=pages.size(); i<n; i++) {
+PyObject* obj = pages[i]->GetPyData();
+Py_XINCREF(obj);
+PyList_SetItem(list, i, obj);
+}
+return list;
 }
 
 static void PyWindowDealloc (PyObject* pySelf) {
@@ -102,23 +105,13 @@ PyDecl("messageBox", PyMsgBox),
 PyDecl("alert", PyAlert),
 PyDecl("confirm", PyConfirm),
 
-// Translation management
-PyDecl("getTranslation", msg),
-
 // Menus and accelerators management
 PyDecl("addAccelerator", PyAddAccelerator),
 PyDecl("createPopupMenu", PyMenuItem_CreatePopupMenu),
 
-// Tabs management
-PyDecl("page", PyEditorTabs_getTab),
-
 // Global events management
 PyDecl("addEvent", AppAddEvent),
 PyDecl("removeEvent", AppRemoveEvent),
-
-// Clipboard management
-PyDecl("setClipboardText", SetClipboardText),
-PyDecl("getClipboardText", GetClipboardText),
 
 PyDeclEnd
 };
@@ -127,6 +120,7 @@ static PyGetSetDef PyWindowAccessors[] = {
 
 // Tabs management
 PyReadOnlyAccessor("curPage", PyEditorTabs_getCurTab),
+PyReadOnlyAccessor("pages", PyEditorTabs_getTabList),
 PyReadOnlyAccessor("pageCount", PyEditorTabs_getTabCount),
 
 // Menus and accelerators management

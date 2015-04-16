@@ -57,9 +57,8 @@ else return NULL;
 
 bool PageDeactivated (shared_ptr<Page> p) {
 if (!p) return true;
-if (!p->dispatchEvent<bool, true>("pageDeactivated")) return false;
-ShowWindow(p->zone, SW_HIDE);
-EnableWindow(p->zone, FALSE);
+if (!p->dispatchEvent<bool, true>("deactivated")) return false;
+p->HideZone();
 return true;
 }
 
@@ -67,12 +66,8 @@ void PageActivated (shared_ptr<Page> p) {
 RECT r; GetClientRect(win, &r);
 r.left = 5; r.top = 5; r.right -= 10; r.bottom -= 49;
 SendMessage(tabctl, TCM_ADJUSTRECT, FALSE, &r);
-EnableWindow(p->zone, TRUE);
-SetWindowPos(p->zone, NULL,
-r.left+3, r.top+3, r.right - r.left -6, r.bottom - r.top -6,
-SWP_NOZORDER | SWP_SHOWWINDOW);
-SendMessage(p->zone, EM_SCROLLCARET, 0, 0);
-SetFocus(p->zone);
+p->ShowZone(r);
+p->FocusZone();
 SetWindowText(win, (p->name + TEXT(" - ") + appName).c_str() );
 int encidx = -1; for (int i=0; i<encodings.size(); i++) { if (p->encoding==encodings[i]) { encidx=i; break; }}
 CheckMenuRadioItem(menuEncoding, 0, encodings.size(), encidx, MF_BYPOSITION);
@@ -97,11 +92,11 @@ EnableMenuItem2(menuFormat, 1, MF_BYPOSITION, !(p->flags&PF_NOLINEENDING));
 EnableMenuItem2(menuFormat, 2, MF_BYPOSITION, !(p->flags&PF_NOINDENTATION));
 EnableMenuItem2(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND, !(p->flags&PF_NOAUTOLINEBREAK));
 curPage = p;
-curPage->dispatchEvent("pageActivated");
+curPage->dispatchEvent("activated");
 }
 
 bool PageClosing (shared_ptr<Page> p) {
-if (!p->dispatchEvent<bool, true>("pageClosing")) return false;
+if (!p->dispatchEvent<bool, true>("closing")) return false;
 if (!p->IsModified()) return true;
 int re = MessageBox(win, tsnprintf(512, msg("Save changes to %s?"), p->name.c_str()).c_str(), p->name.c_str(), MB_ICONEXCLAMATION  | MB_YESNOCANCEL);
 if (re==IDYES) { 
@@ -115,11 +110,11 @@ else return re==IDNO;
 }
 
 void PageClosed (shared_ptr<Page> p) { 
-p->dispatchEvent("pageClosed");
+p->dispatchEvent("closed");
 }
 
 void PageOpened (shared_ptr<Page> p) { 
-p->dispatchEvent("pageOpened");
+p->dispatchEvent("opened");
 }
 
 void PageSetLineEnding (shared_ptr<Page> p, int le) {
@@ -144,7 +139,7 @@ if (!p) return;
 if (alb) p->flags |= PF_AUTOLINEBREAK;
 else p->flags &=~PF_AUTOLINEBREAK;
 if (p==curPage) CheckMenuItem(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND | (p->flags&PF_AUTOLINEBREAK? MF_CHECKED : MF_UNCHECKED));
-p->CreateEditArea(tabctl);
+p->CreateZone(tabctl);
 if (p==curPage) PageActivated(p);
 }
 
@@ -165,7 +160,7 @@ if (curPage==p) SetWindowText(win, (p->name + TEXT(" - ") + appName).c_str() );
 }
 
 void PageAdd (shared_ptr<Page> p, bool focus = true) {
-p->CreateEditArea(tabctl);
+p->CreateZone(tabctl);
 pages.push_back(p);
 TCITEM it;
 it.mask = TCIF_TEXT;
@@ -179,7 +174,7 @@ if (focus) PageActivate(pages.size() -1);
 
 shared_ptr<Page> PageAddEmpty (bool focus = true) {
 static int count = 0;
-shared_ptr<Page> p = shared_ptr<Page>(new TextPage());
+shared_ptr<Page> p = shared_ptr<Page>(TextPage::create());
 p->name = msg("Untitled") + TEXT(" ") + toTString(++count);
 p->encoding = config.get("defaultEncoding", CP_ACP);
 p->lineEnding = config.get("defaultLineEnding", LE_DOS);
@@ -216,52 +211,47 @@ return true;
 }
 
 bool AppWindowClosing () {
-if (!listeners.dispatch<bool, true>("appWindowClosing")) return false;
+if (!listeners.dispatch<bool, true>("closing")) return false;
 for (int i=0, j=0; i<pages.size(); i++) {
 shared_ptr<Page> p = pages[i];
-if (!p->zone || (p->flags&PF_NOSAVE) || p->file.size()<=0) continue;
-int pos;
-SendMessage(p->zone, EM_GETSEL, 0, &pos);
+if ((p->flags&PF_NOSAVE) || p->file.size()<=0) continue;
+int pos = p->GetCurrentPosition();
 config.set("lastFile" + toString(j), p->file);
 config.set("lastFilePos" + toString(j), pos);
 config.erase("lastFile" + toString(++j));
 }
-if (writeToStdout && curPage) {
-curPage->SaveText(TEXT("STDOUT"));
-}
+if (writeToStdout && curPage) { curPage->SaveText(TEXT("STDOUT")); }
 for (int i=pages.size() -1; i>=0; i--) if (!PageDelete(pages[i],i)) return false;
 return true;
 }
 
 void AppWindowClosed () { 
-listeners.dispatch("appWindowClosed");
+listeners.dispatch("closed");
 }
 
 void AppWindowOpened () { 
-listeners.dispatch("appWindowOpened");
+listeners.dispatch("opened");
 }
 
 void AppWindowActivated () {
-listeners.dispatch("appWindowActivated");
+listeners.dispatch("activated");
 }
 
 void AppWindowGainedFocus () {
-HWND hEdit = GetCurEditArea();
-if (hEdit) SetFocus(hEdit);
-listeners.dispatch("appWindowGainedFocus");
+if (curPage) curPage->FocusZone();
+listeners.dispatch("gainedFocus");
 }
 
 void AppWindowResized () {
 RECT r; GetClientRect(win, &r);
 MoveWindow(tabctl, 5, 5, r.right -10, r.bottom -49, TRUE);
 MoveWindow(status, 5, r.bottom -32, r.right -10, 27, TRUE);
-HWND edit = curPage? curPage->zone : NULL;
-if (edit) {
+if (curPage) {
 r.left = 5; r.top = 5; r.right -= 10; r.bottom -= 49;
 SendMessage(tabctl, TCM_ADJUSTRECT, FALSE, &r);
-MoveWindow(edit, r.left+3, r.top+3, r.right-r.left -6, r.bottom-r.top -6, TRUE);
+curPage->ResizeZone(r);
 }
-listeners.dispatch("appWindowResized");
+listeners.dispatch("resized");
 }
 
 void AppAddEvent (const string& type, const PyCallback& cb) { listeners.add(type, cb); }
@@ -358,7 +348,7 @@ return false;
 shared_ptr<Page> OpenFile (const tstring& file, int flags) {
 if (OpenFile2(file, flags)) return NULL;
 shared_ptr<Page> cp = curPage;
-shared_ptr<Page> p(new TextPage());
+shared_ptr<Page> p(TextPage::create());
 p->LoadText(file);
 p->name = file.substr(1+file.rfind((TCHAR)'\\'));
 PageAdd(p);
@@ -554,7 +544,7 @@ config.erase("lastFile" + toString(i));
 config.erase("lastFilePos" + toString(i));
 if (mode<=0) continue;
 shared_ptr<Page> p = OpenFile(fileName);
-SendMessage(p->zone, EM_SETSEL, pos, pos);
+p->SetCurrentPosition(pos);
 }}
 if (pages.size()<=0) PageAddEmpty(false);
 
