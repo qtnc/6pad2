@@ -37,17 +37,18 @@ virtual void FocusZone () =0;
 virtual PyObject* GetPyData () { return *pyData; }
 virtual bool IsEmpty () =0;
 virtual bool IsModified () = 0;
+virtual void SetModified (bool) = 0;
 virtual tstring LoadText (const tstring& fn = TEXT(""), bool guessFormat = true)  =0;
 virtual bool SaveText (const tstring& fn = TEXT("")) =0;
 
 virtual void UpdateStatusBar (HWND) {}
 virtual void GetSelection (int& start, int& end) = 0;
 virtual tstring GetSelectedText ()  =0;
-virtual int GetAllTextLength ()  = 0;
-virtual tstring GetAllText ()  =0;
+virtual int GetTextLength ()  = 0;
+virtual tstring GetText ()  =0;
 virtual void SetSelection (int start, int end) =0;
 virtual void SetSelectedText (const tstring& str) =0;
-virtual void SetAllText (const tstring& str) = 0;
+virtual void SetText (const tstring& str) = 0;
 virtual void ReplaceTextRange (int start, int end, const tstring& str) =0;
 virtual tstring GetLine (int line)  =0;
 virtual int GetLineCount ()  =0;
@@ -84,6 +85,7 @@ inline void removeEvent (const std::string& type, const PyCallback& cb) { listen
 struct TextPage: Page {
 virtual bool IsEmpty () ;
 virtual bool IsModified () ;
+virtual void SetModified (bool);
 virtual void CreateZone (HWND parent);
 virtual void ResizeZone (const RECT&);
 virtual void HideZone ();
@@ -96,8 +98,8 @@ virtual PyObject* GetPyData ();
 virtual void UpdateStatusBar (HWND) ;
 virtual void GetSelection (int& start, int& end);
 virtual tstring GetSelectedText () ;
-virtual tstring GetAllText () ;
-virtual int GetAllTextLength () ;
+virtual tstring GetText () ;
+virtual int GetTextLength () ;
 virtual void ReplaceTextRange (int start, int end, const tstring& str);
 virtual tstring GetLine (int line) ;
 virtual int GetLineCount () ;
@@ -106,7 +108,7 @@ virtual int GetLineStartIndex (int line);
 virtual int GetLineOfPos (int pos);
 virtual void SetSelection (int start, int end);
 virtual void SetSelectedText (const tstring& str);
-virtual void SetAllText (const tstring& str);
+virtual void SetText (const tstring& str);
 
 virtual void SelectAll () ;
 virtual int GetCurrentPosition ();

@@ -44,7 +44,7 @@ void Page::SetName (const tstring& name) { PageSetName(shared_from_this(),name);
 void TextPage::SetCurrentPosition (int pos) {
 if (!zone) return;
 SendMessage(zone, EM_SETSEL, pos, pos);
-SendMessage(zone, EM_SCROLLCARET, 0, 0);
+if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
 int TextPage::GetCurrentPosition () {
@@ -61,6 +61,10 @@ bool TextPage::IsModified () {
 return !zone || !!SendMessage(zone, EM_GETMODIFY, 0, 0);
 }
 
+void TextPage::SetModified (bool b) {
+SendMessage(zone, EM_SETMODIFY, b, 0);
+}
+
 void TextPage::SelectAll () {
 SendMessage(zone, EM_SETSEL, 0, -1);
 }
@@ -73,11 +77,11 @@ tstring TextPage::GetSelectedText ()  {
 return EditGetSelectedText(zone);
 }
 
-int TextPage::GetAllTextLength () {
+int TextPage::GetTextLength () {
 return GetWindowTextLength(zone);
 }
 
-tstring TextPage::GetAllText ()  {
+tstring TextPage::GetText ()  {
 return GetWindowText(zone);
 }
 
@@ -103,14 +107,15 @@ return SendMessage(zone, EM_LINEFROMCHAR, pos, 0);
 
 void TextPage::SetSelection (int start, int end) {
 SendMessage(zone, EM_SETSEL, start, end);
-SendMessage(zone, EM_SCROLLCARET, 0, 0);
+if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
-void TextPage::SetAllText (const tstring& str) {
+void TextPage::SetText (const tstring& str) {
 int start, end;
 SendMessage(zone, EM_GETSEL, &start, &end);
 SetWindowText(zone, str);
 SendMessage(zone, EM_SETSEL, start, end);
+if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
 void TextPage::ReplaceTextRange (int start, int end, const tstring& str) {
@@ -119,7 +124,7 @@ SendMessage(zone, EM_GETSEL, &oldStart, &oldEnd);
 if (start>=0||end>=0) SendMessage(zone, EM_SETSEL, start, end);
 SendMessage(zone, EM_REPLACESEL, 0, str.c_str());
 SendMessage(zone, EM_SETSEL, oldStart, oldEnd);
-SendMessage(zone, EM_SCROLLCARET, 0, 0);
+if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
 void TextPage::SetSelectedText (const tstring& str) {
@@ -127,7 +132,7 @@ int start;
 SendMessage(zone, EM_GETSEL, &start, 0);
 SendMessage(zone, EM_REPLACESEL, 0, str.c_str());
 SendMessage(zone, EM_SETSEL, start, start+str.size());
-SendMessage(zone, EM_SCROLLCARET, 0, 0);
+if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
 PyObject* CreatePyEditorTabObject (Page*);
@@ -224,9 +229,9 @@ if (flags&PF_NOSAVE) return false;
 if ((flags&PF_READONLY) && newFile.size()<=0) return false;
 if (newFile.size()>0) { file = newFile; flags&=~PF_READONLY; }
 if (file.size()<=0) return false;
-if (!zone) return false;
-int len = GetWindowTextLength(zone);
-tstring str = GetWindowText(zone);
+tstring str = GetText();
+var re = dispatchEvent("save", var(), str);
+if (re.getType()==T_STR) str = re.toTString();
 if (lineEnding==LE_UNIX) str = str_replace(str, TEXT("\r\n"), TEXT("\n"));
 else if (lineEnding==LE_MAC) str = str_replace(str, TEXT("\r\n"), TEXT("\r"));
 string cstr = ConvertToEncoding(str, encoding);
@@ -250,15 +255,10 @@ if (lineEnding<0) lineEnding = guessLineEnding(text.c_str(), config.get("default
 if (indentationMode<0) indentationMode = guessIndentationMode(text.c_str(), text.size(), config.get("defaultIndentationMode", 0));
 normalizeLineEndings(text);
 for (int i=0, n=text.size(); i<n; i++) if (text[i]==0) text[i]=127;
+var re = dispatchEvent("load", var(), text);
+if (re.getType()==T_STR) text = re.toTString();
 }}
-if (zone) {
-int ss, se;
-SendMessage(zone, EM_GETSEL, &ss, &se);
-SetWindowText(zone, text.c_str());
-SendMessage(zone, EM_SETSEL, ss, se);
-SendMessage(zone, EM_SETMODIFY, 0, 0);
-if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
-}
+SetText(text);
 return text;
 }
 

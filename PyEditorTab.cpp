@@ -30,11 +30,11 @@ void setIndentationMode (int i) { PageSetIndentationMode(page,i); }
 void setAutoLineBreak (int b) { PageSetAutoLineBreak(page,b); }
 void addEvent (const string& type, const PyCallback& cb) { page->addEvent(type,cb); }
 void removeEvent (const string& type, const PyCallback& cb) { page->removeEvent(type,cb); }
-int getTextLength () { return page->GetAllTextLength(); }
+int getTextLength () { return page->GetTextLength(); }
 tstring getSelectedText () { return page->GetSelectedText(); }
 void setSelectedText (const tstring& s) { page->SetSelectedText(s); }
-tstring getText () { return page->GetAllText(); }
-void setText (const tstring& s) { page->SetAllText(s); }
+tstring getText () { return page->GetText(); }
+void setText (const tstring& s) { page->SetText(s); }
 int getSelectionStart () { return page->GetSelectionStart(); }
 int getSelectionEnd () { return page->GetSelectionEnd(); }
 void setSelectionStart (int s) { page->SetSelectionStart(s); }
