@@ -2,6 +2,7 @@
 #include "strings.hpp"
 #include "page.h"
 #include "python34.h"
+#include<boost/weak_ptr.hpp>
 using namespace std;
 
 void PageSetLineEnding (shared_ptr<Page> p, int le);
@@ -13,50 +14,61 @@ extern vector<shared_ptr<Page>> pages;
 
 struct PyEditorTab { 
     PyObject_HEAD
-shared_ptr<Page> page;
-bool isClosed () {  return !page || std::find(pages.begin(), pages.end(), page)==pages.end(); }
-bool isModified () { return page->IsModified(); }
-tstring getName () { return page->name; }
-tstring getFile () { return page->file; }
-void setName (const tstring& s) { page->SetName(s); }
-void setFile (const tstring& s) { page->file=s; }
-int getLineEnding () { return page->lineEnding; }
-int getEncoding () { return page->encoding; }
-int getIndentationMode () { return page->indentationMode; }
-int getAutoLineBreak () { return 0!=(page->flags&PF_AUTOLINEBREAK); }
-void setLineEnding (int le) { PageSetLineEnding(page,le); }
-void setEncoding (int e) { PageSetEncoding(page,e); }
-void setIndentationMode (int i) { PageSetIndentationMode(page,i); }
-void setAutoLineBreak (int b) { PageSetAutoLineBreak(page,b); }
-void addEvent (const string& type, const PyCallback& cb) { page->addEvent(type,cb); }
-void removeEvent (const string& type, const PyCallback& cb) { page->removeEvent(type,cb); }
-int getTextLength () { return page->GetTextLength(); }
-tstring getSelectedText () { return page->GetSelectedText(); }
-void setSelectedText (const tstring& s) { page->SetSelectedText(s); }
-tstring getText () { return page->GetText(); }
-void setText (const tstring& s) { page->SetText(s); }
-int getSelectionStart () { return page->GetSelectionStart(); }
-int getSelectionEnd () { return page->GetSelectionEnd(); }
-void setSelectionStart (int s) { page->SetSelectionStart(s); }
-void setSelectionEnd (int s) { page->SetSelectionEnd(s); }
-void setSelection (int s, int e) { page->SetSelection(s,e); }
-int getLineLength (int l) { return page->GetLineLength(l); }
-tstring getLine (int l) { return page->GetLine(l); }
-int getLineStartIndex (int l) { return page->GetLineStartIndex(l); }
-int getLineEndIndex (int l) { return page->GetLineStartIndex(l) + page->GetLineLength(l); }
-int getLineOfPos (int pos) { return page->GetLineOfPos(pos); }
-void replaceTextRange (int start, int end, const tstring& str) { page->ReplaceTextRange(start, end, str); }
+weak_ptr<Page> wpPage;
+
+shared_ptr<Page> page () {
+shared_ptr<Page> p = wpPage.lock();
+if (p) return p;
+else {
+PyErr_SetString(PyExc_ValueError, "Page is closed");
+return shared_ptr<Page>(Page::createDummy());
+}}
+
+int isClosed () { return wpPage.expired(); }
+int isModified () { return page()->IsModified(); }
+tstring getName () { return page()->name; }
+tstring getFile () { return page()->file; }
+void setName (const tstring& s) { page()->SetName(s); }
+void setFile (const tstring& s) { page()->file=s; }
+int getLineEnding () { return page()->lineEnding; }
+int getEncoding () { return page()->encoding; }
+int getIndentationMode () { return page()->indentationMode; }
+int getAutoLineBreak () { return 0!=(page()->flags&PF_AUTOLINEBREAK); }
+void setLineEnding (int le) { PageSetLineEnding(page(),le); }
+void setEncoding (int e) { PageSetEncoding(page(),e); }
+void setIndentationMode (int i) { PageSetIndentationMode(page(),i); }
+void setAutoLineBreak (int b) { PageSetAutoLineBreak(page(),b); }
+void addEvent (const string& type, const PyCallback& cb) {  page()->addEvent(type,cb); }
+void removeEvent (const string& type, const PyCallback& cb) { page()->removeEvent(type,cb); }
+int getTextLength () { return page()->GetTextLength(); }
+tstring getSelectedText () { return page()->GetSelectedText(); }
+void setSelectedText (const tstring& s) { page()->SetSelectedText(s); }
+tstring getText () { return page()->GetText(); }
+void setText (const tstring& s) { page()->SetText(s); }
+int getSelectionStart () { return page()->GetSelectionStart(); }
+int getSelectionEnd () { return page()->GetSelectionEnd(); }
+void setSelectionStart (int s) { page()->SetSelectionStart(s); }
+void setSelectionEnd (int s) { page()->SetSelectionEnd(s); }
+void setSelection (int s, int e) { page()->SetSelection(s,e); }
+int getLineLength (int l) { return page()->GetLineLength(l); }
+tstring getLine (int l) { return page()->GetLine(l); }
+int getLineStartIndex (int l) { return page()->GetLineStartIndex(l); }
+int getLineEndIndex (int l) { return page()->GetLineStartIndex(l) + page()->GetLineLength(l); }
+int getLineOfPos (int pos) { return page()->GetLineOfPos(pos); }
+void replaceTextRange (int start, int end, const tstring& str) { page()->ReplaceTextRange(start, end, str); }
 void deleteTextRange (int start, int end) { replaceTextRange(start, end, TEXT("")); }
 void insertTextAt (int pos, const tstring& str) { replaceTextRange(pos, pos, str); }
 };
 
 static void PyEditorTabDealloc (PyObject* pySelf) {
 PyEditorTab* self = (PyEditorTab*)pySelf;
+self->wpPage = weak_ptr<Page>();
 Py_TYPE(pySelf)->tp_free(pySelf);
 }
 
 static PyEditorTab* PyEditorTabNew (PyTypeObject* type, PyObject* args, PyObject* kwds) {
 PyEditorTab* self = (PyEditorTab*)(type->tp_alloc(type, 0));
+self->wpPage = weak_ptr<Page>();
 return self;
 }
 
@@ -80,9 +92,9 @@ PyDeclEnd
 };
 
 static PyGetSetDef PyEditorTabAccessors[] = {
+PyReadOnlyAccessor("closed", &PyEditorTab::isClosed),
 PyAccessor("name", &PyEditorTab::getName, &PyEditorTab::setName),
 PyAccessor("file", &PyEditorTab::getFile, &PyEditorTab::setFile),
-PyReadOnlyAccessor("closed", &PyEditorTab::isClosed),
 PyReadOnlyAccessor("modified", &PyEditorTab::isModified),
 PyAccessor("lineEnding", &PyEditorTab::getLineEnding, &PyEditorTab::setLineEnding),
 PyAccessor("encoding", &PyEditorTab::getEncoding, &PyEditorTab::setEncoding),
@@ -136,10 +148,10 @@ NULL,             /* tp_members */
     0,                         /* tp_alloc */ 
 }; 
 
-PyObject* CreatePyEditorTabObject (Page* p) {
+PyObject* CreatePyEditorTabObject (shared_ptr<Page> p) {
 GIL_PROTECT
 PyEditorTab* it = PyEditorTabNew(&PyEditorTabType, NULL, NULL);
-it->page = shared_ptr<Page>(p);
+it->wpPage = p;
 return (PyObject*)it;
 }
 

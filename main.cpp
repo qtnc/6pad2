@@ -50,11 +50,6 @@ tstring msg (const char* name) {
 return toTString(msgs.get<string>(name, name));
 }
 
-HWND GetCurEditArea () {
-if (curPage && curPage->zone) return curPage->zone;
-else return NULL;
-}
-
 bool PageDeactivated (shared_ptr<Page> p) {
 if (!p) return true;
 if (!p->dispatchEvent<bool, true>("deactivated")) return false;
@@ -603,6 +598,8 @@ case IDM_SELECTALL: curPage->SelectAll(); return true;
 case IDM_COPY: curPage->Copy();  return true;
 case IDM_CUT: curPage->Cut();  return true;
 case IDM_PASTE: curPage->Paste();  return true;
+case IDM_MARKSEL: curPage->MarkCurrentPosition(); break;
+case IDM_SELTOMARK: curPage->SelectToMark(); break;
 case IDM_GOTOLINE: curPage->GoToDialog(); return true;
 case IDM_FIND: curPage->FindDialog(); return true;
 case IDM_REPLACE: curPage->FindReplaceDialog(); return true;

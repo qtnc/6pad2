@@ -15,13 +15,16 @@ def func4 () :
 	window.alert('Result=' + str(re), 'Info')
 
 def f2 (self, line):
-	print(line)
+	window.beep(800,120)
 	return False
 
 def func () :
+	window.curPage
 	window.curPage.addEvent('enter', f2)
 
+def func2 ():
+	print("Closed = " + str(tab.closed))
 
 window.menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
+window.menus.edit.add(label='Item inutile 2', accelerator='Ctrl+D', action=func2)
 
-print(sixpad.getCurrentDirectory())

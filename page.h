@@ -5,9 +5,10 @@
 #include "eventlist.h"
 #include<boost/enable_shared_from_this.hpp>
 
-#define PF_READONLY 1
-#define PF_NOSAVE 2
-#define PF_AUTOLINEBREAK 4
+#define PF_CLOSED 1
+#define PF_READONLY 2
+#define PF_NOSAVE 4
+#define PF_AUTOLINEBREAK 8
 
 #define PF_NOFIND 0x80000000
 #define PF_NOREPLACE 0x40000000
@@ -23,51 +24,53 @@
 
 struct Page: std::enable_shared_from_this<Page>  {
 tstring name=TEXT(""), file=TEXT("");
-int encoding=-1, indentationMode=-1, lineEnding=-1;
+int encoding=-1, indentationMode=-1, lineEnding=-1, markedPosition=0;
 DWORD flags = 0;
-HWND zone=0;
 PySafeObject pyData;
 eventlist listeners;
 
-virtual void CreateZone (HWND parent)=0;
-virtual void ResizeZone (const RECT&) = 0;
-virtual void HideZone () =0;
-virtual void ShowZone (const RECT&) =0;
-virtual void FocusZone () =0;
+virtual void CreateZone (HWND parent){}
+virtual void ResizeZone (const RECT&) {}
+virtual void HideZone () {}
+virtual void ShowZone (const RECT&) {}
+virtual void FocusZone () {}
 virtual PyObject* GetPyData () { return *pyData; }
-virtual bool IsEmpty () =0;
-virtual bool IsModified () = 0;
-virtual void SetModified (bool) = 0;
-virtual tstring LoadText (const tstring& fn = TEXT(""), bool guessFormat = true)  =0;
-virtual bool SaveText (const tstring& fn = TEXT("")) =0;
+virtual bool IsEmpty () { return true; }
+virtual bool IsModified () { return true; }
+virtual void SetModified (bool) {}
+virtual tstring LoadText (const tstring& fn = TEXT(""), bool guessFormat = true)  { return TEXT(""); }
+virtual bool SaveText (const tstring& fn = TEXT("")) { return true; }
 
 virtual void UpdateStatusBar (HWND) {}
-virtual void GetSelection (int& start, int& end) = 0;
-virtual tstring GetSelectedText ()  =0;
-virtual int GetTextLength ()  = 0;
-virtual tstring GetText ()  =0;
-virtual void SetSelection (int start, int end) =0;
-virtual void SetSelectedText (const tstring& str) =0;
-virtual void SetText (const tstring& str) = 0;
-virtual void ReplaceTextRange (int start, int end, const tstring& str) =0;
-virtual tstring GetLine (int line)  =0;
-virtual int GetLineCount ()  =0;
-virtual int GetLineLength (int line) =0;
-virtual int GetLineStartIndex (int line) =0;
-virtual int GetLineOfPos (int pos) =0;
+virtual void GetSelection (int& start, int& end) {}
+virtual tstring GetSelectedText ()  { return TEXT(""); }
+virtual int GetTextLength () {}
+virtual tstring GetText () { return TEXT(""); }
+virtual void SetSelection (int start, int end) {}
+virtual void SetSelectedText (const tstring& str) {}
+virtual void SetText (const tstring& str) {}
+virtual void ReplaceTextRange (int start, int end, const tstring& str) {}
+virtual tstring GetLine (int line)  { return TEXT(""); }
+virtual int GetLineCount ()  { return -1; }
+virtual int GetLineLength (int line) { return -1; }
+virtual int GetLineStartIndex (int line) { return -1; }
+virtual int GetLineOfPos (int pos) { return -1; }
 
 inline int GetSelectionStart () { int s,e; GetSelection(s,e); return s; }
 inline int GetSelectionEnd () { int s,e; GetSelection(s,e); return e; }
 inline void SetSelectionStart (int x) { SetSelection(x, GetSelectionEnd()); }
 inline void SetSelectionEnd (int x) { SetSelection(GetSelectionStart(), x); }
+inline void MarkCurrentPosition () { markedPosition = GetCurrentPosition(); }
+inline void SelectToMark () { SetSelection(markedPosition, GetSelectionEnd()); }
+
 
 virtual void SetName (const tstring& name) ;
-virtual void Copy ()  { SendMessage(zone, WM_COPY, 0, 0); }
-virtual void Cut ()  { SendMessage(zone, WM_CUT, 0, 0); }
-virtual void Paste ()  { SendMessage(zone, WM_PASTE, 0, 0); }
+virtual void Copy ()  {}
+virtual void Cut ()  {}
+virtual void Paste ()  {}
 virtual void SelectAll () {}
 virtual void SetCurrentPosition (int pos) {}
-virtual int GetCurrentPosition () = 0;
+virtual int GetCurrentPosition () { return -1; }
 virtual void GoToDialog () {}
 virtual void FindDialog ()  {}
 virtual void FindReplaceDialog ()  {}
@@ -80,9 +83,14 @@ template<class... A> inline var dispatchEvent (const string& type, const var& de
 template<class... A> inline void dispatchEvent (const string& type, A... args) { listeners.dispatch(type, *pyData, args...); }
 inline void addEvent (const std::string& type, const PyCallback& cb) { listeners.add(type,cb); }
 inline void removeEvent (const std::string& type, const PyCallback& cb) { listeners.remove(type,cb); }
+
+virtual ~Page () { printf("Page destroyed!\r\n"); }
+static inline Page* createDummy() { return new Page(); }
 };
 
 struct TextPage: Page {
+HWND zone=0;
+
 virtual bool IsEmpty () ;
 virtual bool IsModified () ;
 virtual void SetModified (bool);
@@ -93,6 +101,9 @@ virtual void ShowZone (const RECT&);
 virtual void FocusZone ();
 virtual tstring LoadText (const tstring& fn = TEXT(""), bool guessFormat=true ) ;
 virtual bool SaveText (const tstring& fn = TEXT(""));
+virtual void Copy () ;
+virtual void Cut ();
+virtual void Paste ();
 
 virtual PyObject* GetPyData ();
 virtual void UpdateStatusBar (HWND) ;

@@ -39,6 +39,8 @@ void PrepareSmartPaste (tstring& text, const tstring& indent);
 bool PageGoToNext (int);
 void PageSetName (shared_ptr<Page> p, const tstring& name);
 
+typedef LRESULT(*PositionFinder)(HWND,int);
+
 void Page::SetName (const tstring& name) { PageSetName(shared_from_this(),name); }
 
 void TextPage::SetCurrentPosition (int pos) {
@@ -64,6 +66,10 @@ return !zone || !!SendMessage(zone, EM_GETMODIFY, 0, 0);
 void TextPage::SetModified (bool b) {
 SendMessage(zone, EM_SETMODIFY, b, 0);
 }
+
+void TextPage::Copy ()  { SendMessage(zone, WM_COPY, 0, 0); }
+void TextPage::Cut ()  { SendMessage(zone, WM_CUT, 0, 0); }
+void TextPage::Paste ()  { SendMessage(zone, WM_PASTE, 0, 0); }
 
 void TextPage::SelectAll () {
 SendMessage(zone, EM_SETSEL, 0, -1);
@@ -135,9 +141,9 @@ SendMessage(zone, EM_SETSEL, start, start+str.size());
 if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
-PyObject* CreatePyEditorTabObject (Page*);
+PyObject* CreatePyEditorTabObject (shared_ptr<Page>);
 PyObject* TextPage::GetPyData () {
-if (!pyData) pyData = CreatePyEditorTabObject(this);
+if (!pyData) pyData = CreatePyEditorTabObject(shared_from_this());
 return *pyData;
 }
 
@@ -410,6 +416,56 @@ LocalUnlock(hLoc);
 return realBegPos;
 }
 
+static int EZGetNextBracketPos (HWND hEdit, int pos) {
+int len = GetWindowTextLength(hEdit);
+HLOCAL hLoc = (HLOCAL)SendMessage(hEdit, EM_GETHANDLE, 0, 0);
+LPCTSTR text = (LPCTSTR)LocalLock(hLoc);
+pos++;
+while(pos<len && text[pos++]!='}');
+LocalUnlock(hLoc);
+return pos;
+}
+
+static int EZGetPrevBracketPos (HWND hEdit, int pos) {
+int len = GetWindowTextLength(hEdit);
+HLOCAL hLoc = (HLOCAL)SendMessage(hEdit, EM_GETHANDLE, 0, 0);
+LPCTSTR text = (LPCTSTR)LocalLock(hLoc);
+while(pos>0 && text[--pos]!='{');
+LocalUnlock(hLoc);
+return pos;
+}
+
+static int EZGetEndIndentedBlockPos (HWND hEdit, int pos) {
+int ln = SendMessage(hEdit, EM_LINEFROMCHAR, pos, 0), maxline = SendMessage(hEdit, EM_GETLINECOUNT, 0, 0), maxpos = GetWindowTextLength(hEdit);
+tstring indent = EditGetLine(hEdit, ln, pos);
+int n = indent.find_first_not_of(TEXT("\t \xA0"));
+if (n<0 || n>=indent.size()) n=indent.size();
+indent = indent.substr(0,n);
+while(++ln<maxline) {
+tstring line = EditGetLine(hEdit, ln);
+if (!startsWith(line, indent)) break;
+}
+n = SendMessage(hEdit, EM_LINEINDEX, ln -1, 0);
+n +=  SendMessage(hEdit, EM_LINELENGTH, n, 0);
+if (pos==n && n<maxpos -2) return EZGetEndIndentedBlockPos(hEdit, pos+2);
+return n;
+}
+
+static int EZGetStartIndentedBlockPos (HWND hEdit, int pos) {
+int ln = SendMessage(hEdit, EM_LINEFROMCHAR, pos, 0);
+tstring indent = EditGetLine(hEdit, ln, pos);
+int n = indent.find_first_not_of(TEXT("\t \xA0"));
+if (n<0 || n>=indent.size()) n=indent.size();
+indent = indent.substr(0,n);
+while(--ln>=0) {
+tstring line = EditGetLine(hEdit, ln);
+if (!startsWith(line, indent)) break;
+}
+n = SendMessage(hEdit, EM_LINEINDEX, ln+1, 0);
+if (pos>=n && pos<=n+indent.size() && n>2) return EZGetStartIndentedBlockPos(hEdit, n -2);
+return n;
+}
+
 static LRESULT __fastcall EZHandleEnter (TextPage* page, HWND hEdit) {
 int pos=0, nLine=0, addIndent=0;
 SendMessage(hEdit, EM_GETSEL, &pos, 0);
@@ -452,53 +508,38 @@ SendMessage(hEdit, EM_SETSEL, offset+pos, offset+pos);
 return true;
 }
 
-static LRESULT EZHandleCtrlDown (HWND hEdit) {
+template<class F> static LRESULT EZHandleMoveDown (HWND hEdit, const F& f, bool moveHome=true) {
 int pos=0;
 SendMessage(hEdit, EM_GETSEL, 0, &pos);
-pos = EZGetNextParagPos(hEdit, pos);
+pos = f(hEdit, pos);
+SendMessage(hEdit, EM_SETSEL, pos, pos);
+if (moveHome) return EZHandleHome(hEdit, false);
+else return true;
+}
+
+template <class F> static LRESULT EZHandleMoveUp (HWND hEdit, const F& f) {
+int pos=0;
+SendMessage(hEdit, EM_GETSEL, 0, &pos);
+pos = f(hEdit, pos);
 SendMessage(hEdit, EM_SETSEL, pos, pos);
 return EZHandleHome(hEdit, false);
 }
 
-static LRESULT EZHandleCtrlUp (HWND hEdit) {
-int pos=0;
-SendMessage(hEdit, EM_GETSEL, 0, &pos);
-pos = EZGetPrevParagPos(hEdit, pos);
-SendMessage(hEdit, EM_SETSEL, pos, pos);
-return EZHandleHome(hEdit, false);
-}
-
-static LRESULT EZHandleCtrlShiftDown (HWND hEdit) {
+template <class F> static LRESULT EZHandleSelectDown (HWND hEdit, const F& f) {
 int spos=0, pos=0;
 SendMessage(hEdit, EM_GETSEL, &spos, &pos);
-pos = EZGetNextParagPos(hEdit, pos);
+pos = f(hEdit, pos);
 SendMessage(hEdit, EM_SETSEL, spos, pos);
 return true;
 }
 
-static LRESULT EZHandleCtrlShiftUp (HWND hEdit) {
+template <class F> static LRESULT EZHandleSelectUp (HWND hEdit, const F& f) {
 int spos=0, pos=0;
 SendMessage(hEdit, EM_GETSEL, &spos, &pos);
-pos = EZGetPrevParagPos(hEdit, pos);
+pos = f(hEdit, pos);
 SendMessage(hEdit, EM_SETSEL, spos, pos);
 return true;
 }
-
-static LRESULT EZHandleF8 (HWND hEdit) {
-if (IsShiftDown()) {
-int curPos, markedPos = (int)GetProp(hEdit, TEXT("F8"));
-SendMessage(hEdit, EM_GETSEL, &curPos, 0);
-SendMessage(hEdit, EM_SETSEL, markedPos, curPos);
-SendMessage(hEdit, EM_SCROLLCARET, 0, 0);
-} else {
-int curPos, curPos2;
-SendMessage(hEdit, EM_GETSEL, &curPos, &curPos2);
-if (curPos!=curPos2) {
-SendMessage(hEdit, EM_SETSEL, curPos2, curPos);
-SendMessage(hEdit, EM_SCROLLCARET, 0, 0);
-}
-else SetProp(hEdit, TEXT("F8"), (HANDLE)curPos);
-}}
 
 static LRESULT EZHandleTab (TextPage* curPage, HWND hEdit) {
 int sPos=0, ePos=0;
@@ -545,14 +586,14 @@ if (!curPage->dispatchEvent<bool, true>("keyDown", (int)LOWORD(wp) )) return tru
 switch(LOWORD(wp)) {
 case VK_DOWN:
 if (IsCtrlDown()) {
-if (IsShiftDown()) return EZHandleCtrlShiftDown(hwnd);
-else return EZHandleCtrlDown(hwnd);
+if (IsShiftDown()) return EZHandleSelectDown(hwnd, EZGetNextParagPos);
+else return EZHandleMoveDown(hwnd, EZGetNextParagPos);
 }
 break;
 case VK_UP:
 if (IsCtrlDown()) {
-if (IsShiftDown()) return EZHandleCtrlShiftUp(hwnd);
-else return EZHandleCtrlUp(hwnd);
+if (IsShiftDown()) return EZHandleSelectUp(hwnd, EZGetPrevParagPos);
+else return EZHandleMoveUp(hwnd, EZGetPrevParagPos);
 }
 break;
 case VK_TAB:
@@ -561,9 +602,6 @@ break;
 case VK_HOME:
 if (!IsCtrlDown() && !IsShiftDown()) return EZHandleHome(hwnd, IsAltDown());
 break;
-case VK_F8:
-if (!IsCtrlDown() && !IsAltDown()) return EZHandleF8(hwnd);
-break;
 }}
 else if (msg==WM_KEYUP) {
 if (!curPage->dispatchEvent<bool, true>("keyUp", (int)LOWORD(wp) )) return true;
@@ -571,11 +609,22 @@ StatusBarUpdate(hwnd, status);
 }
 else if (msg==WM_SYSKEYDOWN) {
 switch(LOWORD(wp)) {
-// Alt+up/down/right/left: to be done later
-case VK_UP: break;
-case VK_DOWN: break;
-case VK_LEFT: break;
-case VK_RIGHT: break;
+case VK_UP: 
+if (IsShiftDown()) return EZHandleSelectUp(hwnd, EZGetPrevBracketPos);
+else return EZHandleMoveUp(hwnd, EZGetPrevBracketPos);
+break;
+case VK_DOWN: 
+if (IsShiftDown()) return EZHandleSelectDown(hwnd, EZGetNextBracketPos);
+else return EZHandleMoveDown(hwnd, EZGetNextBracketPos, false);
+break;
+case VK_LEFT:  
+if (IsShiftDown()) return EZHandleSelectUp(hwnd, EZGetStartIndentedBlockPos);
+else return EZHandleMoveUp(hwnd, EZGetStartIndentedBlockPos);
+break;
+case VK_RIGHT: 
+if (IsShiftDown()) return EZHandleSelectDown(hwnd, EZGetEndIndentedBlockPos);
+else return EZHandleMoveDown(hwnd, EZGetEndIndentedBlockPos, false);
+break;
 }}
 else if (msg==WM_PASTE) {
 tstring line = EditGetLine(hwnd);

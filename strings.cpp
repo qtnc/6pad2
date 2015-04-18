@@ -24,6 +24,14 @@ void toUpperCase (tstring& s) {
 boost::to_upper(s);
 }
 
+bool startsWith (const tstring& a, const tstring& b) {
+return boost::starts_with(a,b);
+}
+
+bool endsWith (const tstring& a, const tstring& b) {
+return boost::ends_with(a,b);
+}
+
 string snprintf (int max, const string& fmt, ...) {
 string out(max+1, '\0');
 va_list ap;

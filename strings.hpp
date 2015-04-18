@@ -11,6 +11,8 @@ std::vector<tstring> split (const tstring& str, const tstring& delims);
 
 void toLowerCase (tstring&);
 void toUpperCase (tstring&);
+bool startsWith (const tstring&, const tstring&);
+bool endsWith (const tstring&, const tstring&);
 
 void normalizeLineEndings (tstring& text) ;
 
