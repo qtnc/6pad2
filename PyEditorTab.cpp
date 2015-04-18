@@ -21,7 +21,7 @@ shared_ptr<Page> p = wpPage.lock();
 if (p) return p;
 else {
 PyErr_SetString(PyExc_ValueError, "Page is closed");
-return shared_ptr<Page>(Page::createDummy());
+return shared_ptr<Page>(Page::create());
 }}
 
 int isClosed () { return wpPage.expired(); }

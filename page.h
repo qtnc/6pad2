@@ -26,71 +26,11 @@ struct Page: std::enable_shared_from_this<Page>  {
 tstring name=TEXT(""), file=TEXT("");
 int encoding=-1, indentationMode=-1, lineEnding=-1, markedPosition=0;
 DWORD flags = 0;
+HWND zone=0;
 PySafeObject pyData;
 eventlist listeners;
 
-virtual void CreateZone (HWND parent){}
-virtual void ResizeZone (const RECT&) {}
-virtual void HideZone () {}
-virtual void ShowZone (const RECT&) {}
-virtual void FocusZone () {}
-virtual PyObject* GetPyData () { return *pyData; }
-virtual bool IsEmpty () { return true; }
-virtual bool IsModified () { return true; }
-virtual void SetModified (bool) {}
-virtual tstring LoadText (const tstring& fn = TEXT(""), bool guessFormat = true)  { return TEXT(""); }
-virtual bool SaveText (const tstring& fn = TEXT("")) { return true; }
-
-virtual void UpdateStatusBar (HWND) {}
-virtual void GetSelection (int& start, int& end) {}
-virtual tstring GetSelectedText ()  { return TEXT(""); }
-virtual int GetTextLength () {}
-virtual tstring GetText () { return TEXT(""); }
-virtual void SetSelection (int start, int end) {}
-virtual void SetSelectedText (const tstring& str) {}
-virtual void SetText (const tstring& str) {}
-virtual void ReplaceTextRange (int start, int end, const tstring& str) {}
-virtual tstring GetLine (int line)  { return TEXT(""); }
-virtual int GetLineCount ()  { return -1; }
-virtual int GetLineLength (int line) { return -1; }
-virtual int GetLineStartIndex (int line) { return -1; }
-virtual int GetLineOfPos (int pos) { return -1; }
-
-inline int GetSelectionStart () { int s,e; GetSelection(s,e); return s; }
-inline int GetSelectionEnd () { int s,e; GetSelection(s,e); return e; }
-inline void SetSelectionStart (int x) { SetSelection(x, GetSelectionEnd()); }
-inline void SetSelectionEnd (int x) { SetSelection(GetSelectionStart(), x); }
-inline void MarkCurrentPosition () { markedPosition = GetCurrentPosition(); }
-inline void SelectToMark () { SetSelection(markedPosition, GetSelectionEnd()); }
-
-
 virtual void SetName (const tstring& name) ;
-virtual void Copy ()  {}
-virtual void Cut ()  {}
-virtual void Paste ()  {}
-virtual void SelectAll () {}
-virtual void SetCurrentPosition (int pos) {}
-virtual int GetCurrentPosition () { return -1; }
-virtual void GoToDialog () {}
-virtual void FindDialog ()  {}
-virtual void FindReplaceDialog ()  {}
-virtual void FindNext () {}
-virtual void FindPrev ()  {}
-virtual void FindReplace (const tstring& search, const tstring& replace, bool caseSensitive, bool isRegex) {}
-
-template<class R, R initial, class... A> inline R dispatchEvent (const string& type, A... args) { return listeners.dispatch<R,initial>(type, *pyData, args...); }
-template<class... A> inline var dispatchEvent (const string& type, const var& def, A... args) { return listeners.dispatch(type, def, *pyData, args...); }
-template<class... A> inline void dispatchEvent (const string& type, A... args) { listeners.dispatch(type, *pyData, args...); }
-inline void addEvent (const std::string& type, const PyCallback& cb) { listeners.add(type,cb); }
-inline void removeEvent (const std::string& type, const PyCallback& cb) { listeners.remove(type,cb); }
-
-virtual ~Page () { printf("Page destroyed!\r\n"); }
-static inline Page* createDummy() { return new Page(); }
-};
-
-struct TextPage: Page {
-HWND zone=0;
-
 virtual bool IsEmpty () ;
 virtual bool IsModified () ;
 virtual void SetModified (bool);
@@ -127,11 +67,26 @@ virtual void SetCurrentPosition  (int);
 virtual void GoToDialog ();
 virtual void FindDialog () ;
 virtual void FindReplaceDialog () ;
+virtual void Find(const tstring& searchText, bool scase, bool regex, bool up);
 virtual void FindNext ();
 virtual void FindPrev () ;
 virtual void FindReplace (const tstring& search, const tstring& replace, bool caseSensitive, bool isRegex);
 
-static inline Page* create () { return new TextPage(); }
+inline int GetSelectionStart () { int s,e; GetSelection(s,e); return s; }
+inline int GetSelectionEnd () { int s,e; GetSelection(s,e); return e; }
+inline void SetSelectionStart (int x) { SetSelection(x, GetSelectionEnd()); }
+inline void SetSelectionEnd (int x) { SetSelection(GetSelectionStart(), x); }
+inline void MarkCurrentPosition () { markedPosition = GetCurrentPosition(); }
+inline void SelectToMark () { SetSelection(markedPosition, GetSelectionEnd()); }
+inline void GoToMark () { SetCurrentPosition(markedPosition); }
+
+template<class R, R initial, class... A> inline R dispatchEvent (const string& type, A... args) { return listeners.dispatch<R,initial>(type, *pyData, args...); }
+template<class... A> inline var dispatchEvent (const string& type, const var& def, A... args) { return listeners.dispatch(type, def, *pyData, args...); }
+template<class... A> inline void dispatchEvent (const string& type, A... args) { listeners.dispatch(type, *pyData, args...); }
+inline void addEvent (const std::string& type, const PyCallback& cb) { listeners.add(type,cb); }
+inline void removeEvent (const std::string& type, const PyCallback& cb) { listeners.remove(type,cb); }
+
+static inline Page* create () { return new Page(); }
 };
 
 #endif

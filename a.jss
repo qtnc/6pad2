@@ -1,5 +1,10 @@
 include  "hjconst.jsh";
 
+Script AltF8 ()
+TypeCurrentScriptKey();
+SayLine();
+EndScript
+
 Script ControlDownArrow ()
 TypeCurrentScriptKey();
 SayLine();
@@ -57,3 +62,4 @@ Else
 PerformScript CloseListBox();
 EndIf
 EndScript
+

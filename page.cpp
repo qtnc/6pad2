@@ -43,80 +43,80 @@ typedef LRESULT(*PositionFinder)(HWND,int);
 
 void Page::SetName (const tstring& name) { PageSetName(shared_from_this(),name); }
 
-void TextPage::SetCurrentPosition (int pos) {
+void Page::SetCurrentPosition (int pos) {
 if (!zone) return;
 SendMessage(zone, EM_SETSEL, pos, pos);
 if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
-int TextPage::GetCurrentPosition () {
+int Page::GetCurrentPosition () {
 int pos=0;
 SendMessage(zone, EM_GETSEL, 0, &pos);
 return pos;
 }
 
-bool TextPage::IsEmpty ()  {
+bool Page::IsEmpty ()  {
 return file.size()<=0 && GetWindowTextLength(zone)<=0;
 }
 
-bool TextPage::IsModified () {
+bool Page::IsModified () {
 return !zone || !!SendMessage(zone, EM_GETMODIFY, 0, 0);
 }
 
-void TextPage::SetModified (bool b) {
+void Page::SetModified (bool b) {
 SendMessage(zone, EM_SETMODIFY, b, 0);
 }
 
-void TextPage::Copy ()  { SendMessage(zone, WM_COPY, 0, 0); }
-void TextPage::Cut ()  { SendMessage(zone, WM_CUT, 0, 0); }
-void TextPage::Paste ()  { SendMessage(zone, WM_PASTE, 0, 0); }
+void Page::Copy ()  { SendMessage(zone, WM_COPY, 0, 0); }
+void Page::Cut ()  { SendMessage(zone, WM_CUT, 0, 0); }
+void Page::Paste ()  { SendMessage(zone, WM_PASTE, 0, 0); }
 
-void TextPage::SelectAll () {
+void Page::SelectAll () {
 SendMessage(zone, EM_SETSEL, 0, -1);
 }
 
-void TextPage::GetSelection (int& start, int& end) {
+void Page::GetSelection (int& start, int& end) {
 SendMessage(zone, EM_GETSEL, &start, &end);
 }
 
-tstring TextPage::GetSelectedText ()  {
+tstring Page::GetSelectedText ()  {
 return EditGetSelectedText(zone);
 }
 
-int TextPage::GetTextLength () {
+int Page::GetTextLength () {
 return GetWindowTextLength(zone);
 }
 
-tstring TextPage::GetText ()  {
+tstring Page::GetText ()  {
 return GetWindowText(zone);
 }
 
-tstring TextPage::GetLine (int line) {
+tstring Page::GetLine (int line) {
 return EditGetLine(zone, line);
 }
 
-int TextPage::GetLineCount ()  {
+int Page::GetLineCount ()  {
 return SendMessage(zone, EM_GETLINECOUNT, 0, 0);
 }
 
-int TextPage::GetLineLength (int line) {
+int Page::GetLineLength (int line) {
 return SendMessage(zone, EM_LINELENGTH, GetLineStartIndex(line), 0);
 }
 
-int TextPage::GetLineStartIndex (int line) {
+int Page::GetLineStartIndex (int line) {
 return SendMessage(zone, EM_LINEINDEX, line, 0);
 }
 
-int TextPage::GetLineOfPos (int pos) {
+int Page::GetLineOfPos (int pos) {
 return SendMessage(zone, EM_LINEFROMCHAR, pos, 0);
 }
 
-void TextPage::SetSelection (int start, int end) {
+void Page::SetSelection (int start, int end) {
 SendMessage(zone, EM_SETSEL, start, end);
 if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
-void TextPage::SetText (const tstring& str) {
+void Page::SetText (const tstring& str) {
 int start, end;
 SendMessage(zone, EM_GETSEL, &start, &end);
 SetWindowText(zone, str);
@@ -124,7 +124,7 @@ SendMessage(zone, EM_SETSEL, start, end);
 if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
-void TextPage::ReplaceTextRange (int start, int end, const tstring& str) {
+void Page::ReplaceTextRange (int start, int end, const tstring& str) {
 int oldStart, oldEnd;
 SendMessage(zone, EM_GETSEL, &oldStart, &oldEnd);
 if (start>=0||end>=0) SendMessage(zone, EM_SETSEL, start, end);
@@ -133,7 +133,7 @@ SendMessage(zone, EM_SETSEL, oldStart, oldEnd);
 if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
-void TextPage::SetSelectedText (const tstring& str) {
+void Page::SetSelectedText (const tstring& str) {
 int start;
 SendMessage(zone, EM_GETSEL, &start, 0);
 SendMessage(zone, EM_REPLACESEL, 0, str.c_str());
@@ -142,7 +142,7 @@ if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
 PyObject* CreatePyEditorTabObject (shared_ptr<Page>);
-PyObject* TextPage::GetPyData () {
+PyObject* Page::GetPyData () {
 if (!pyData) pyData = CreatePyEditorTabObject(shared_from_this());
 return *pyData;
 }
@@ -155,7 +155,7 @@ int options =
 return tregex(findText, options);
 }
 
-void TextPage::FindNext () {
+void Page::FindNext () {
 using namespace boost;
 HWND& edit = zone;
 if (finds.size()<=0) { FindDialog(); return; }
@@ -176,7 +176,7 @@ SendMessage(edit, EM_SCROLLCARET, 0, 0);
 else MessageBeep(MB_ICONASTERISK);
 }
 
-void TextPage::FindPrev () {
+void Page::FindPrev () {
 using namespace boost;
 HWND& edit = zone;
 if (finds.size()<=0) { FindDialog(); return; }
@@ -202,16 +202,16 @@ SendMessage(edit, EM_SCROLLCARET, 0, 0);
 else MessageBeep(MB_ICONASTERISK);
 }
 
-void FindNew(TextPage& tp, const tstring& searchText, bool scase, bool regex, bool up) {
+void Page::Find(const tstring& searchText, bool scase, bool regex, bool up) {
 FindData fd(searchText, TEXT(""), (scase?FF_CASE:0) | (regex?FF_REGEX:0) | (up?FF_UPWARDS:0) );
 auto it = find(finds.begin(), finds.end(), fd);
 if (it!=finds.end()) finds.erase(it);
 finds.push_front(fd);
-if (up) tp.FindPrev();
-else tp.FindNext();
+if (up) FindPrev();
+else FindNext();
 }
 
-void TextPage::FindReplace (const tstring& searchText, const tstring& replaceText, bool scase, bool regex) {
+void Page::FindReplace (const tstring& searchText, const tstring& replaceText, bool scase, bool regex) {
 using namespace boost;
 FindData fd(searchText, replaceText, (scase?FF_CASE:0) | (regex?FF_REGEX:0) );
 auto it = find(finds.begin(), finds.end(), fd);
@@ -230,7 +230,7 @@ else SetWindowText(edit, text);
 SendMessage(edit, EM_SCROLLCARET, 0, 0);
 }
 
-bool TextPage::SaveText (const tstring& newFile) {
+bool Page::SaveText (const tstring& newFile) {
 if (flags&PF_NOSAVE) return false;
 if ((flags&PF_READONLY) && newFile.size()<=0) return false;
 if (newFile.size()>0) { file = newFile; flags&=~PF_READONLY; }
@@ -247,7 +247,7 @@ if (file==configFileName) config.load(configFileName);
 return true; 
 }
 
-tstring TextPage::LoadText (const tstring& newFile, bool guessFormat) {
+tstring Page::LoadText (const tstring& newFile, bool guessFormat) {
 if (newFile.size()>0) file = newFile;
 tstring text = TEXT("");
 if (file.size()>=0) {
@@ -284,15 +284,15 @@ int prc = max? 100 * spos / max :0;
 SetWindowText(status, tsnprintf(512, msg("Li %d, Col %d.\t%d%%, %d lines"), 1+sline, 1+scolumn, prc, nlines));
 }}
 
-void TextPage::UpdateStatusBar (HWND hStatus) {
+void Page::UpdateStatusBar (HWND hStatus) {
 if (zone) StatusBarUpdate(zone, hStatus);
 }
 
 static INT_PTR CALLBACK GoToLineDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
-static TextPage* page = 0;
+static Page* page = 0;
 switch (umsg) {
 case WM_INITDIALOG : {
-page = (TextPage*)(lp);
+page = (Page*)(lp);
 HWND edit = page->zone;
 int num = SendMessage(edit, EM_GETLINECOUNT, 0, 0);
 SetWindowText(hwnd, msg("Go to line") );
@@ -321,16 +321,16 @@ case IDCANCEL : EndDialog(hwnd, wp); return TRUE;
 return FALSE;
 }
 
-void TextPage::GoToDialog () {
+void Page::GoToDialog () {
 DialogBoxParam(IDD_GOTOLINE, win, GoToLineDlgProc, this);
 }
 
 static INT_PTR CALLBACK FindReplaceDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
-static TextPage* page = 0;
+static Page* page = 0;
 switch (umsg) {
 case WM_INITDIALOG : {
 bool findOnly = (lp&1)==0;
-page = (TextPage*)(lp&0xFFFFFFFCL);
+page = (Page*)(lp&0xFFFFFFFCL);
 FindData fd = finds.size()>0? finds.front() : FindData(TEXT(""), TEXT(""), 0);
 SetWindowText(hwnd, msg(findOnly? "Find" : "Search and replace"));
 SetDlgItemText(hwnd, IDOK, msg(!findOnly? "Replace &all" : "&OK") );
@@ -367,24 +367,24 @@ BOOL searchUp = IsDlgButtonChecked(hwnd, 1005);
 tstring searchText = GetDlgItemText(hwnd, 1001);
 tstring replaceText = GetDlgItemText(hwnd, 1002);
 if (sr) page->FindReplace(searchText, replaceText, searchCase, searchRegex);
-else FindNew(*page, searchText, searchCase, searchRegex, searchUp);
+else page->Find(searchText, searchCase, searchRegex, searchUp);
 }
 case IDCANCEL : EndDialog(hwnd, wp); return TRUE;
 }}
 return FALSE;
 }
 
-static inline void FindReplaceDlg2 (TextPage& tp, bool replace) {
+static inline void FindReplaceDlg2 (Page& tp, bool replace) {
 DWORD val = (DWORD)&tp;
 if (replace) val++;
 DialogBoxParam(IDD_SEARCHREPLACE, win, FindReplaceDlgProc, val);
 }
 
-void TextPage::FindDialog () {
+void Page::FindDialog () {
 FindReplaceDlg2(*this,false);
 }
 
-void TextPage::FindReplaceDialog () {
+void Page::FindReplaceDialog () {
 FindReplaceDlg2(*this,true);
 }
 
@@ -421,7 +421,9 @@ int len = GetWindowTextLength(hEdit);
 HLOCAL hLoc = (HLOCAL)SendMessage(hEdit, EM_GETHANDLE, 0, 0);
 LPCTSTR text = (LPCTSTR)LocalLock(hLoc);
 pos++;
-while(pos<len && text[pos++]!='}');
+while(pos<len) {
+if (text[pos++]=='}' && (text[pos]=='\n' || text[pos]=='\r')) break;
+}
 LocalUnlock(hLoc);
 return pos;
 }
@@ -430,7 +432,9 @@ static int EZGetPrevBracketPos (HWND hEdit, int pos) {
 int len = GetWindowTextLength(hEdit);
 HLOCAL hLoc = (HLOCAL)SendMessage(hEdit, EM_GETHANDLE, 0, 0);
 LPCTSTR text = (LPCTSTR)LocalLock(hLoc);
-while(pos>0 && text[--pos]!='{');
+while(pos>0) {
+if (text[--pos]=='{' && (text[pos+1]=='\n' || text[pos+1]=='\r')) break;
+}
 LocalUnlock(hLoc);
 return pos;
 }
@@ -466,7 +470,7 @@ if (pos>=n && pos<=n+indent.size() && n>2) return EZGetStartIndentedBlockPos(hEd
 return n;
 }
 
-static LRESULT __fastcall EZHandleEnter (TextPage* page, HWND hEdit) {
+static LRESULT __fastcall EZHandleEnter (Page* page, HWND hEdit) {
 int pos=0, nLine=0, addIndent=0;
 SendMessage(hEdit, EM_GETSEL, &pos, 0);
 nLine = SendMessage(hEdit, EM_LINEFROMCHAR, pos, 0);
@@ -517,12 +521,13 @@ if (moveHome) return EZHandleHome(hEdit, false);
 else return true;
 }
 
-template <class F> static LRESULT EZHandleMoveUp (HWND hEdit, const F& f) {
+template <class F> static LRESULT EZHandleMoveUp (HWND hEdit, const F& f, bool moveHome=true) {
 int pos=0;
 SendMessage(hEdit, EM_GETSEL, 0, &pos);
 pos = f(hEdit, pos);
 SendMessage(hEdit, EM_SETSEL, pos, pos);
-return EZHandleHome(hEdit, false);
+if (moveHome) return EZHandleHome(hEdit, false);
+else return true;
 }
 
 template <class F> static LRESULT EZHandleSelectDown (HWND hEdit, const F& f) {
@@ -541,7 +546,7 @@ SendMessage(hEdit, EM_SETSEL, spos, pos);
 return true;
 }
 
-static LRESULT EZHandleTab (TextPage* curPage, HWND hEdit) {
+static LRESULT EZHandleTab (Page* curPage, HWND hEdit) {
 int sPos=0, ePos=0;
 SendMessage(hEdit, EM_GETSEL, &sPos, &ePos);
 int sLine = SendMessage(hEdit, EM_LINEFROMCHAR, sPos, 0);
@@ -574,14 +579,15 @@ if (curPage->indentationMode>0) for (int i=0; i<curPage->indentationMode; i++) S
 return curPage->indentationMode>0;
 }}}
 
-static LRESULT CALLBACK EditAreaWinProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, TextPage* curPage) {
-if (msg==WM_CHAR) {
+static LRESULT CALLBACK EditProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, Page* curPage) {
+switch(msg){
+case WM_CHAR: {
 if (!curPage->dispatchEvent<bool, true>("keyPressed", (int)LOWORD(wp) )) return true;
 switch(LOWORD(wp)) {
 case VK_RETURN: return EZHandleEnter(curPage, hwnd);
 case VK_TAB: if (EZHandleTab(curPage, hwnd)) return true; break;
-}}
-else if (msg==WM_KEYDOWN) {
+}}break;//WM_CHAR
+case WM_KEYDOWN : {
 if (!curPage->dispatchEvent<bool, true>("keyDown", (int)LOWORD(wp) )) return true;
 switch(LOWORD(wp)) {
 case VK_DOWN:
@@ -602,16 +608,16 @@ break;
 case VK_HOME:
 if (!IsCtrlDown() && !IsShiftDown()) return EZHandleHome(hwnd, IsAltDown());
 break;
-}}
-else if (msg==WM_KEYUP) {
+}}break;//WM_KEYDOWN
+case WM_KEYUP: 
 if (!curPage->dispatchEvent<bool, true>("keyUp", (int)LOWORD(wp) )) return true;
 StatusBarUpdate(hwnd, status);
-}
-else if (msg==WM_SYSKEYDOWN) {
+break;//WM_KEYUP
+case WM_SYSKEYDOWN: {
 switch(LOWORD(wp)) {
 case VK_UP: 
 if (IsShiftDown()) return EZHandleSelectUp(hwnd, EZGetPrevBracketPos);
-else return EZHandleMoveUp(hwnd, EZGetPrevBracketPos);
+else return EZHandleMoveUp(hwnd, EZGetPrevBracketPos, false);
 break;
 case VK_DOWN: 
 if (IsShiftDown()) return EZHandleSelectDown(hwnd, EZGetNextBracketPos);
@@ -625,8 +631,8 @@ case VK_RIGHT:
 if (IsShiftDown()) return EZHandleSelectDown(hwnd, EZGetEndIndentedBlockPos);
 else return EZHandleMoveDown(hwnd, EZGetEndIndentedBlockPos, false);
 break;
-}}
-else if (msg==WM_PASTE) {
+}}break;//WM_SYSKEYDOWN
+case WM_PASTE : {
 tstring line = EditGetLine(hwnd);
 tstring str = GetClipboardText();
 int pos = line.find_first_not_of(TEXT(" \t"));
@@ -635,16 +641,16 @@ tstring indent = line.substr(0,pos);
 PrepareSmartPaste(str, indent);
 SendMessage(hwnd, EM_REPLACESEL, 0, str.c_str());
 return true;
-}
-else if (msg==WM_COPY) {
+}break;//WM_PASTE
+case WM_COPY: {
 int spos=0, epos=0;
 SendMessage(hwnd, EM_GETSEL, &spos, &epos);
 if (spos==epos) {
 tstring str = EditGetLine(hwnd);
 SetClipboardText(str);
 return true;
-}}
-else if (msg==WM_CUT) {
+}}break;//WM_COPY
+case WM_CUT: {
 int spos=0, epos=0;
 SendMessage(hwnd, EM_GETSEL, &spos, &epos);
 if (spos==epos) {
@@ -654,11 +660,20 @@ int llen = SendMessage(hwnd, EM_LINELENGTH, spos, 0);
 SendMessage(hwnd, EM_SETSEL, lindex+llen, lindex+llen+2);
 SendMessage(hwnd, EM_REPLACESEL, 0, 0);
 SendMessage(hwnd, EM_SETSEL, lindex, lindex+llen);
-}}
+}}break;//WM_CUT
+case WM_CONTEXTMENU:
+if (curPage->dispatchEvent<bool, true>("contextmenu", IsShiftDown(), IsCtrlDown() )) {
+POINT p;
+GetCursorPos(&p);
+HMENU menu = GetSubMenu(GetMenu(win), 1);
+TrackPopupMenu(menu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_LEFTBUTTON, p.x, p.y, 0, hwnd, NULL);
+}
+return true;
+}//switch(msg)
 return DefSubclassProc(hwnd, msg, wp, lp);
 }
 
-void TextPage::CreateZone (HWND parent) {
+void Page::CreateZone (HWND parent) {
 static int count = 0;
 tstring text;
 int ss=0, se=0;
@@ -678,16 +693,16 @@ SendMessage(hEdit, EM_SETLIMITTEXT, 1073741823, 0);
 SetWindowText(hEdit, text.c_str());
 SendMessage(hEdit, EM_SETSEL, ss, se);
 SendMessage(hEdit, EM_SCROLLCARET, 0, 0);
-SetWindowSubclass(hEdit, (SUBCLASSPROC)EditAreaWinProc, 0, (DWORD_PTR)this);
+SetWindowSubclass(hEdit, (SUBCLASSPROC)EditProc, 0, (DWORD_PTR)this);
 zone=hEdit;
 }
 
-void TextPage::HideZone () {
+void Page::HideZone () {
 ShowWindow(zone, SW_HIDE);
 EnableWindow(zone, FALSE);
 }
 
-void TextPage::ShowZone (const RECT& r) {
+void Page::ShowZone (const RECT& r) {
 EnableWindow(zone, TRUE);
 SetWindowPos(zone, NULL,
 r.left+3, r.top+3, r.right - r.left -6, r.bottom - r.top -6,
@@ -695,11 +710,11 @@ SWP_NOZORDER | SWP_SHOWWINDOW);
 SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
-void TextPage::FocusZone () {
+void Page::FocusZone () {
 SetFocus(zone);
 }
 
-void TextPage::ResizeZone (const RECT& r) {
+void Page::ResizeZone (const RECT& r) {
 MoveWindow(zone, r.left+3, r.top+3, r.right-r.left -6, r.bottom-r.top -6, TRUE);
 }
 

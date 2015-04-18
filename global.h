@@ -89,6 +89,7 @@ typedef std::string tstring;
 #define IDM_PREVPAGE 2232
 #define IDM_MARKSEL 2233
 #define IDM_SELTOMARK 2234
+#define IDM_GOTOMARK 2235
 #define IDM_OPEN_CONSOLE 2400
 #define IDM_USER_COMMAND 4000
 #define IDM_NEXT_MODLESS 19997

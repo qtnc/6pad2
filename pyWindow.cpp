@@ -9,6 +9,10 @@
 #include<functional>
 using namespace std;
 
+struct PyWindow { 
+    PyObject_HEAD 
+};
+
 extern tstring appPath, appDir, appName, configFileName;
 extern IniFile config;
 extern bool headless;
@@ -17,16 +21,13 @@ extern shared_ptr<Page> curPage;
 extern vector<shared_ptr<Page>> pages;
 extern vector<tstring> argv;
 
-struct PyWindow { 
-    PyObject_HEAD 
-};
-
 tstring msg (const char* name);
 void AppAddEvent (const string&, const PyCallback&);
 void AppRemoveEvent (const string&, const PyCallback&);
 int AddUserCommand (std::function<void(void)> f, int cmd=0);
 bool AddAccelerator (int flags, int key, int cmd);
 bool KeyNameToCode (const tstring& kn, int& flags, int& key);
+shared_ptr<Page> OpenFile (const tstring& filename, int flags);
 
 PyObject* PyMenuItem_GetMenuBar (void);
 PyObject* PyMenuItem_CreatePopupMenu (void);
@@ -42,14 +43,32 @@ if (AddAccelerator(kf, k, cmd)) return cmd;
 else return 0;
 }
 
+static void PyOpenFile (const tstring& filename) {
+OpenFile(filename, 1);
+}
+
 static int PyMsgBox (const tstring& str, const tstring& title, DWORD flags) {
-return MessageBox(win, str.c_str(), title.c_str(), flags);
+int re;
+Py_BEGIN_ALLOW_THREADS
+RunSync([&]()mutable{
+re = MessageBox(win, str.c_str(), title.c_str(), flags);
+});//RunSync
+Py_END_ALLOW_THREADS
+return re;
 }
 
 static void PyAlert (const tstring& str, const tstring& title) {
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
 MessageBox(win, str.c_str(), title.c_str(), MB_OK | MB_ICONASTERISK);
+});//RunSync
+Py_END_ALLOW_THREADS
+}
+
+static void PyWarn (const tstring& str, const tstring& title) {
+Py_BEGIN_ALLOW_THREADS
+RunSync([&]()mutable{
+MessageBox(win, str.c_str(), title.c_str(), MB_OK | MB_ICONERROR);
 });//RunSync
 Py_END_ALLOW_THREADS
 }
@@ -98,11 +117,15 @@ return 0;
 }
 
 static PyMethodDef PyWindowMethods[] = {
+// General 6pad++ functions
+PyDecl("open", PyOpenFile),
+
 // Basic dialog boxes and related functions
 PyDecl("beep", Beep),
 PyDecl("messageBeep", MessageBeep),
 PyDecl("messageBox", PyMsgBox),
 PyDecl("alert", PyAlert),
+PyDecl("warning", PyWarn),
 PyDecl("confirm", PyConfirm),
 
 // Menus and accelerators management

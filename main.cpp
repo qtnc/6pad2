@@ -63,6 +63,7 @@ r.left = 5; r.top = 5; r.right -= 10; r.bottom -= 49;
 SendMessage(tabctl, TCM_ADJUSTRECT, FALSE, &r);
 p->ShowZone(r);
 p->FocusZone();
+p->UpdateStatusBar(status);
 SetWindowText(win, (p->name + TEXT(" - ") + appName).c_str() );
 int encidx = -1; for (int i=0; i<encodings.size(); i++) { if (p->encoding==encodings[i]) { encidx=i; break; }}
 CheckMenuRadioItem(menuEncoding, 0, encodings.size(), encidx, MF_BYPOSITION);
@@ -169,7 +170,7 @@ if (focus) PageActivate(pages.size() -1);
 
 shared_ptr<Page> PageAddEmpty (bool focus = true) {
 static int count = 0;
-shared_ptr<Page> p = shared_ptr<Page>(TextPage::create());
+shared_ptr<Page> p = shared_ptr<Page>( Page::create() );
 p->name = msg("Untitled") + TEXT(" ") + toTString(++count);
 p->encoding = config.get("defaultEncoding", CP_ACP);
 p->lineEnding = config.get("defaultLineEnding", LE_DOS);
@@ -343,7 +344,7 @@ return false;
 shared_ptr<Page> OpenFile (const tstring& file, int flags) {
 if (OpenFile2(file, flags)) return NULL;
 shared_ptr<Page> cp = curPage;
-shared_ptr<Page> p(TextPage::create());
+shared_ptr<Page> p( Page::create() );
 p->LoadText(file);
 p->name = file.substr(1+file.rfind((TCHAR)'\\'));
 PageAdd(p);
@@ -600,6 +601,7 @@ case IDM_CUT: curPage->Cut();  return true;
 case IDM_PASTE: curPage->Paste();  return true;
 case IDM_MARKSEL: curPage->MarkCurrentPosition(); break;
 case IDM_SELTOMARK: curPage->SelectToMark(); break;
+case IDM_GOTOMARK: curPage->GoToMark(); break;
 case IDM_GOTOLINE: curPage->GoToDialog(); return true;
 case IDM_FIND: curPage->FindDialog(); return true;
 case IDM_REPLACE: curPage->FindReplaceDialog(); return true;
