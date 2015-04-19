@@ -29,12 +29,22 @@ return EditGetLine(hEdit, SendMessage(hEdit, EM_LINEFROMCHAR, -1, 0));
 }
 
 tstring EditGetSelectedText (HWND hEdit) {
-DWORD sStart=0, sEnd=0;
+int sStart=0, sEnd=0;
 SendMessage(hEdit, EM_GETSEL, &sStart, &sEnd);
 if (sStart==sEnd) return TEXT("");
+else return EditGetSubstring(hEdit, sStart, sEnd);
+}
+
+tstring EditGetSubstring (HWND hEdit, int start, int end) {
+int len = GetWindowTextLength(hEdit);
+if (end<0) end+=len;
+if (start<0) start+=len;
+if (end>len) end=len;
+if (start>len) start=len;
+if (start>end) { int i=start; start=end; end=i; }
 HLOCAL hLoc = (HLOCAL)SendMessage(hEdit, EM_GETHANDLE, 0, 0);
 LPCTSTR text = (LPCTSTR)LocalLock(hLoc);
-tstring str(text + sStart, text + sEnd);
+tstring str(text + start, text + end);
 LocalUnlock(hLoc);
 return str;
 }

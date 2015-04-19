@@ -17,6 +17,24 @@ typedef boost::regex tregex;
 typedef boost::cregex_iterator tcregex_iterator;
 #endif
 
+struct TextDeleted: UndoState {
+int start, end;
+tstring text;
+bool select;
+TextDeleted (int s, int e, const tstring& t, bool b = false): start(s), end(e), text(t), select(b) {}
+void Redo (Page&);
+void Undo (Page&);
+};
+
+struct TextInserted: UndoState {
+int pos;
+tstring text;
+bool select;
+TextInserted (int s, const tstring& t, bool b = false): pos(s), text(t), select(b) {}
+void Redo (Page&);
+void Undo (Page&);
+};
+
 struct FindData {
 tstring findText, replaceText;
 int flags;
@@ -38,10 +56,13 @@ tstring GetClipboardText (void);
 void PrepareSmartPaste (tstring& text, const tstring& indent);
 bool PageGoToNext (int);
 void PageSetName (shared_ptr<Page> p, const tstring& name);
+bool PageDelete (shared_ptr<Page>, int idx=-1);
+void PageEnsureFocus (shared_ptr<Page>);
 
 typedef LRESULT(*PositionFinder)(HWND,int);
 
 void Page::SetName (const tstring& name) { PageSetName(shared_from_this(),name); }
+void Page::Close () { PageDelete(shared_from_this()); }
 
 void Page::SetCurrentPosition (int pos) {
 if (!zone) return;
@@ -109,6 +130,10 @@ return SendMessage(zone, EM_LINEINDEX, line, 0);
 
 int Page::GetLineOfPos (int pos) {
 return SendMessage(zone, EM_LINEFROMCHAR, pos, 0);
+}
+
+tstring Page::GetTextSubstring (int start, int end) {
+return EditGetSubstring(zone, start, end);
 }
 
 void Page::SetSelection (int start, int end) {
@@ -470,7 +495,28 @@ if (pos>=n && pos<=n+indent.size() && n>2) return EZGetStartIndentedBlockPos(hEd
 return n;
 }
 
-static LRESULT __fastcall EZHandleEnter (Page* page, HWND hEdit) {
+static void EZTextInserted (Page* curPage, HWND hwnd, const tstring& text) {
+int selStart, selEnd;
+SendMessage(hwnd, EM_GETSEL, &selStart, &selEnd);
+if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selEnd, EditGetSubstring(hwnd, selStart, selEnd), true) ));
+curPage->PushUndoState(shared_ptr<UndoState>(new TextInserted(selStart, text, false )));
+}
+
+static void EZHandleBackspace (Page* curPage, HWND hwnd) {
+int selStart, selEnd;
+SendMessage(hwnd, EM_GETSEL, &selStart, &selEnd);
+if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selEnd, EditGetSubstring(hwnd, selStart, selEnd), true) ));
+else if (selStart>0) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart -1, selStart, EditGetSubstring(hwnd, selStart -1, selStart), false) ));
+}
+
+static void EZHandleDel (Page* curPage, HWND hwnd) {
+int selStart, selEnd;
+SendMessage(hwnd, EM_GETSEL, &selStart, &selEnd);
+if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selEnd, EditGetSubstring(hwnd, selStart, selEnd), true) ));
+else if (selStart<GetWindowTextLength(hwnd)) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selStart+1, EditGetSubstring(hwnd, selStart, selStart+1), false) ));
+}
+
+static LRESULT EZHandleEnter (Page* page, HWND hEdit) {
 int pos=0, nLine=0, addIndent=0;
 SendMessage(hEdit, EM_GETSEL, &pos, 0);
 nLine = SendMessage(hEdit, EM_LINEFROMCHAR, pos, 0);
@@ -491,6 +537,7 @@ if (page->indentationMode<=0) line += TEXT("\t");
 else line += tstring(page->indentationMode, ' ');
 }
 tstring repl = TEXT("\r\n") + line + addString;
+EZTextInserted(page, hEdit, repl);
 SendMessage(hEdit, EM_REPLACESEL, TRUE, (LPARAM)repl.c_str() );
 SendMessage(hEdit, EM_SCROLLCARET, 0, 0);
 return true;
@@ -584,8 +631,18 @@ switch(msg){
 case WM_CHAR: {
 if (!curPage->dispatchEvent<bool, true>("keyPressed", (int)LOWORD(wp) )) return true;
 switch(LOWORD(wp)) {
-case VK_RETURN: return EZHandleEnter(curPage, hwnd);
-case VK_TAB: if (EZHandleTab(curPage, hwnd)) return true; break;
+case VK_RETURN: 
+return EZHandleEnter(curPage, hwnd);
+case VK_TAB: 
+if (EZHandleTab(curPage, hwnd)) return true; 
+EZTextInserted(curPage, hwnd, TEXT("\t")); 
+break;
+case VK_BACK: 
+EZHandleBackspace(curPage, hwnd);
+break;
+default: 
+EZTextInserted(curPage, hwnd, tstring(1,LOWORD(wp)) ); 
+break;
 }}break;//WM_CHAR
 case WM_KEYDOWN : {
 if (!curPage->dispatchEvent<bool, true>("keyDown", (int)LOWORD(wp) )) return true;
@@ -607,6 +664,9 @@ if (IsCtrlDown()) return PageGoToNext(IsShiftDown()? -1 : 1);
 break;
 case VK_HOME:
 if (!IsCtrlDown() && !IsShiftDown()) return EZHandleHome(hwnd, IsAltDown());
+break;
+case VK_DELETE:
+if (!IsShiftDown()&&!IsCtrlDown()&&!IsAltDown()) EZHandleDel(curPage, hwnd);
 break;
 }}break;//WM_KEYDOWN
 case WM_KEYUP: 
@@ -633,12 +693,16 @@ else return EZHandleMoveDown(hwnd, EZGetEndIndentedBlockPos, false);
 break;
 }}break;//WM_SYSKEYDOWN
 case WM_PASTE : {
+int start, end;
+SendMessage(hwnd, EM_GETSEL, &start, &end);
 tstring line = EditGetLine(hwnd);
 tstring str = GetClipboardText();
 int pos = line.find_first_not_of(TEXT(" \t"));
 if (pos>=line.size()) pos=line.size();
 tstring indent = line.substr(0,pos);
 PrepareSmartPaste(str, indent);
+if (start!=end) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(start, end, EditGetSubstring(hwnd, start, end), true) ));
+curPage->PushUndoState(shared_ptr<UndoState>(new TextInserted(start, str, false )));
 SendMessage(hwnd, EM_REPLACESEL, 0, str.c_str());
 return true;
 }break;//WM_PASTE
@@ -657,10 +721,13 @@ if (spos==epos) {
 int lnum = SendMessage(hwnd, EM_LINEFROMCHAR, spos, 0);
 int lindex = SendMessage(hwnd, EM_LINEINDEX, lnum, 0);
 int llen = SendMessage(hwnd, EM_LINELENGTH, spos, 0);
+curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(lindex, lindex+llen+2, EditGetSubstring(hwnd, lindex, lindex+llen+2), false) ));
 SendMessage(hwnd, EM_SETSEL, lindex+llen, lindex+llen+2);
 SendMessage(hwnd, EM_REPLACESEL, 0, 0);
 SendMessage(hwnd, EM_SETSEL, lindex, lindex+llen);
-}}break;//WM_CUT
+}
+else curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(spos, epos, EditGetSubstring(hwnd, spos, epos), true) ));
+}break;//WM_CUT
 case WM_CONTEXTMENU:
 if (curPage->dispatchEvent<bool, true>("contextmenu", IsShiftDown(), IsCtrlDown() )) {
 POINT p;
@@ -710,6 +777,10 @@ SWP_NOZORDER | SWP_SHOWWINDOW);
 SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
+void Page::EnsureFocus () {
+PageEnsureFocus(shared_from_this());
+}
+
 void Page::FocusZone () {
 SetFocus(zone);
 }
@@ -718,5 +789,51 @@ void Page::ResizeZone (const RECT& r) {
 MoveWindow(zone, r.left+3, r.top+3, r.right-r.left -6, r.bottom-r.top -6, TRUE);
 }
 
+void Page::PushUndoState (shared_ptr<UndoState> u) {
+if (curUndoState<undoStates.size()) undoStates.erase(undoStates.begin() + curUndoState, undoStates.end() );
+undoStates.push_back(u);
+curUndoState = undoStates.size();
+}
 
+void Page::Undo () {
+if (curUndoState<1 || curUndoState>undoStates.size()) {
+MessageBeep(MB_OK);
+return;
+}
+undoStates[--curUndoState]->Undo(*this);
+}
+
+void Page::Redo () {
+if (curUndoState>=undoStates.size()) {
+MessageBeep(MB_OK);
+return;
+}
+undoStates[curUndoState++]->Redo(*this);
+}
+
+void TextDeleted::Redo (Page& p) {
+SendMessage(p.zone, EM_SETSEL, start, end);
+SendMessage(p.zone, EM_REPLACESEL, 0, 0);
+if (IsWindowVisible(p.zone)) SendMessage(p.zone, EM_SCROLLCARET, 0, 0);
+}
+
+void TextDeleted::Undo (Page& p) {
+SendMessage(p.zone, EM_SETSEL, start, start);
+SendMessage(p.zone, EM_REPLACESEL, 0, text.c_str() );
+if (select) SendMessage(p.zone, EM_SETSEL, start, end);
+if (IsWindowVisible(p.zone)) SendMessage(p.zone, EM_SCROLLCARET, 0, 0);
+}
+
+void TextInserted::Redo (Page& p) {
+SendMessage(p.zone, EM_SETSEL, pos, pos);
+SendMessage(p.zone, EM_REPLACESEL, 0, text.c_str() );
+if (select)SendMessage(p.zone, EM_SETSEL, pos, pos+text.size() );
+if (IsWindowVisible(p.zone)) SendMessage(p.zone, EM_SCROLLCARET, 0, 0);
+}
+
+void TextInserted::Undo (Page& p) {
+SendMessage(p.zone, EM_SETSEL, pos, pos+text.size());
+SendMessage(p.zone, EM_REPLACESEL, 0, 0);
+if (IsWindowVisible(p.zone)) SendMessage(p.zone, EM_SCROLLCARET, 0, 0);
+}
 

@@ -22,14 +22,24 @@
 #define PF_NOUNDO 0x400000
 #define PF_NOSELECTALL 0x200000
 
+struct Page;
+
+struct UndoState {
+virtual void Undo (Page&) = 0;
+virtual void Redo (Page&) = 0;
+virtual ~UndoState(){}
+};
+
 struct Page: std::enable_shared_from_this<Page>  {
 tstring name=TEXT(""), file=TEXT("");
-int encoding=-1, indentationMode=-1, lineEnding=-1, markedPosition=0;
+int encoding=-1, indentationMode=-1, lineEnding=-1, markedPosition=0, curUndoState=0;
 DWORD flags = 0;
 HWND zone=0;
 PySafeObject pyData;
 eventlist listeners;
+std::vector<shared_ptr<UndoState>> undoStates;
 
+virtual ~Page() {}
 virtual void SetName (const tstring& name) ;
 virtual bool IsEmpty () ;
 virtual bool IsModified () ;
@@ -39,17 +49,23 @@ virtual void ResizeZone (const RECT&);
 virtual void HideZone ();
 virtual void ShowZone (const RECT&);
 virtual void FocusZone ();
+virtual void EnsureFocus ();
+virtual void Close () ;
 virtual tstring LoadText (const tstring& fn = TEXT(""), bool guessFormat=true ) ;
 virtual bool SaveText (const tstring& fn = TEXT(""));
 virtual void Copy () ;
 virtual void Cut ();
 virtual void Paste ();
+virtual void Undo () ;
+virtual void Redo () ;
+virtual void PushUndoState (shared_ptr<UndoState> state);
 
 virtual PyObject* GetPyData ();
 virtual void UpdateStatusBar (HWND) ;
 virtual void GetSelection (int& start, int& end);
 virtual tstring GetSelectedText () ;
 virtual tstring GetText () ;
+virtual tstring GetTextSubstring (int start, int end);
 virtual int GetTextLength () ;
 virtual void ReplaceTextRange (int start, int end, const tstring& str);
 virtual tstring GetLine (int line) ;

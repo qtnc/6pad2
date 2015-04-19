@@ -28,3 +28,4 @@ def func2 ():
 window.menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
 window.menus.edit.add(label='Item inutile 2', accelerator='Ctrl+D', action=func2)
 
+print(window.pages)

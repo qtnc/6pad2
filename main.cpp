@@ -143,6 +143,15 @@ void PageActivate (int i) {
 SendMessage(tabctl, TCM_SETCURFOCUS, i, 0);
 }
 
+void PageEnsureFocus (shared_ptr<Page> p) {
+if (GetForegroundWindow()!=win) SetForegroundWindow(win);
+if (curPage!=p) {
+int i = std::find(pages.begin(), pages.end(), p) -pages.begin();
+if (i>=0&&i<pages.size()) PageActivate(i);
+}
+p->FocusZone();
+}
+
 void PageSetName (shared_ptr<Page> p, const tstring& name) {
 if (!p) return;
 int pos = std::find(pages.begin(), pages.end(), p) -pages.begin();
@@ -599,6 +608,8 @@ case IDM_SELECTALL: curPage->SelectAll(); return true;
 case IDM_COPY: curPage->Copy();  return true;
 case IDM_CUT: curPage->Cut();  return true;
 case IDM_PASTE: curPage->Paste();  return true;
+case IDM_UNDO: curPage->Undo(); break;
+case IDM_REDO: curPage->Redo(); break;
 case IDM_MARKSEL: curPage->MarkCurrentPosition(); break;
 case IDM_SELTOMARK: curPage->SelectToMark(); break;
 case IDM_GOTOMARK: curPage->GoToMark(); break;

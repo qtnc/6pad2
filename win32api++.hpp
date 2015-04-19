@@ -35,6 +35,7 @@ tstring GetDlgItemText (HWND, int);
 tstring EditGetLine (HWND hEdit) ;
 tstring EditGetLine (HWND hEdit, int line, int lineindex=-1);
 tstring EditGetSelectedText (HWND hEdit);
+tstring EditGetSubstring (HWND, int, int);
 
 inline bool IsCtrlDown () { return GetKeyState(VK_CONTROL)<0; }
 inline bool IsShiftDown () { return GetKeyState(VK_SHIFT)<0; }

@@ -40,6 +40,8 @@ void setIndentationMode (int i) { PageSetIndentationMode(page(),i); }
 void setAutoLineBreak (int b) { PageSetAutoLineBreak(page(),b); }
 void addEvent (const string& type, const PyCallback& cb) {  page()->addEvent(type,cb); }
 void removeEvent (const string& type, const PyCallback& cb) { page()->removeEvent(type,cb); }
+void focus () { page()->EnsureFocus(); }
+void close () { page()->EnsureFocus(); page()->Close(); }
 int getTextLength () { return page()->GetTextLength(); }
 tstring getSelectedText () { return page()->GetSelectedText(); }
 void setSelectedText (const tstring& s) { page()->SetSelectedText(s); }
@@ -88,6 +90,8 @@ PyDecl("lineEndOffset", &PyEditorTab::getLineEndIndex),
 PyDecl("replace", &PyEditorTab::replaceTextRange),
 PyDecl("insert", &PyEditorTab::insertTextAt),
 PyDecl("delete", &PyEditorTab::deleteTextRange),
+PyDecl("focus", &PyEditorTab::focus),
+PyDecl("close", &PyEditorTab::close),
 PyDeclEnd
 };
 
