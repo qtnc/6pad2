@@ -27,6 +27,8 @@ struct Page;
 struct UndoState {
 virtual void Undo (Page&) = 0;
 virtual void Redo (Page&) = 0;
+virtual bool Join (UndoState& s) { return false; }
+virtual int GetTypeId () { return 0; }
 virtual ~UndoState(){}
 };
 
@@ -58,7 +60,7 @@ virtual void Cut ();
 virtual void Paste ();
 virtual void Undo () ;
 virtual void Redo () ;
-virtual void PushUndoState (shared_ptr<UndoState> state);
+virtual void PushUndoState (shared_ptr<UndoState> state, bool tryToJoin = true);
 
 virtual PyObject* GetPyData ();
 virtual void UpdateStatusBar (HWND) ;

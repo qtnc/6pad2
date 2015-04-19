@@ -14,18 +14,17 @@ def func4 () :
 	re = pop.show()
 	window.alert('Result=' + str(re), 'Info')
 
-def f2 (self, line):
-	window.beep(800,120)
-	return False
+class UndoState:
+	def undo (self, tab):
+		window.beep(1600,200)
+	def redo (self, tab):
+		window.beep(3200,200)
+
 
 def func () :
-	window.curPage
-	window.curPage.addEvent('enter', f2)
-
-def func2 ():
-	print("Closed = " + str(tab.closed))
+	o = UndoState()
+	window.curPage.pushUndoState(o)
 
 window.menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
-window.menus.edit.add(label='Item inutile 2', accelerator='Ctrl+D', action=func2)
 
-print(window.pages)
+

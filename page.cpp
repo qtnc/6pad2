@@ -20,10 +20,12 @@ typedef boost::cregex_iterator tcregex_iterator;
 struct TextDeleted: UndoState {
 int start, end;
 tstring text;
-bool select;
-TextDeleted (int s, int e, const tstring& t, bool b = false): start(s), end(e), text(t), select(b) {}
+int select;
+TextDeleted (int s, int e, const tstring& t, int b = false): start(s), end(e), text(t), select(b) {}
 void Redo (Page&);
 void Undo (Page&);
+bool Join (UndoState&);
+int GetTypeId () { return 2; }
 };
 
 struct TextInserted: UndoState {
@@ -33,6 +35,18 @@ bool select;
 TextInserted (int s, const tstring& t, bool b = false): pos(s), text(t), select(b) {}
 void Redo (Page&);
 void Undo (Page&);
+bool Join (UndoState&);
+int GetTypeId () { return 1; }
+};
+
+struct TextReplaced: UndoState {
+int pos;
+tstring oldText, newText;
+bool select;
+TextReplaced (int p, const tstring& o, const tstring& n, bool b = true): pos(p), oldText(o), newText(n), select(b)  {}
+void Undo (Page&);
+void Redo (Page&);
+int GetTypeId () { return 3; }
 };
 
 struct FindData {
@@ -58,8 +72,6 @@ bool PageGoToNext (int);
 void PageSetName (shared_ptr<Page> p, const tstring& name);
 bool PageDelete (shared_ptr<Page>, int idx=-1);
 void PageEnsureFocus (shared_ptr<Page>);
-
-typedef LRESULT(*PositionFinder)(HWND,int);
 
 void Page::SetName (const tstring& name) { PageSetName(shared_from_this(),name); }
 void Page::Close () { PageDelete(shared_from_this()); }
@@ -245,14 +257,22 @@ finds.push_front(fd);
 int start, end;
 HWND& edit = zone;
 SendMessage(edit, EM_GETSEL, &start, &end);
-tstring text = GetWindowText(edit);
-if (start!=end) text = tstring(text.begin()+start, text.begin()+end);
+tstring oldText = GetWindowText(edit);
+if (start!=end) oldText = tstring(oldText.begin()+start, oldText.begin()+end);
 tregex reg = fd.newRegex(true);
 match_flag_type flags = (fd.flags&FF_REGEX? match_flag_type::match_default | match_flag_type::format_perl : match_flag_type::format_literal);
-text = regex_replace(text, reg, fd.replaceText, flags);
-if (start!=end) SendMessage(edit, EM_REPLACESEL, 0, text.c_str() );
-else SetWindowText(edit, text);
-SendMessage(edit, EM_SCROLLCARET, 0, 0);
+tstring newText = oldText;
+newText = regex_replace(newText, reg, fd.replaceText, flags);
+if (start!=end) {
+SendMessage(edit, EM_REPLACESEL, 0, newText.c_str() );
+SendMessage(edit, EM_SETSEL, start, start+newText.size());
+}
+else {
+SetWindowText(edit, newText);
+SendMessage(edit, EM_SETSEL, start, end);
+}
+if (IsWindowVisible(edit)) SendMessage(edit, EM_SCROLLCARET, 0, 0);
+PushUndoState(std::shared_ptr<UndoState>(new TextReplaced( start!=end? start : 0, oldText, newText, start!=end)));
 }
 
 bool Page::SaveText (const tstring& newFile) {
@@ -293,24 +313,27 @@ SetText(text);
 return text;
 }
 
-static void StatusBarUpdate (HWND hEdit, HWND status) {
-int spos=0, epos=0;
+static tstring StatusBarUpdate (HWND hEdit, HWND status) {
+int spos=-1, epos=-1;
 SendMessage(hEdit, EM_GETSEL, &spos, &epos);
 int sline = SendMessage(hEdit, EM_LINEFROMCHAR, spos, 0);
 int scolumn = spos - SendMessage(hEdit, EM_LINEINDEX, sline, 0);
 if (spos!=epos) {
 int eline = SendMessage(hEdit, EM_LINEFROMCHAR, epos, 0);
 int ecolumn = epos - SendMessage(hEdit, EM_LINEINDEX, eline, 0);
-SetWindowText(status, tsnprintf(512, msg("Li %d, Col %d to Li %d, Col %d"), 1+sline, 1+scolumn, 1+eline, 1+ecolumn));
+return tsnprintf(512, msg("Li %d, Col %d to Li %d, Col %d"), 1+sline, 1+scolumn, 1+eline, 1+ecolumn);
 } else {
 int nlines = SendMessage(hEdit, EM_GETLINECOUNT, 0, 0);
 int max = GetWindowTextLength(hEdit);
 int prc = max? 100 * spos / max :0;
-SetWindowText(status, tsnprintf(512, msg("Li %d, Col %d.\t%d%%, %d lines"), 1+sline, 1+scolumn, prc, nlines));
+return tsnprintf(512, msg("Li %d, Col %d.\t%d%%, %d lines"), 1+sline, 1+scolumn, prc, nlines);
 }}
 
 void Page::UpdateStatusBar (HWND hStatus) {
-if (zone) StatusBarUpdate(zone, hStatus);
+tstring text = StatusBarUpdate(zone, hStatus);
+var re = dispatchEvent("status", var(), text);
+if (re.getType()==T_STR) text=re.toTString();
+SetWindowText(hStatus, text);
 }
 
 static INT_PTR CALLBACK GoToLineDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
@@ -495,11 +518,11 @@ if (pos>=n && pos<=n+indent.size() && n>2) return EZGetStartIndentedBlockPos(hEd
 return n;
 }
 
-static void EZTextInserted (Page* curPage, HWND hwnd, const tstring& text) {
+static void EZTextInserted (Page* curPage, HWND hwnd, const tstring& text, bool tryToJoin = true) {
 int selStart, selEnd;
 SendMessage(hwnd, EM_GETSEL, &selStart, &selEnd);
 if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selEnd, EditGetSubstring(hwnd, selStart, selEnd), true) ));
-curPage->PushUndoState(shared_ptr<UndoState>(new TextInserted(selStart, text, false )));
+curPage->PushUndoState(shared_ptr<UndoState>(new TextInserted(selStart, text, false )) ,tryToJoin);
 }
 
 static void EZHandleBackspace (Page* curPage, HWND hwnd) {
@@ -513,7 +536,7 @@ static void EZHandleDel (Page* curPage, HWND hwnd) {
 int selStart, selEnd;
 SendMessage(hwnd, EM_GETSEL, &selStart, &selEnd);
 if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selEnd, EditGetSubstring(hwnd, selStart, selEnd), true) ));
-else if (selStart<GetWindowTextLength(hwnd)) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selStart+1, EditGetSubstring(hwnd, selStart, selStart+1), false) ));
+else if (selStart<GetWindowTextLength(hwnd)) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selStart+1, EditGetSubstring(hwnd, selStart, selStart+1), 2) ));
 }
 
 static LRESULT EZHandleEnter (Page* page, HWND hEdit) {
@@ -537,7 +560,7 @@ if (page->indentationMode<=0) line += TEXT("\t");
 else line += tstring(page->indentationMode, ' ');
 }
 tstring repl = TEXT("\r\n") + line + addString;
-EZTextInserted(page, hEdit, repl);
+EZTextInserted(page, hEdit, repl, false);
 SendMessage(hEdit, EM_REPLACESEL, TRUE, (LPARAM)repl.c_str() );
 SendMessage(hEdit, EM_SCROLLCARET, 0, 0);
 return true;
@@ -604,13 +627,15 @@ int eOffset = SendMessage(hEdit, EM_LINEINDEX, eLine, 0);
 int eLineLen = SendMessage(hEdit, EM_LINELENGTH, ePos, 0);
 if (sLine==eLine) Beep(800,150);
 else {
-tstring str = GetWindowText(hEdit).substr(sOffset, eOffset + eLineLen -sOffset);
+tstring oldStr = EditGetSubstring(hEdit, sOffset, eOffset + eLineLen);
+tstring newStr = oldStr;
 tstring indent = curPage->indentationMode==0? TEXT("\t") : tstring(curPage->indentationMode, ' ');
-if (IsShiftDown()) str = preg_replace(str, TEXT("^")+indent, TEXT(""));
-else str = preg_replace(str, TEXT("^"), indent);
+if (IsShiftDown()) newStr = preg_replace(newStr, TEXT("^")+indent, TEXT(""));
+else newStr = preg_replace(newStr, TEXT("^"), indent);
 SendMessage(hEdit, EM_SETSEL, sOffset, eOffset+eLineLen);
-SendMessage(hEdit, EM_REPLACESEL, 0, str.c_str());
-SendMessage(hEdit, EM_SETSEL, sOffset, sOffset+str.size());
+SendMessage(hEdit, EM_REPLACESEL, 0, newStr.c_str());
+SendMessage(hEdit, EM_SETSEL, sOffset, sOffset+newStr.size());
+curPage->PushUndoState(shared_ptr<UndoState>(new TextReplaced( sOffset, oldStr, newStr, true )));
 }}
 else { // There is no selection
 tstring line = EditGetLine(hEdit, sLine, sPos);
@@ -671,7 +696,7 @@ break;
 }}break;//WM_KEYDOWN
 case WM_KEYUP: 
 if (!curPage->dispatchEvent<bool, true>("keyUp", (int)LOWORD(wp) )) return true;
-StatusBarUpdate(hwnd, status);
+curPage->UpdateStatusBar(status);
 break;//WM_KEYUP
 case WM_SYSKEYDOWN: {
 switch(LOWORD(wp)) {
@@ -789,8 +814,9 @@ void Page::ResizeZone (const RECT& r) {
 MoveWindow(zone, r.left+3, r.top+3, r.right-r.left -6, r.bottom-r.top -6, TRUE);
 }
 
-void Page::PushUndoState (shared_ptr<UndoState> u) {
+void Page::PushUndoState (shared_ptr<UndoState> u, bool tryToJoin) {
 if (curUndoState<undoStates.size()) undoStates.erase(undoStates.begin() + curUndoState, undoStates.end() );
+if (tryToJoin && curUndoState>0 && curUndoState<=undoStates.size() && undoStates[curUndoState -1]->Join(*u)) return;
 undoStates.push_back(u);
 curUndoState = undoStates.size();
 }
@@ -820,7 +846,8 @@ if (IsWindowVisible(p.zone)) SendMessage(p.zone, EM_SCROLLCARET, 0, 0);
 void TextDeleted::Undo (Page& p) {
 SendMessage(p.zone, EM_SETSEL, start, start);
 SendMessage(p.zone, EM_REPLACESEL, 0, text.c_str() );
-if (select) SendMessage(p.zone, EM_SETSEL, start, end);
+if (select==2) SendMessage(p.zone, EM_SETSEL, start, start);
+else if (select) SendMessage(p.zone, EM_SETSEL, start, end);
 if (IsWindowVisible(p.zone)) SendMessage(p.zone, EM_SCROLLCARET, 0, 0);
 }
 
@@ -837,3 +864,42 @@ SendMessage(p.zone, EM_REPLACESEL, 0, 0);
 if (IsWindowVisible(p.zone)) SendMessage(p.zone, EM_SCROLLCARET, 0, 0);
 }
 
+bool TextInserted::Join (UndoState& u0) {
+if (u0.GetTypeId()!=1) return false;
+TextInserted& u = static_cast<TextInserted&>(u0);
+if (u.pos == pos + text.size() ) {
+text += u.text;
+return true;
+}
+return false;
+}
+
+bool TextDeleted::Join (UndoState& u0) {
+if (u0.GetTypeId()!=2) return false;
+TextDeleted& u = static_cast<TextDeleted&>(u0);
+if (u.end==start) {
+text = u.text + text;
+start = u.start;
+return true;
+}
+else if (start==u.start) {
+text += u.text;
+end += (u.end-u.start);
+return true;
+}
+return false;
+}
+
+void TextReplaced::Redo (Page& p) {
+SendMessage(p.zone, EM_SETSEL, pos, pos+oldText.size());
+SendMessage(p.zone, EM_REPLACESEL, 0, newText.c_str() );
+if (select) SendMessage(p.zone, EM_SETSEL, pos, pos+newText.size());
+if (IsWindowVisible(p.zone)) SendMessage(p.zone, EM_SCROLLCARET, 0, 0);
+}
+
+void TextReplaced::Undo (Page& p) {
+SendMessage(p.zone, EM_SETSEL, pos, pos+newText.size());
+SendMessage(p.zone, EM_REPLACESEL, 0, oldText.c_str() );
+if (select) SendMessage(p.zone, EM_SETSEL, pos, pos+oldText.size());
+if (IsWindowVisible(p.zone)) SendMessage(p.zone, EM_SCROLLCARET, 0, 0);
+}

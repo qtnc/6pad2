@@ -12,6 +12,13 @@ void PageSetAutoLineBreak (shared_ptr<Page> p, bool alb);
 
 extern vector<shared_ptr<Page>> pages;
 
+struct PyProxyUndoState: UndoState  {
+PySafeObject obj;
+PyProxyUndoState (const PySafeObject& o): obj(o) {}
+void Undo (Page&);
+void Redo (Page&);
+};
+
 struct PyEditorTab { 
     PyObject_HEAD
 weak_ptr<Page> wpPage;
@@ -60,6 +67,7 @@ int getLineOfPos (int pos) { return page()->GetLineOfPos(pos); }
 void replaceTextRange (int start, int end, const tstring& str) { page()->ReplaceTextRange(start, end, str); }
 void deleteTextRange (int start, int end) { replaceTextRange(start, end, TEXT("")); }
 void insertTextAt (int pos, const tstring& str) { replaceTextRange(pos, pos, str); }
+void pushUndoState (PyObject* o) { page()->PushUndoState(shared_ptr<UndoState>(new PyProxyUndoState(o)), false); }
 };
 
 static void PyEditorTabDealloc (PyObject* pySelf) {
@@ -92,6 +100,7 @@ PyDecl("insert", &PyEditorTab::insertTextAt),
 PyDecl("delete", &PyEditorTab::deleteTextRange),
 PyDecl("focus", &PyEditorTab::focus),
 PyDecl("close", &PyEditorTab::close),
+PyDecl("pushUndoState", &PyEditorTab::pushUndoState),
 PyDeclEnd
 };
 
@@ -151,6 +160,18 @@ NULL,             /* tp_members */
     (initproc)PyEditorTabInit,      /* tp_init */ 
     0,                         /* tp_alloc */ 
 }; 
+
+void PyProxyUndoState::Undo (Page& p) {
+GIL_PROTECT
+PyObject* arg = p.GetPyData();
+PyObject_CallMethod(*obj, "undo", "(O)", arg);
+}
+
+void PyProxyUndoState::Redo (Page& p) {
+GIL_PROTECT
+PyObject* arg = p.GetPyData();
+PyObject_CallMethod(*obj, "redo", "(O)", arg);
+}
 
 PyObject* CreatePyEditorTabObject (shared_ptr<Page> p) {
 GIL_PROTECT
