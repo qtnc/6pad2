@@ -35,6 +35,7 @@ std::unordered_multimap<std::string, EventCallback> m;
 eventlist();
 void add (const std::string& type, const EventCallback& cb);
 bool remove (const std::string& type, const EventCallback& cb);
+int count (const std::string& type);
 
 template<class R, R initial, class... A> R dispatch (const string& type, A... args) {
 R r = initial;

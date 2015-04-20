@@ -52,8 +52,9 @@ return toTString(msgs.get<string>(name, name));
 
 bool PageDeactivated (shared_ptr<Page> p) {
 if (!p) return true;
-if (!p->dispatchEvent<bool, true>("deactivated")) return false;
+if (!p->dispatchEvent<bool, true>("deactivate")) return false;
 p->HideZone();
+p->dispatchEvent("deactivated");
 return true;
 }
 
@@ -92,7 +93,7 @@ curPage->dispatchEvent("activated");
 }
 
 bool PageClosing (shared_ptr<Page> p) {
-if (!p->dispatchEvent<bool, true>("closing")) return false;
+if (!p->dispatchEvent<bool, true>("close")) return false;
 if (!p->IsModified()) return true;
 int re = MessageBox(win, tsnprintf(512, msg("Save changes to %s?"), p->name.c_str()).c_str(), p->name.c_str(), MB_ICONEXCLAMATION  | MB_YESNOCANCEL);
 if (re==IDYES) { 
@@ -216,7 +217,7 @@ return true;
 }
 
 bool AppWindowClosing () {
-if (!listeners.dispatch<bool, true>("closing")) return false;
+if (!listeners.dispatch<bool, true>("close")) return false;
 for (int i=0, j=0; i<pages.size(); i++) {
 shared_ptr<Page> p = pages[i];
 if ((p->flags&PF_NOSAVE) || p->file.size()<=0) continue;
@@ -242,9 +243,12 @@ void AppWindowActivated () {
 listeners.dispatch("activated");
 }
 
+void AppWindowDeactivated () {
+listeners.dispatch("deactivated");
+}
+
 void AppWindowGainedFocus () {
 if (curPage) curPage->FocusZone();
-listeners.dispatch("gainedFocus");
 }
 
 void AppWindowResized () {
@@ -481,7 +485,8 @@ if (!RegisterClassEx(&wincl)) {
 MessageBox(NULL, TEXT("Couldn't register window class"), TEXT("Fatal error"), MB_OK|MB_ICONERROR);
 return 1;
 } 
-INITCOMMONCONTROLSEX ccex = { sizeof(INITCOMMONCONTROLSEX), ICC_BAR_CLASSES |  ICC_HOTKEY_CLASS | ICC_PROGRESS_CLASS | ICC_UPDOWN_CLASS | ICC_TAB_CLASSES  | ICC_COOL_CLASSES | ICC_TREEVIEW_CLASSES };
+//INITCOMMONCONTROLSEX ccex = { sizeof(INITCOMMONCONTROLSEX), ICC_BAR_CLASSES |  ICC_HOTKEY_CLASS | ICC_PROGRESS_CLASS | ICC_UPDOWN_CLASS | ICC_TAB_CLASSES  | ICC_COOL_CLASSES | ICC_TREEVIEW_CLASSES };
+INITCOMMONCONTROLSEX ccex = { sizeof(INITCOMMONCONTROLSEX), ICC_BAR_CLASSES |  ICC_PROGRESS_CLASS | ICC_TAB_CLASSES   };
 if (!InitCommonControlsEx(&ccex)) {
 MessageBox(NULL, TEXT("Couldn't initialize common controls"), TEXT("Fatal error"), MB_OK|MB_ICONERROR);
 return 1;
@@ -745,7 +750,8 @@ case WM_SETFOCUS :
 AppWindowGainedFocus();
 break;
 case WM_ACTIVATE :
-if(wp) AppWindowActivated();
+if(LOWORD(wp)) AppWindowActivated();
+else AppWindowDeactivated();
 break;
 case WM_SIZE :
 AppWindowResized();

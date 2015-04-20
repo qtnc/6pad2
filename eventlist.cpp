@@ -13,3 +13,7 @@ if (it->second == cb) { m.erase(it); return true; }
 }
 return false;
 }
+
+int eventlist::count (const string& type) {
+return m.count(type);
+}

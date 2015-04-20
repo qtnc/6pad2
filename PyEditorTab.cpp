@@ -49,6 +49,8 @@ void addEvent (const string& type, const PyCallback& cb) {  page()->addEvent(typ
 void removeEvent (const string& type, const PyCallback& cb) { page()->removeEvent(type,cb); }
 void focus () { page()->EnsureFocus(); }
 void close () { page()->EnsureFocus(); page()->Close(); }
+void undo () { page()->Undo(); }
+void redo () { page()->Redo(); }
 int getTextLength () { return page()->GetTextLength(); }
 tstring getSelectedText () { return page()->GetSelectedText(); }
 void setSelectedText (const tstring& s) { page()->SetSelectedText(s); }
@@ -64,9 +66,11 @@ tstring getLine (int l) { return page()->GetLine(l); }
 int getLineStartIndex (int l) { return page()->GetLineStartIndex(l); }
 int getLineEndIndex (int l) { return page()->GetLineStartIndex(l) + page()->GetLineLength(l); }
 int getLineOfPos (int pos) { return page()->GetLineOfPos(pos); }
+int getLineCount () { return page()->GetLineCount(); }
 void replaceTextRange (int start, int end, const tstring& str) { page()->ReplaceTextRange(start, end, str); }
 void deleteTextRange (int start, int end) { replaceTextRange(start, end, TEXT("")); }
 void insertTextAt (int pos, const tstring& str) { replaceTextRange(pos, pos, str); }
+tstring getTextSubstring (int start, int end) { return page()->GetTextSubstring(start,end); }
 void pushUndoState (PyObject* o) { page()->PushUndoState(shared_ptr<UndoState>(new PyProxyUndoState(o)), false); }
 };
 
@@ -95,12 +99,15 @@ PyDecl("lineLength", &PyEditorTab::getLineLength),
 PyDecl("lineOfOffset", &PyEditorTab::getLineOfPos),
 PyDecl("lineStartOffset", &PyEditorTab::getLineStartIndex),
 PyDecl("lineEndOffset", &PyEditorTab::getLineEndIndex),
+PyDecl("substring", &PyEditorTab::getTextSubstring),
 PyDecl("replace", &PyEditorTab::replaceTextRange),
 PyDecl("insert", &PyEditorTab::insertTextAt),
 PyDecl("delete", &PyEditorTab::deleteTextRange),
 PyDecl("focus", &PyEditorTab::focus),
 PyDecl("close", &PyEditorTab::close),
 PyDecl("pushUndoState", &PyEditorTab::pushUndoState),
+PyDecl("undo", &PyEditorTab::undo),
+PyDecl("redo", &PyEditorTab::redo),
 PyDeclEnd
 };
 
@@ -118,6 +125,7 @@ PyAccessor("selectionEnd", &PyEditorTab::getSelectionEnd, &PyEditorTab::setSelec
 PyAccessor("selectedText", &PyEditorTab::getSelectedText, &PyEditorTab::setSelectedText),
 PyAccessor("text", &PyEditorTab::getText, &PyEditorTab::setText),
 PyReadOnlyAccessor("textLength", &PyEditorTab::getTextLength),
+PyReadOnlyAccessor("lineCount", &PyEditorTab::getLineCount),
 PyDeclEnd
 };
 
