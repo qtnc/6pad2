@@ -43,8 +43,10 @@ if (AddAccelerator(kf, k, cmd)) return cmd;
 else return 0;
 }
 
-static void PyOpenFile (const tstring& filename) {
-OpenFile(filename, 1);
+static PyObject* PyOpenFile (const tstring& filename) {
+shared_ptr<Page> p = OpenFile(filename, 1);
+if (!p) { Py_RETURN_NONE; }
+return p->GetPyData();
 }
 
 static int PyMsgBox (const tstring& str, const tstring& title, DWORD flags) {

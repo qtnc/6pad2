@@ -22,8 +22,8 @@ window:
 
 # The window object
 ## Methods
-void open(str filename):
-:	Open a file in the editor.
+Page open(str filename):
+:	Open a file in the editor. If the file has been successfully opened in this instance, the page object is returned, otherwise None.
 void beep(int freq, int duration):
 :	Produce a PC speaker beep.
 void messageBeep(int id):
@@ -62,13 +62,13 @@ activated ():
 :	Called when the application window has been activated, i.e. made visible and got focus.
 deactivated ():
 :	Called when the application window has just been deactivated
-opened ():
-:	Called just after the application window has been opened
 close ():
 :	Called when the application is about to be closed. By returning False, you can prevent the application from being closed.
 	Note that this event is fired before page closes.
 closed ():
 :	Called when the application has just been closed.
+pageOpened (Page):
+:	Called just after a new page has been opened
 
 # Page class
 ## Methods

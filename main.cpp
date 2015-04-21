@@ -19,15 +19,16 @@ using namespace std;
 
 tstring appPath, appDir, appName, configFileName;
 IniFile msgs, config;
+eventlist listeners;
+shared_ptr<Page> curPage(0);
+list<tstring> consoleInput;
+list<tstring> recentFiles;
 vector<int> encodings = { CP_ACP, CP_UTF8, CP_UTF8_BOM, CP_UTF16_LE, CP_UTF16_LE_BOM, CP_UTF16_BE, CP_UTF16_BE_BOM, CP_ISO_8859_15, CP_MSDOS };
 vector<tstring> argv;
 vector<shared_ptr<Page>> pages;
-shared_ptr<Page> curPage(0);
-list<tstring> recentFiles;
-unordered_map<int, function<void(void)>> userCommands;
-eventlist listeners;
 vector<HWND> modlessWindows;
-list<tstring> consoleInput;
+unordered_map<int, function<void(void)>> userCommands;
+unordered_map<string,function<Page*()>> pageFactories = { {"text", &Page::create} };
 
 TCHAR CLASSNAME[32] = {0};
 bool firstInstance = false, writeToStdout=false, headless=false;
@@ -111,6 +112,7 @@ p->dispatchEvent("closed");
 }
 
 void PageOpened (shared_ptr<Page> p) { 
+if (listeners.count("pageOpened")>0) listeners.dispatch("pageOpened", p->GetPyData() );
 p->dispatchEvent("opened");
 }
 
@@ -165,6 +167,11 @@ SendMessage(tabctl, TCM_SETITEM, pos, &it);
 if (curPage==p) SetWindowText(win, (p->name + TEXT(" - ") + appName).c_str() );
 }
 
+shared_ptr<Page> PageCreate (const string& type) {
+function<Page*()> f = pageFactories[type];
+return shared_ptr<Page>( f? f() : 0);
+}
+
 void PageAdd (shared_ptr<Page> p, bool focus = true) {
 p->CreateZone(tabctl);
 pages.push_back(p);
@@ -178,9 +185,9 @@ PageOpened(p);
 if (focus) PageActivate(pages.size() -1);
 }
 
-shared_ptr<Page> PageAddEmpty (bool focus = true) {
+shared_ptr<Page> PageAddEmpty (bool focus = true, const string& type = "text") {
 static int count = 0;
-shared_ptr<Page> p = shared_ptr<Page>( Page::create() );
+shared_ptr<Page> p = PageCreate(type);
 p->name = msg("Untitled") + TEXT(" ") + toTString(++count);
 p->encoding = config.get("defaultEncoding", CP_ACP);
 p->lineEnding = config.get("defaultLineEnding", LE_DOS);
@@ -233,10 +240,6 @@ return true;
 
 void AppWindowClosed () { 
 listeners.dispatch("closed");
-}
-
-void AppWindowOpened () { 
-listeners.dispatch("opened");
 }
 
 void AppWindowActivated () {
@@ -356,8 +359,10 @@ return false;
 
 shared_ptr<Page> OpenFile (const tstring& file, int flags) {
 if (OpenFile2(file, flags)) return NULL;
+string type = "text";
 shared_ptr<Page> cp = curPage;
-shared_ptr<Page> p( Page::create() );
+shared_ptr<Page> p = PageCreate(type);
+if (!p) return p;
 p->LoadText(file);
 p->name = file.substr(1+file.rfind((TCHAR)'\\'));
 PageAdd(p);
@@ -432,6 +437,7 @@ long long time = GetTickCount();
 //signal(SIGILL, sigsegv);
 SetErrorMode(SEM_FAILCRITICALERRORS);
 
+
 {//Getting paths and such global parameters
 TCHAR fn[512]={0};
 GetModuleFileName(NULL, fn, 511);
@@ -485,8 +491,7 @@ if (!RegisterClassEx(&wincl)) {
 MessageBox(NULL, TEXT("Couldn't register window class"), TEXT("Fatal error"), MB_OK|MB_ICONERROR);
 return 1;
 } 
-//INITCOMMONCONTROLSEX ccex = { sizeof(INITCOMMONCONTROLSEX), ICC_BAR_CLASSES |  ICC_HOTKEY_CLASS | ICC_PROGRESS_CLASS | ICC_UPDOWN_CLASS | ICC_TAB_CLASSES  | ICC_COOL_CLASSES | ICC_TREEVIEW_CLASSES };
-INITCOMMONCONTROLSEX ccex = { sizeof(INITCOMMONCONTROLSEX), ICC_BAR_CLASSES |  ICC_PROGRESS_CLASS | ICC_TAB_CLASSES   };
+INITCOMMONCONTROLSEX ccex = { sizeof(INITCOMMONCONTROLSEX), ICC_BAR_CLASSES | ICC_PROGRESS_CLASS | ICC_TAB_CLASSES | ICC_COOL_CLASSES | ICC_TREEVIEW_CLASSES | ICC_LISTVIEW_CLASSES   };
 if (!InitCommonControlsEx(&ccex)) {
 MessageBox(NULL, TEXT("Couldn't initialize common controls"), TEXT("Fatal error"), MB_OK|MB_ICONERROR);
 return 1;
@@ -535,7 +540,6 @@ UpdateRecentFilesMenu();
 consoleInputEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 InitializeCriticalSection(&csConsoleInput);
 Thread::start(PyStart);
-AppWindowOpened();
 
 for (int i=1; i<argv.size(); i++) {
 const tstring& arg = argv[i];

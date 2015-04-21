@@ -47,9 +47,39 @@ GetCurrentDirectory(300, buf);
 return buf;
 }
 
+static string PyGetConfig (const string& key, const string& def) {
+auto it = config.find(key);
+if (it!=config.end()) return it->second;
+else return def;
+}
+
+static void PySetConfig (const string& key, const string& value) {
+config.set(key, value);
+}
+
+static void PySetConfigMulti (const string& key, const string& value) {
+config.set(key,value, true);
+}
+
+static PyObject* PyGetConfigMulti (const string& key) {
+PyObject* list = PyList_New( config.count(key) );
+int i=0;
+for (auto it=config.find(key); it!=config.end(); ++it) {
+PyList_SetItem(list, i++, Py_BuildValue("s", it->second.c_str()) );
+}
+return list;
+}
+
 static PyMethodDef _6padMainDefs[] = {
 // Translation management
-PyDecl("getTranslation", msg),
+PyDecl("msg", msg),
+
+// Configuration management
+PyDecl("getConfig", PyGetConfig),
+PyDecl("setConfig", PySetConfig),
+PyDecl("getConfigAsList", PyGetConfigMulti),
+PyDecl("addConfig", PySetConfigMulti),
+
 
 // Clipboard management
 PyDecl("setClipboardText", SetClipboardText),
