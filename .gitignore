@@ -4,7 +4,6 @@ obj/
 *.a
 *.o
 *.ini
-documentation/*.html
 test*
 old*
 out*

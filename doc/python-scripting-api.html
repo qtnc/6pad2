@@ -81,6 +81,9 @@
 <dt>Page open(str filename):</dt>
 <dd>Open a file in the editor. If the file has been successfully opened in this instance, the page object is returned, otherwise None.
 </dd>
+<dt>Page new (str type):</dt>
+<dd>Open a new page of the type specified with an empty file. By default, only the type ‘text’ is supported, other plugins may support additional types.
+</dd>
 <dt>void beep(int freq, int duration):</dt>
 <dd>Produce a PC speaker beep.
 </dd>
@@ -142,8 +145,11 @@
 <dt>closed ():</dt>
 <dd>Called when the application has just been closed.
 </dd>
-<dt>pageOpened (Page):</dt>
+<dt>pageOpened (Page newPage):</dt>
 <dd>Called just after a new page has been opened
+</dd>
+<dt>pageBeforeOpen (str fileName):</dt>
+<dd>Called before a new page is opened. The filename about to be opened is passed in the callback, and it is supposed to return the page type to create. By default, only the type ‘text’ is supported, but plugins may support additional types.
 </dd>
 </dl>
 <h1 id="page-class">Page class</h1>
@@ -170,32 +176,38 @@
 <dt>int lineLength(int lineNumber):</dt>
 <dd>Returns the length of the given line.
 </dd>
-<dt>lineOfOffset(int position):</dt>
+<dt>int lineOfOffset(int position):</dt>
 <dd>Return the line number corresponding to the character position given, or otherwise said, the line number where the given character position is found.
 </dd>
-<dt>lineStartOffset(int lineNumber):</dt>
+<dt>int lineStartOffset(int lineNumber):</dt>
 <dd>Return the character position corresponding to the beginning of the given line number. First line is line 0.
 </dd>
-<dt>lineEndOffset(int lineNumber):</dt>
+<dt>int lineEndOffset(int lineNumber):</dt>
 <dd>Return the character position corresponding to the end of the given line. First line is line 0.
 </dd>
-<dt>lineSafeStartOffset(ine lineNumber):</dt>
+<dt>int lineSafeStartOffset(ine lineNumber):</dt>
 <dd>Return the character position corresponding to the true beginning of the given line number, where the first non-space character is found. First line is line 0.
 </dd>
-<dt>lineIndentLevel(int lineNumber):</dt>
+<dt>int lineIndentLevel(int lineNumber):</dt>
 <dd>Return the indentation level of the given line.
 </dd>
-<dt>substring(int start, int end):</dt>
+<dt>str substring(int start, int end):</dt>
 <dd>Gets a substring of the whole text currently present in being edited.
 </dd>
-<dt>replace(int start, int end, str text):</dt>
+<dt>void replace(int start, int end, str text):</dt>
 <dd>Replace a range of characters by the given text.
 </dd>
-<dt>delete(int start, int end):</dt>
+<dt>void delete(int start, int end):</dt>
 <dd>Delete a range of characters.
 </dd>
-<dt>insert(int position, str text):</dt>
+<dt>void insert(int position, str text):</dt>
 <dd>Insert a string of text at the given position.
+</dd>
+<dt>void save():</dt>
+<dd>Save the file, as if file&gt;save had been chosen.
+</dd>
+<dt>void reload():</dt>
+<dd>Reload the file, as if file&gt;reload had been chosen.
 </dd>
 <dt>void undo():</dt>
 <dd>Undo the last operation.
