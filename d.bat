@@ -1,2 +1,2 @@
 @echo off
-for /r %%i in (documentation\*.md) do pandoc %%i -o documentation\%%~ni.html -s -S -t html5 -p --normalize --toc --self-contained -f markdown+lists_without_preceding_blankline+compact_definition_lists-blank_before_header
+for /r %%i in (doc\*.md) do pandoc %%i -o doc\%%~ni.html -s -S -t html5 -p --normalize --toc --self-contained -f markdown+lists_without_preceding_blankline+compact_definition_lists-blank_before_header

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>6pad++ configuration directives</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header>
+<h1 class="title">6pad++ configuration directives</h1>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#configuration-directives">Configuration directives</a><ul>
+<li><a href="#extension">extension</a></li>
+<li><a href="#le">defaultLineEnding</a></li>
+<li><a href="#ce">defaultEncoding</a></li>
+<li><a href="#indent">defaultIndentationMode</a></li>
+<li><a href="#instancemode">instanceMode</a></li>
+<li><a href="#reloadlastfilesmode">reloadLastFilesMode</a></li>
+<li><a href="#maxrecentfiles">maxRecentFiles</a></li>
+<li><a href="#tabsatbottom">tabsAtBottom</a></li>
+</ul></li>
+</ul>
+</nav>
+<p>Here is a list of configuration directives you can put on the configuration file. The configuration file is always named after the 6pad++ executable file name except that .exe extension is replaced by .ini, and is always in the same directory. I.e. if the executable of 6pad++ is called 6pad2.exe, the configuration will be in 6pad2.ini.</p>
+<h1 id="configuration-directives">Configuration directives</h1>
+<h2 id="extension">extension</h2>
+<p>Define an extension to be loaded in 6pad++. This entry can be present multiple times to load several extensions.</p>
+<ul>
+<li>Specify a name without file extension to load the extension as a python module, i.e. import the given python module.</li>
+<li>Specify a file name ending in .py to execute the given python script, as if include were called.</li>
+<li>Specify a file name ending in .dll to load a c++ extension.</li>
+</ul>
+<p>Note that the python file named after the 6pad++ executable is automatically run if it exists, i.e. if the 6pad++ executable is called 6pad2.exe, a file 6pad2.py is automatically executed at startup.</p>
+<h2 id="le">defaultLineEnding</h2>
+<p>The default line ending convention to use when creating a new empty file. Default to 0.</p>
+<dl>
+<dt>0:</dt>
+<dd>CRLF/windows
+</dd>
+<dt>1:</dt>
+<dd>LF/UNIX
+</dd>
+<dt>2:</dt>
+<dd>CR/Mac
+</dd>
+</dl>
+<h2 id="ce">defaultEncoding</h2>
+<p>The default encoding to use when creating a new empty file. Default to 0.</p>
+<dl>
+<dt>0:</dt>
+<dd>ANSI
+</dd>
+<dt>65001:</dt>
+<dd>UTF-8
+</dd>
+<dt>65002:</dt>
+<dd>UTF-8+BOM
+</dd>
+<dt>1200:</dt>
+<dd>UTF-16Le
+</dd>
+<dt>1201:</dt>
+<dd>UTF-16Be
+</dd>
+<dt>1202:</dt>
+<dd>UTF-16Le+BOM
+</dd>
+<dt>1203:</dt>
+<dd>UTF-16Be+BOM
+</dd>
+<dt>28605:</dt>
+<dd>ISO-8859-15
+</dd>
+</dl>
+<p>See <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd317756(v=vs.85).aspx" class="uri">https://msdn.microsoft.com/en-us/library/windows/desktop/dd317756(v=vs.85).aspx</a> for other values.</p>
+<h2 id="indent">defaultIndentationMode</h2>
+<p>The default indentation convention to use when creating a new empty file. Default to 0.</p>
+<dl>
+<dt>0:</dt>
+<dd>Use tabs (<code>\t</code>) as indentation.
+</dd>
+<dt>1-8:</dt>
+<dd>Use 1 to 8 spaces as indentation
+</dd>
+</dl>
+<h2 id="instancemode">instanceMode</h2>
+<p>Define how to manage multiple instances of the program and multiple files opened at once. Default to 0.</p>
+<dl>
+<dt>0:</dt>
+<dd>No special preference. Allow multiple instances running at the same time, and allow loading multiple files in the same instances by using tabs.
+</dd>
+<dt>1:</dt>
+<dd>Always open all files in the same program instance. Disallow multiple instances running at the same time.
+</dd>
+<dt>2:</dt>
+<dd>Always open new files in new program instances. Never open more than one file in the same instance, and never use tabs.
+</dd>
+</dl>
+<h2 id="reloadlastfilesmode">reloadLastFilesMode</h2>
+<p>Define whether to reload files opened when leaving at last session, and when to do or not do it. Default to 0.</p>
+<dl>
+<dt>0:</dt>
+<dd>Never reload files which were left open at last session.
+</dd>
+<dt>1:</dt>
+<dd>Reload files which were open at last session, but only if no other file to load is specified on the command line.
+</dd>
+<dt>2:</dt>
+<dd>Always reload all files opened at last session, even if other files given on the command line must be loaded.
+</dd>
+</dl>
+<h2 id="maxrecentfiles">maxRecentFiles</h2>
+<p>The maximum number of entries present in the recent files menu. Default to 10.</p>
+<h2 id="tabsatbottom">tabsAtBottom</h2>
+<p>Whether or not tabs have to be displayed at the bottom of the window instead of at the top. Default to false.</p>
+</body>
+</html>

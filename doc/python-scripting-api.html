@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>6pad++ Python scripting API</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header>
+<h1 class="title">6pad++ Python scripting API</h1>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#module-sixpad">Module sixpad</a><ul>
+<li><a href="#functions">Functions</a></li>
+<li><a href="#members">Members</a></li>
+</ul></li>
+<li><a href="#the-window-object">The window object</a><ul>
+<li><a href="#methods">Methods</a></li>
+<li><a href="#members-1">Members</a></li>
+<li><a href="#windowEvents">Events</a></li>
+</ul></li>
+<li><a href="#page-class">Page class</a><ul>
+<li><a href="#methods-1">Methods</a></li>
+<li><a href="#members-2">Members</a></li>
+<li><a href="#events">Events</a></li>
+</ul></li>
+<li><a href="#menuobj">Menu class</a><ul>
+<li><a href="#methods-2">Methods</a></li>
+<li><a href="#mappingindexing">Mapping, indexing and calling</a></li>
+<li><a href="#members-3">Members</a></li>
+</ul></li>
+</ul>
+</nav>
+<p>Note: Import module <code>sixpad</code> in your scripts to get all functions and objects.</p>
+<h1 id="module-sixpad">Module sixpad</h1>
+<h2 id="functions">Functions</h2>
+<dl>
+<dt>void setClipboardText(str newText):</dt>
+<dd>Place a text in the system clipboard.
+</dd>
+<dt>str getClipboardText():</dt>
+<dd>Return the contents of the system clipboard.
+</dd>
+<dt>void setCurrentDirectory(str newDir):</dt>
+<dd>Move the current directory.
+</dd>
+<dt>str getCurrentDirectory():</dt>
+<dd>Return the current directory.
+</dd>
+<dt>void include(str filename):</dt>
+<dd>Run a file.
+</dd>
+<dt>str msg(str key):</dt>
+<dd>Return the string associated to a given key in the translation file. Return the key itself if the string isn’t found.
+</dd>
+<dt>setConfig(str key, str value, [Bool multiple=False]):</dt>
+<dd>Set the value of a key in the configuration file. The multiple argument defines whether or not the key can be present multiple times. You can use keyword arguments ‘key’, ‘value’ and ‘multiple’.
+</dd>
+<dt>str getConfig (str key):</dt>
+<dd>Return the value of a key from the configuration file. Return an empty string in case the key doesn’t exist. If the key has multiple values, the first value found is returned.
+</dd>
+<dt>[str] getConfigAsList(str key):</dt>
+<dd>Return a list containing all the values associated with the given key in the configuration file.
+</dd>
+</dl>
+<h2 id="members">Members</h2>
+<dl>
+<dt>window:</dt>
+<dd>The window object (see below)
+</dd>
+</dl>
+<h1 id="the-window-object">The window object</h1>
+<h2 id="methods">Methods</h2>
+<dl>
+<dt>Page open(str filename):</dt>
+<dd>Open a file in the editor. If the file has been successfully opened in this instance, the page object is returned, otherwise None.
+</dd>
+<dt>void beep(int freq, int duration):</dt>
+<dd>Produce a PC speaker beep.
+</dd>
+<dt>void messageBeep(int id):</dt>
+<dd>Produce a standard windows beep.
+</dd>
+<dt>int messageBox(str text, str title, int flags):</dt>
+<dd>Show a windows message box.
+</dd>
+<dt>void alert(str text, str title):</dt>
+<dd>Show an alert dialog box with an OK button.
+</dd>
+<dt>void warning(str text, str title):</dt>
+<dd>Show a warning dialog box with an OK button.
+</dd>
+<dt>int confirm(str text, str title):</dt>
+<dd>Show a confirmation dialog box where the user can choose between yes and no; return 1 if the user clicked yes, 0 if he clicked no.
+</dd>
+<dt><span id="wcpm1"></span>Menu createPopupMenu():</dt>
+<dd>Create a new popup menu and return it.
+</dd>
+<dt>int addAccelerator(str key, callback function):</dt>
+<dd>Install a callback to be called when the given shortcut key is pressed.
+</dd>
+<dt>void addEvent(str eventName, callback function):</dt>
+<dd>Install a callback to be called when the given event occurs. See the <a href="#windowEvents">list of supported events for window</a>.
+</dd>
+<dt>void removeEvent(str eventName, callback function):</dt>
+<dd>Remove an event previously registered.
+</dd>
+</dl>
+<h2 id="members-1">Members</h2>
+<dl>
+<dt>Page curPage:</dt>
+<dd>The currently focused page in the editor.
+</dd>
+<dt>[Page] pages:</dt>
+<dd>A list containing currently opened pages.
+</dd>
+<dt>int pageCount:</dt>
+<dd>The number of pages currently open in the editor.
+</dd>
+<dt>Menu menus:</dt>
+<dd>Menu object representing the main menu bar. See <a href="#menuobj">Menu object</a>.
+</dd>
+</dl>
+<h2 id="windowEvents">Events</h2>
+<p>The following events can be passed to addEvent/removeEvent for the window. In parenthesis are the arguments passed to the callback .</p>
+<dl>
+<dt>activated ():</dt>
+<dd>Called when the application window has been activated, i.e. made visible and got focus.
+</dd>
+<dt>deactivated ():</dt>
+<dd>Called when the application window has just been deactivated
+</dd>
+<dt>close ():</dt>
+<dd>Called when the application is about to be closed. By returning False, you can prevent the application from being closed. Note that this event is fired before page closes.
+</dd>
+<dt>closed ():</dt>
+<dd>Called when the application has just been closed.
+</dd>
+<dt>pageOpened (Page):</dt>
+<dd>Called just after a new page has been opened
+</dd>
+</dl>
+<h1 id="page-class">Page class</h1>
+<h2 id="methods-1">Methods</h2>
+<dl>
+<dt>void focus():</dt>
+<dd>Focus the page.
+</dd>
+<dt>void close():</dt>
+<dd>Close the page; a confirmation may be asked to the user.
+</dd>
+<dt>void addEvent(str eventName, callback function):</dt>
+<dd>Install a callback to be called when the given event occurs at this page. See the <a href="#pageEvents">list of supported events for pages</a>.
+</dd>
+<dt>void removeEvent(str eventName, callback function):</dt>
+<dd>Remove an event previously registered.
+</dd>
+<dt>void select(int start, int end):</dt>
+<dd>Select a portion of text.
+</dd>
+<dt>str line(int lineNumber):</dt>
+<dd>Returns a line of text.
+</dd>
+<dt>int lineLength(int lineNumber):</dt>
+<dd>Returns the length of the given line.
+</dd>
+<dt>lineOfOffset(int position):</dt>
+<dd>Return the line number corresponding to the character position given, or otherwise said, the line number where the given character position is found.
+</dd>
+<dt>lineStartOffset(int lineNumber):</dt>
+<dd>Return the character position corresponding to the beginning of the given line number. First line is line 0.
+</dd>
+<dt>lineEndOffset(int lineNumber):</dt>
+<dd>Return the character position corresponding to the end of the given line. First line is line 0.
+</dd>
+<dt>lineSafeStartOffset(ine lineNumber):</dt>
+<dd>Return the character position corresponding to the true beginning of the given line number, where the first non-space character is found. First line is line 0.
+</dd>
+<dt>lineIndentLevel(int lineNumber):</dt>
+<dd>Return the indentation level of the given line.
+</dd>
+<dt>substring(int start, int end):</dt>
+<dd>Gets a substring of the whole text currently present in being edited.
+</dd>
+<dt>replace(int start, int end, str text):</dt>
+<dd>Replace a range of characters by the given text.
+</dd>
+<dt>delete(int start, int end):</dt>
+<dd>Delete a range of characters.
+</dd>
+<dt>insert(int position, str text):</dt>
+<dd>Insert a string of text at the given position.
+</dd>
+<dt>void undo():</dt>
+<dd>Undo the last operation.
+</dd>
+<dt>void redo():</dt>
+<dd>Redo the last operation.
+</dd>
+<dt>void pushUndoState(object):</dt>
+<dd>Push an undoable operation on the top of the undo stack. The object passed must have the two methods undo(self,page) and redo(self,page).
+</dd>
+</dl>
+<h2 id="members-2">Members</h2>
+<dl>
+<dt>int closed (read only):</dt>
+<dd>Indicates if the page has been closed by the user.
+</dd>
+<dt>int modified (read only):</dt>
+<dd>Indicates if the contents of the page has been modified since the last load/save.
+</dd>
+<dt>str name:</dt>
+<dd>The name of the page as shown on the tablist and on the window title.
+</dd>
+<dt>str file:</dt>
+<dd>The file to which data are to be loaded/saved.
+</dd>
+<dt>int lineEnding:</dt>
+<dd>The current line ending convention to use when saving the file. See <a href="configuration.html#le">line endings</a> for a list of possible values.
+</dd>
+<dt>int encoding:</dt>
+<dd>The encoding to use when saving the file. See <a href="configuration.html#ce">Character encodings</a> for a list of possible values.
+</dd>
+<dt>int indentation:</dt>
+<dd>The indentation convention to use while editing the file. See <a href="configuration.html#indent">indentation modes</a> for a list of possible values.
+</dd>
+<dt>int autoLineBreak:</dt>
+<dd>Whether or not lines are broken automatically when displaying the text in the edition field.
+</dd>
+<dt>int selectionStart:</dt>
+<dd>The anchor point of the current selection.
+</dd>
+<dt>int selectionEnd:</dt>
+<dd>The end point of the current selection.
+</dd>
+<dt>str selectedText:</dt>
+<dd>The text currently selected; if there is no selection, this string is empty.
+</dd>
+<dt>str text:</dt>
+<dd>The current text being edited.
+</dd>
+<dt>int textLength (read only):</dt>
+<dd>The length of the whole text currently present in the editor; equivalent to <code>len(text)</code>.
+</dd>
+<dt>int lineCount (read only):</dt>
+<dd>The number of lines composing the text being edited.
+</dd>
+<dt>str indentString:</dt>
+<dd>A string representing a level of indentation, i.e. a tab or a couple of spaces.
+</dd>
+</dl>
+<h2 id="events">Events</h2>
+<p>The following events can be passed to addEvent/removeEvent for a page. The first argument passed to the callback is always the page where the event occurred. Additional parameters passed are indicated in parenthesis.</p>
+<dl>
+<dt>activated ():</dt>
+<dd>Called when the page has been activated, i.e. it ahs been made visible and focused because the user switched to this page.
+</dd>
+<dt>deactivate ():</dt>
+<dd>Called when a page is about to be deactivated, i.e. lose focus and become hidden because the user wants to switch to another page. By returning False, you can prevent the page from being deactivated.
+</dd>
+<dt>deactivated ():</dt>
+<dd>Called just after the page has been deactivated.
+</dd>
+<dt>close ():</dt>
+<dd>Called when the page is about to be closed (upon Ctrl+F4 or exiting the application). By returning False, you can prevent the page from being closed and the application from being exited. Note that even if you accept the close by returning True or None, the user will still be asked whether he really wants to close this page. For security, there is no way to bypass this last confirmation.
+</dd>
+<dt>closed ():</dt>
+<dd>Called just after the page has been closed.
+</dd>
+<dt>load (str text):</dt>
+<dd>Occurs when the text of the page is about to be loaded. The text which is going to appear in the edition field is passed to the callback. You can return a new string to overwrite the text being loaded.
+</dd>
+<dt>save (str text):</dt>
+<dd>Occurs when the page is about to be saved. The text that is about to be saved is passed in the callback. You can return a new text string to overwrite what is going to be saved.
+</dd>
+<dt>status (str text):</dt>
+<dd>Occurs when the contents of the status bar is about to be updated. The text which is about to be displayed is passed to the callback, and you can return another text string to overwrite it.
+</dd>
+<dt>enter (str line):</dt>
+<dd><p>Occurs when the user pressed the enter key in order to start a new line of text. The line of text where the user is before creating the new one is passed to the callback. You can return :</p>
+<ul>
+<li>True or None to accept starting a new line</li>
+<li>False to refuse to begin a new line; in this case, the caret isn’t moved and no new line is started.</li>
+<li>An int indicating the number of indentation levels to add or remove compared to the previous line</li>
+</ul>
+- An str which will be automatically written at the beginning of the new line
+</dd>
+<dt>keyPressed (int ch):</dt>
+<dd>Occurs when a key press generating a character to write has been pressed. By returning False, you can prevent the character from being inserted into the edition area at the current caret position.
+</dd>
+<dt>keyDown (int vk):</dt>
+<dd>Occurs when the user press a key in the edition area. By returning False, you can prevent the default action of the key from happening.
+</dd>
+<dt>keyUp (int vk):</dt>
+<dd>Occurs when the user releases a key in the edition area. By returning False, you can prevent the default action of the key from happening.
+</dd>
+<dt>contextmenu ():</dt>
+<dd>Occurs when the user calls the context menu with application key and/or Shift+F10 and/or right mouse button. By returning False, you can prevent the default context menu from appearing.
+</dd>
+</dl>
+<h1 id="menuobj">Menu class</h1>
+<h2 id="methods-2">Methods</h2>
+<dl>
+<dt>Menu add(…):</dt>
+<dd><p>Add a new item to the menu and returns it. Specify a serie of keyword arguments to define what kind of menu item to add:</p>
+<ul>
+<li>label=text of the item</li>
+<li>action=the callback function to call when the item is chosen by the user</li>
+<li>index=the position of the new item</li>
+<li>accelerator=a string specifying a shortcut key such a ‘Ctrl+E’</li>
+<li>name=The name of the submenu allowing it to be referenced in python code</li>
+<li>submenu=True to create a submenu rahter than a menu item</li>
+</ul>
+- separator=True to create an item separator
+</dd>
+<dt>void remove(…):</dt>
+<dd>Remove this item or a subitem; without any argument, remove this item from the menu; specifiy wheither the keyword argument name or index to remove a subitem by its name or index.
+</dd>
+<dt>int show():</dt>
+<dd>Make this menu appear to the user; this can work only if this menu is a popup menu (see <a href="#wcpm1">window.createPopupMenu</a>). Return the command identifier of the item selected by the user, or 0 in case he cancelled the menu or if it failed to display for some reason.
+</dd>
+</dl>
+<h2 id="mappingindexing">Mapping, indexing and calling</h2>
+<p>You can use the indexing operator <code>[...]</code>or the direct attribute/member operator <code>.</code> to obtain a sub menu item of this menu, by its name or its index.</p>
+<ul>
+<li>menu[0], return the first item of this menu</li>
+<li>menu[-1], return the last item of this menu</li>
+<li>menu[‘itemName’], return the sub menu item having the name ‘itemName’</li>
+<li>menu.itemName equivalent to menu[‘itemName’]</li>
+<li>None is returned if the item is not found</li>
+<li><em>Warning: menu[1:3] doesn’t work</em></li>
+</ul>
+<p>In case this menu object represents a single menu item, you can use the regular call operator like a function to trigger the action normally executed by the item. I.e. <code>item()</code>. If the item represents a submenu, calling it like a function raises an error.</p>
+<h2 id="members-3">Members</h2>
+<dl>
+<dt>int submenu (read only):</dt>
+<dd>Whether this object represents a menu or a single menu item.
+</dd>
+<dt>int length (read only):</dt>
+<dd>The number of sub menu items contained in this menu, or -1 if this object represents just a single menu item.
+</dd>
+<dt>Menu parent (read only):</dt>
+<dd>The parent menu of this menu item. This is never None except for the object representing the main menu bar.
+</dd>
+<dt>str name:</dt>
+<dd>The name of the item allowing to access it in python code (see <a href="#mappingindexing">mapping/indexing</a>).
+</dd>
+<dt>str label:</dt>
+<dd>The text label of the item.
+</dd>
+<dt>str accelerator:</dt>
+<dd>A string representing the key shortcut associated with the item (e.g. ‘Ctrl+E’). Empty if no accelerator is associated with this item.
+</dd>
+<dt>int id (read only):</dt>
+<dd>The command identifier of this item.
+</dd>
+<dt>int enabled:</dt>
+<dd>The enabled/disabled state of the item.
+</dd>
+<dt>int checked:</dt>
+<dd>The checked/unchecked state of the item.
+</dd>
+<dt>int radio:</dt>
+<dd>Whether or not the item is a radio button menu item.
+</dd>
+</dl>
+</body>
+</html>
