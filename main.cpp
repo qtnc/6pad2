@@ -361,6 +361,8 @@ return false;
 shared_ptr<Page> OpenFile (const tstring& file, int flags) {
 if (OpenFile2(file, flags)) return NULL;
 string type = "text";
+var vtype = listeners.dispatch("pageBeforeOpen", var(), file);
+if (vtype.getType()==T_STR) type = toString(vtype.toTString());
 shared_ptr<Page> cp = curPage;
 shared_ptr<Page> p = PageCreate(type);
 if (!p) return p;
@@ -508,7 +510,7 @@ HWND_DESKTOP, NULL, hinstance, NULL);
 RECT r; GetClientRect(win, &r);
 tabctl = CreateWindowEx(
 0, WC_TABCONTROL, NULL, 
-WS_TABSTOP | WS_VISIBLE | WS_CHILD | TCS_SINGLELINE | TCS_FOCUSNEVER,
+WS_VISIBLE | WS_CHILD | TCS_SINGLELINE | TCS_FOCUSNEVER | (config.get("tabsAtBottom", false)? TCS_BOTTOM:0),
 5, 5, r.right -10, r.bottom -49, 
 win, (HMENU)IDC_TABCTL, hinstance, NULL);
 status = CreateWindowEx(

@@ -33,6 +33,9 @@ return shared_ptr<Page>(Page::create());
 
 int isClosed () { return wpPage.expired(); }
 int isModified () { return page()->IsModified(); }
+void setModified (bool b) { page()->SetModified(b); }
+int isReadOnly () { return page()->IsReadOnly(); }
+void setReadOnly (bool b) { page()->SetReadOnly(b); }
 tstring getName () { return page()->name; }
 tstring getFile () { return page()->file; }
 void setName (const tstring& s) { page()->SetName(s); }
@@ -52,6 +55,8 @@ void focus () { page()->EnsureFocus(); }
 void close () { page()->EnsureFocus(); page()->Close(); }
 void undo () { page()->Undo(); }
 void redo () { page()->Redo(); }
+void save () { page()->SaveFile(); }
+void reload () { page()->LoadFile(TEXT(""),false); }
 int getTextLength () { return page()->GetTextLength(); }
 tstring getSelectedText () { return page()->GetSelectedText(); }
 void setSelectedText (const tstring& s) { page()->SetSelectedText(s); }
@@ -70,7 +75,7 @@ int getLineSafeStartIndex (int l) { return page()->GetLineSafeStartIndex(l); }
 int getLineIndentLevel (int l) { return page()->GetLineIndentLevel(l); }
 int getLineOfPos (int pos) { return page()->GetLineOfPos(pos); }
 int getLineCount () { return page()->GetLineCount(); }
-void replaceTextRange (int start, int end, const tstring& str) { page()->ReplaceTextRange(start, end, str); }
+void replaceTextRange (int start, int end, const tstring& str) { page()->ReplaceTextRange(start, end, str, true); }
 void deleteTextRange (int start, int end) { replaceTextRange(start, end, TEXT("")); }
 void insertTextAt (int pos, const tstring& str) { replaceTextRange(pos, pos, str); }
 tstring getTextSubstring (int start, int end) { return page()->GetTextSubstring(start,end); }
@@ -113,6 +118,8 @@ PyDecl("close", &PyEditorTab::close),
 PyDecl("pushUndoState", &PyEditorTab::pushUndoState),
 PyDecl("undo", &PyEditorTab::undo),
 PyDecl("redo", &PyEditorTab::redo),
+PyDecl("save", &PyEditorTab::save),
+PyDecl("reload", &PyEditorTab::reload),
 PyDeclEnd
 };
 
@@ -120,7 +127,8 @@ static PyGetSetDef PyEditorTabAccessors[] = {
 PyReadOnlyAccessor("closed", &PyEditorTab::isClosed),
 PyAccessor("name", &PyEditorTab::getName, &PyEditorTab::setName),
 PyAccessor("file", &PyEditorTab::getFile, &PyEditorTab::setFile),
-PyReadOnlyAccessor("modified", &PyEditorTab::isModified),
+PyAccessor("modified", &PyEditorTab::isModified, &PyEditorTab::setModified),
+PyAccessor("readOnly", &PyEditorTab::isReadOnly, &PyEditorTab::setReadOnly),
 PyAccessor("lineEnding", &PyEditorTab::getLineEnding, &PyEditorTab::setLineEnding),
 PyAccessor("encoding", &PyEditorTab::getEncoding, &PyEditorTab::setEncoding),
 PyAccessor("indentation", &PyEditorTab::getIndentationMode, &PyEditorTab::setIndentationMode),

@@ -100,6 +100,16 @@ void Page::SetModified (bool b) {
 SendMessage(zone, EM_SETMODIFY, b, 0);
 }
 
+bool Page::IsReadOnly () {
+return !!(flags&PF_READONLY);
+}
+
+void Page::SetReadOnly (bool b) {
+if (b) flags |= PF_READONLY;
+else flags &= ~PF_READONLY;
+SendMessage(zone, EM_SETREADONLY, b, 0);
+}
+
 void Page::Copy ()  { SendMessage(zone, WM_COPY, 0, 0); }
 void Page::Cut ()  { SendMessage(zone, WM_CUT, 0, 0); }
 void Page::Paste ()  { SendMessage(zone, WM_PASTE, 0, 0); }
@@ -176,13 +186,16 @@ SendMessage(zone, EM_SETSEL, start, end);
 if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
-void Page::ReplaceTextRange (int start, int end, const tstring& str) {
+void Page::ReplaceTextRange (int start, int end, const tstring& newStr, bool keepOldSelection) {
 int oldStart, oldEnd;
 SendMessage(zone, EM_GETSEL, &oldStart, &oldEnd);
+tstring oldStr = GetTextSubstring(start, end);
 if (start>=0||end>=0) SendMessage(zone, EM_SETSEL, start, end);
-SendMessage(zone, EM_REPLACESEL, 0, str.c_str());
-SendMessage(zone, EM_SETSEL, oldStart, oldEnd);
+SendMessage(zone, EM_REPLACESEL, 0, newStr.c_str());
+if (keepOldSelection) SendMessage(zone, EM_SETSEL, oldStart, oldEnd);
+else SendMessage(zone, EM_SETSEL, start, start+newStr.size() );
 if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
+PushUndoState(shared_ptr<UndoState>(new TextReplaced( start, oldStr, newStr, !keepOldSelection )));
 }
 
 void Page::SetSelectedText (const tstring& str) {
@@ -677,7 +690,17 @@ return curPage->indentationMode>0;
 static LRESULT CALLBACK EditProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, Page* curPage) {
 switch(msg){
 case WM_CHAR: {
-if (!curPage->dispatchEvent<bool, true>("keyPressed", (int)LOWORD(wp) )) return true;
+var re = curPage->dispatchEvent("keyPressed", var(), (int)LOWORD(wp) );
+switch(re.getType()) {
+case T_NULL: break;
+case T_BOOL: if (!re) return true; break;
+case T_INT: wp = re.toInt(); break;
+case T_STR: {
+tstring str = re.toTString();
+SendMessage(hwnd, EM_REPLACESEL, 0, str.c_str() );
+EZTextInserted(curPage, hwnd, str); 
+return true;
+}}
 switch(LOWORD(wp)) {
 case VK_RETURN: 
 return EZHandleEnter(curPage, hwnd);
@@ -784,6 +807,7 @@ HMENU menu = GetSubMenu(GetMenu(win), 1);
 TrackPopupMenu(menu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_LEFTBUTTON, p.x, p.y, 0, hwnd, NULL);
 }
 return true;
+case WM_UNDO: case EM_UNDO: curPage->Undo(); return true;
 }//switch(msg)
 return DefSubclassProc(hwnd, msg, wp, lp);
 }

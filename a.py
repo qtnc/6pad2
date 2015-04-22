@@ -14,9 +14,8 @@ def func4 () :
 	re = pop.show()
 	window.alert('Result=' + str(re), 'Info')
 
-def func (self) :
-	window.beep(1700,100)
-	print(self)
+def func () :
+	window.curPage.readOnly = not window.curPage.readOnly
 
 window.menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
-window.addEvent('pageOpened', func)
+

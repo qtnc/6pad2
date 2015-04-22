@@ -28,6 +28,7 @@ int AddUserCommand (std::function<void(void)> f, int cmd=0);
 bool AddAccelerator (int flags, int key, int cmd);
 bool KeyNameToCode (const tstring& kn, int& flags, int& key);
 shared_ptr<Page> OpenFile (const tstring& filename, int flags);
+shared_ptr<Page> PageAddEmpty (bool focus, const string& type);
 
 PyObject* PyMenuItem_GetMenuBar (void);
 PyObject* PyMenuItem_CreatePopupMenu (void);
@@ -45,6 +46,12 @@ else return 0;
 
 static PyObject* PyOpenFile (const tstring& filename) {
 shared_ptr<Page> p = OpenFile(filename, 1);
+if (!p) { Py_RETURN_NONE; }
+return p->GetPyData();
+}
+
+static PyObject* PyNewPage (const string& type) {
+shared_ptr<Page> p = PageAddEmpty(true, type);
 if (!p) { Py_RETURN_NONE; }
 return p->GetPyData();
 }
@@ -121,6 +128,7 @@ return 0;
 static PyMethodDef PyWindowMethods[] = {
 // General 6pad++ functions
 PyDecl("open", PyOpenFile),
+PyDecl("new", PyNewPage),
 
 // Basic dialog boxes and related functions
 PyDecl("beep", Beep),

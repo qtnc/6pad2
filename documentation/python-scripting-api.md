@@ -32,6 +32,8 @@ window:
 ## Methods
 Page open(str filename):
 :	Open a file in the editor. If the file has been successfully opened in this instance, the page object is returned, otherwise None.
+Page new (str type):
+:	Open a new page of the type specified with an empty file. By default, only the type 'text' is supported, other plugins may support additional types.
 void beep(int freq, int duration):
 :	Produce a PC speaker beep.
 void messageBeep(int id):
@@ -75,8 +77,10 @@ close ():
 	Note that this event is fired before page closes.
 closed ():
 :	Called when the application has just been closed.
-pageOpened (Page):
+pageOpened (Page newPage):
 :	Called just after a new page has been opened
+pageBeforeOpen (str fileName):
+:	Called before a new page is opened. The filename about to be opened is passed in the callback, and it is supposed to return the page type to create. By default, only the type 'text' is supported, but plugins may support additional types.
 
 # Page class
 ## Methods
@@ -94,24 +98,28 @@ str line(int lineNumber):
 :	Returns a line of text.
 int lineLength(int lineNumber):
 :	Returns the length of the given line.
-lineOfOffset(int position):
+int lineOfOffset(int position):
 :	Return the line number corresponding to the character position given, or otherwise said, the line number where the given character position is found.
-lineStartOffset(int lineNumber):
+int lineStartOffset(int lineNumber):
 :	Return the character position corresponding to the beginning of the given line number. First line is line 0.
-lineEndOffset(int lineNumber):
+int lineEndOffset(int lineNumber):
 :	Return the character position corresponding to the end of the given line. First line is line 0.
-lineSafeStartOffset(ine lineNumber):
+int lineSafeStartOffset(ine lineNumber):
 :	Return the character position corresponding to the true beginning of the given line number, where the first non-space character is found. First line is line 0.
-lineIndentLevel(int lineNumber):
+int lineIndentLevel(int lineNumber):
 :	Return the indentation level of the given line.
-substring(int start, int end):
+str substring(int start, int end):
 :	Gets a substring of the whole text currently present in being edited.
-replace(int start, int end, str text):
+void replace(int start, int end, str text):
 :	Replace a range of characters by the given text.
-delete(int start, int end):
+void delete(int start, int end):
 :	Delete a range of characters.
-insert(int position, str text):
+void insert(int position, str text):
 :	Insert a string of text at the given position.
+void save():
+:	Save the file, as if file>save had been chosen.
+void reload():
+:	Reload the file, as if file>reload had been chosen.
 void undo():
 :	Undo the last operation.
 void redo():

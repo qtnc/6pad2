@@ -78,3 +78,6 @@ Define whether to reload files opened when leaving at last session, and when to 
 ## maxRecentFiles
 The maximum number of entries present in the recent files menu. Default to 10.
 
+## tabsAtBottom
+Whether or not tabs have to be displayed at the bottom of the window instead of at the top. Default to false.
+
