@@ -7,7 +7,7 @@
 
 #define PF_CLOSED 1
 #define PF_READONLY 2
-#define PF_NOSAVE 4
+#define PF_MUSTSAVEAS 4
 #define PF_AUTOLINEBREAK 8
 
 #define PF_NOFIND 0x80000000
@@ -21,6 +21,7 @@
 #define PF_NOPASTE 0x800000
 #define PF_NOUNDO 0x400000
 #define PF_NOSELECTALL 0x200000
+#define PF_NOSAVE 0x100000
 
 struct Page;
 
@@ -53,8 +54,10 @@ virtual void ShowZone (const RECT&);
 virtual void FocusZone ();
 virtual void EnsureFocus ();
 virtual void Close () ;
-virtual tstring LoadText (const tstring& fn = TEXT(""), bool guessFormat=true ) ;
-virtual bool SaveText (const tstring& fn = TEXT(""));
+virtual bool LoadFile (const tstring& fn = TEXT(""), bool guessFormat=true ) ;
+virtual bool LoadData (const string& data, bool guessFormat=true);
+virtual bool SaveFile (const tstring& fn = TEXT(""));
+virtual string SaveData ();
 virtual void Copy () ;
 virtual void Cut ();
 virtual void Paste ();
@@ -74,6 +77,8 @@ virtual tstring GetLine (int line) ;
 virtual int GetLineCount () ;
 virtual int GetLineLength (int line);
 virtual int GetLineStartIndex (int line);
+virtual int GetLineSafeStartIndex (int line);
+virtual int GetLineIndentLevel (int line);
 virtual int GetLineOfPos (int pos);
 virtual void SetSelection (int start, int end);
 virtual void SetSelectedText (const tstring& str);

@@ -40,6 +40,7 @@ void setFile (const tstring& s) { page()->file=s; }
 int getLineEnding () { return page()->lineEnding; }
 int getEncoding () { return page()->encoding; }
 int getIndentationMode () { return page()->indentationMode; }
+tstring getIndentString () { shared_ptr<Page> p = page(); return tstring(max(p->indentationMode,1), p->indentationMode>0?' ':'\t'); }
 int getAutoLineBreak () { return 0!=(page()->flags&PF_AUTOLINEBREAK); }
 void setLineEnding (int le) { PageSetLineEnding(page(),le); }
 void setEncoding (int e) { PageSetEncoding(page(),e); }
@@ -65,6 +66,8 @@ int getLineLength (int l) { return page()->GetLineLength(l); }
 tstring getLine (int l) { return page()->GetLine(l); }
 int getLineStartIndex (int l) { return page()->GetLineStartIndex(l); }
 int getLineEndIndex (int l) { return page()->GetLineStartIndex(l) + page()->GetLineLength(l); }
+int getLineSafeStartIndex (int l) { return page()->GetLineSafeStartIndex(l); }
+int getLineIndentLevel (int l) { return page()->GetLineIndentLevel(l); }
 int getLineOfPos (int pos) { return page()->GetLineOfPos(pos); }
 int getLineCount () { return page()->GetLineCount(); }
 void replaceTextRange (int start, int end, const tstring& str) { page()->ReplaceTextRange(start, end, str); }
@@ -99,6 +102,8 @@ PyDecl("lineLength", &PyEditorTab::getLineLength),
 PyDecl("lineOfOffset", &PyEditorTab::getLineOfPos),
 PyDecl("lineStartOffset", &PyEditorTab::getLineStartIndex),
 PyDecl("lineEndOffset", &PyEditorTab::getLineEndIndex),
+PyDecl("lineSafeStartOffset", &PyEditorTab::getLineSafeStartIndex),
+PyDecl("lineIndentLevel", &PyEditorTab::getLineIndentLevel),
 PyDecl("substring", &PyEditorTab::getTextSubstring),
 PyDecl("replace", &PyEditorTab::replaceTextRange),
 PyDecl("insert", &PyEditorTab::insertTextAt),
@@ -126,6 +131,7 @@ PyAccessor("selectedText", &PyEditorTab::getSelectedText, &PyEditorTab::setSelec
 PyAccessor("text", &PyEditorTab::getText, &PyEditorTab::setText),
 PyReadOnlyAccessor("textLength", &PyEditorTab::getTextLength),
 PyReadOnlyAccessor("lineCount", &PyEditorTab::getLineCount),
+PyReadOnlyAccessor("indentString", &PyEditorTab::getIndentString),
 PyDeclEnd
 };
 

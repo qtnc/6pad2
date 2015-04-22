@@ -174,6 +174,7 @@ return shared_ptr<Page>( f? f() : 0);
 
 void PageAdd (shared_ptr<Page> p, bool focus = true) {
 p->CreateZone(tabctl);
+p->LoadFile();
 pages.push_back(p);
 TCITEM it;
 it.mask = TCIF_TEXT;
@@ -212,7 +213,7 @@ return true;
 
 void PageReopen (shared_ptr<Page> p) {
 if (!p) return;
-p->LoadText(TEXT(""),false);
+p->LoadFile(TEXT(""), false);
 }
 
 bool PageGoToNext (int delta = 1) {
@@ -233,7 +234,7 @@ config.set("lastFile" + toString(j), p->file);
 config.set("lastFilePos" + toString(j), pos);
 config.erase("lastFile" + toString(++j));
 }
-if (writeToStdout && curPage) { curPage->SaveText(TEXT("STDOUT")); }
+//if (writeToStdout && curPage) { curPage->SaveText(TEXT("STDOUT")); }
 for (int i=pages.size() -1; i>=0; i--) if (!PageDelete(pages[i],i)) return false;
 return true;
 }
@@ -312,15 +313,15 @@ if (consoleWin) SendMessage(consoleWin, WM_COMMAND, 999, &s);
 
 void SaveCurFile (bool saveas) {
 if (!curPage) return;
-if (saveas || curPage->file.size()<=0 || (curPage->flags&PF_READONLY)) {
+if (saveas || curPage->file.size()<=0 || (curPage->flags&PF_MUSTSAVEAS)) {
 tstring file = FileDialog(win, FD_SAVE, curPage->file, msg("Save as") );
 if (file.size()<=0) return;
 curPage->file = file;
 curPage->name = file.substr(1+file.rfind((TCHAR)'\\'));
-curPage->SaveText(file);
+curPage->SaveFile(file);
 SetWindowText(win, (curPage->name + TEXT(" - ") + appName).c_str() );
 }
-else curPage->SaveText();
+else curPage->SaveFile();
 }
 
 bool OpenFile3 (const tstring& file) {
@@ -363,7 +364,7 @@ string type = "text";
 shared_ptr<Page> cp = curPage;
 shared_ptr<Page> p = PageCreate(type);
 if (!p) return p;
-p->LoadText(file);
+p->file = file;
 p->name = file.substr(1+file.rfind((TCHAR)'\\'));
 PageAdd(p);
 if (cp&&cp->IsEmpty()) PageDelete(cp);

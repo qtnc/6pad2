@@ -7,7 +7,8 @@
 
 tstring str_replace (tstring& str, const tstring& needle, const tstring& repl);
 tstring preg_replace (tstring& str, const tstring& needle, const tstring& repl);
-std::vector<tstring> split (const tstring& str, const tstring& delims);
+std::vector<std::string> split (const std::string& str, const std::string& delims);
+std::vector<std::wstring> split (const std::wstring& str, const std::wstring& delims);
 
 void toLowerCase (tstring&);
 void toUpperCase (tstring&);

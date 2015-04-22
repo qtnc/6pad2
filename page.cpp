@@ -144,6 +144,21 @@ int Page::GetLineOfPos (int pos) {
 return SendMessage(zone, EM_LINEFROMCHAR, pos, 0);
 }
 
+int Page::GetLineSafeStartIndex (int line) {
+int pos = GetLineStartIndex(line);
+tstring text = GetLine(line);
+int offset = text.find_first_not_of(TEXT("\t "));
+if (offset<0 || offset>=text.size()) offset = text.size();
+return pos+offset;
+}
+
+int Page::GetLineIndentLevel (int line) {
+tstring text = GetLine(line);
+int pos = text.find_first_not_of(TEXT("\t "));
+if (pos<0 || pos>=text.size()) pos=text.size();
+return pos / max(1, indentationMode);
+}
+
 tstring Page::GetTextSubstring (int start, int end) {
 return EditGetSubstring(zone, start, end);
 }
@@ -275,30 +290,41 @@ if (IsWindowVisible(edit)) SendMessage(edit, EM_SCROLLCARET, 0, 0);
 PushUndoState(std::shared_ptr<UndoState>(new TextReplaced( start!=end? start : 0, oldText, newText, start!=end)));
 }
 
-bool Page::SaveText (const tstring& newFile) {
-if (flags&PF_NOSAVE) return false;
-if ((flags&PF_READONLY) && newFile.size()<=0) return false;
-if (newFile.size()>0) { file = newFile; flags&=~PF_READONLY; }
-if (file.size()<=0) return false;
+string Page::SaveData () {
 tstring str = GetText();
 var re = dispatchEvent("save", var(), str);
 if (re.getType()==T_STR) str = re.toTString();
 if (lineEnding==LE_UNIX) str = str_replace(str, TEXT("\r\n"), TEXT("\n"));
 else if (lineEnding==LE_MAC) str = str_replace(str, TEXT("\r\n"), TEXT("\r"));
 string cstr = ConvertToEncoding(str, encoding);
+return cstr;
+}
+
+bool Page::SaveFile (const tstring& newFile) {
+if (flags&PF_NOSAVE) return false;
+if ((flags&PF_MUSTSAVEAS) && newFile.size()<=0) return false;
+if (newFile.size()>0) file = newFile; 
+flags&=~(PF_MUSTSAVEAS|PF_READONLY);
+if (file.size()<=0) return false;
+string cstr = SaveData();
+SetModified(false);
 File fd(file, true);
-if (fd) fd.writeFully(cstr.data(), cstr.size());
+if (!fd) return false;
+fd.writeFully(cstr.data(), cstr.size());
 if (file==configFileName) config.load(configFileName);
 return true; 
 }
 
-tstring Page::LoadText (const tstring& newFile, bool guessFormat) {
-if (newFile.size()>0) file = newFile;
-tstring text = TEXT("");
-if (file.size()>=0) {
+bool Page::LoadFile (const tstring& filename, bool guessFormat) {
+if (filename.size()>0) file = filename;
+if (file.size()<=0) return false;
 File fd(file);
-if (fd) {
-string str = fd.readFully();
+if (!fd) return false;
+return LoadData(fd.readFully(), guessFormat);
+}
+
+bool Page::LoadData (const string& str, bool guessFormat) {
+tstring text = TEXT("");
 if (guessFormat) { encoding=-1; lineEnding=-1; indentationMode=-1; }
 if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), config.get("defaultEncoding", CP_ACP));
 text = ConvertFromEncoding(str, encoding);
@@ -308,9 +334,8 @@ normalizeLineEndings(text);
 for (int i=0, n=text.size(); i<n; i++) if (text[i]==0) text[i]=127;
 var re = dispatchEvent("load", var(), text);
 if (re.getType()==T_STR) text = re.toTString();
-}}
 SetText(text);
-return text;
+return true;
 }
 
 static tstring StatusBarUpdate (HWND hEdit, HWND status) {
@@ -544,7 +569,7 @@ int pos=0, nLine=0, addIndent=0;
 SendMessage(hEdit, EM_GETSEL, &pos, 0);
 nLine = SendMessage(hEdit, EM_LINEFROMCHAR, pos, 0);
 tstring addString, line = EditGetLine(hEdit, nLine, pos);
-var re = page->dispatchEvent("enter", var(), line);
+var re = page->dispatchEvent("enter", var(), line, nLine);
 switch(re.getType()) {
 case T_NULL: break;
 case T_BOOL: if (!re) return false; break;
@@ -577,7 +602,7 @@ return true;
 }
 tstring line = EditGetLine(hEdit, nLine, pos);
 pos = line.find_first_not_of(TEXT("\t \xA0"));
-if (pos<0 || pos>=line.size()) pos=0;
+if (pos<0 || pos>=line.size()) pos=line.size();
 SendMessage(hEdit, EM_SETSEL, offset+pos, offset+pos);
 return true;
 }
@@ -625,8 +650,6 @@ if (sPos!=ePos) { // There is a selection, indent/deindent
 int eLine = SendMessage(hEdit, EM_LINEFROMCHAR, ePos, 0);
 int eOffset = SendMessage(hEdit, EM_LINEINDEX, eLine, 0);
 int eLineLen = SendMessage(hEdit, EM_LINELENGTH, ePos, 0);
-if (sLine==eLine) Beep(800,150);
-else {
 tstring oldStr = EditGetSubstring(hEdit, sOffset, eOffset + eLineLen);
 tstring newStr = oldStr;
 tstring indent = curPage->indentationMode==0? TEXT("\t") : tstring(curPage->indentationMode, ' ');
@@ -636,12 +659,12 @@ SendMessage(hEdit, EM_SETSEL, sOffset, eOffset+eLineLen);
 SendMessage(hEdit, EM_REPLACESEL, 0, newStr.c_str());
 SendMessage(hEdit, EM_SETSEL, sOffset, sOffset+newStr.size());
 curPage->PushUndoState(shared_ptr<UndoState>(new TextReplaced( sOffset, oldStr, newStr, true )));
-}}
+}
 else { // There is no selection
 tstring line = EditGetLine(hEdit, sLine, sPos);
 int pos = line.find_first_not_of(TEXT("\t \xA0"));
 if (pos<0) pos = line.size();
-if (sPos > sOffset+pos) { Beep(1000,200); return true; }
+if (sPos > sOffset+pos) return curPage->indentationMode>0 || IsShiftDown();
 if (IsShiftDown()) {
 for (int i=0; i<1 || i<curPage->indentationMode; i++) SendMessage(hEdit, WM_CHAR, VK_BACK, 0);
 return true;
@@ -769,8 +792,7 @@ void Page::CreateZone (HWND parent) {
 static int count = 0;
 tstring text;
 int ss=0, se=0;
-if (!zone) text = LoadText();
-else {
+if (zone) {
 SendMessage(zone, EM_GETSEL, (WPARAM)&ss, (LPARAM)&se);
 text = GetWindowText(zone);
 DestroyWindow(zone);

@@ -15,6 +15,14 @@ str getCurrentDirectory():
 :	Return the current directory.
 void include(str filename):
 :	Run a file.
+str msg(str key):
+:	Return the string associated to a given key in the translation file. Return the key itself if the string isn't found.
+setConfig(str key, str value, [Bool multiple=False]):
+:	Set the value of a key in the configuration file. The multiple argument defines whether or not the key can be present multiple times. You can use keyword arguments 'key', 'value' and 'multiple'.
+str getConfig (str key):
+:	Return the value of a key from the configuration file. Return an empty string in case the key doesn't exist. If the key has multiple values, the first value found is returned.
+[str] getConfigAsList(str key):
+:	Return a list containing all the values associated with the given key in the configuration file.
 
 ## Members
 window:
@@ -53,7 +61,7 @@ Page curPage:
 int pageCount:
 :	The number of pages currently open in the editor.
 Menu menus:
-:	Menu object representing the main menu bar.
+:	Menu object representing the main menu bar. See [Menu object](#menuobj).
 
 ## Events {#windowEvents}
 The following events can be passed to addEvent/removeEvent for the window. In parenthesis are the arguments passed to the callback .
@@ -92,6 +100,10 @@ lineStartOffset(int lineNumber):
 :	Return the character position corresponding to the beginning of the given line number. First line is line 0.
 lineEndOffset(int lineNumber):
 :	Return the character position corresponding to the end of the given line. First line is line 0.
+lineSafeStartOffset(ine lineNumber):
+:	Return the character position corresponding to the true beginning of the given line number, where the first non-space character is found. First line is line 0.
+lineIndentLevel(int lineNumber):
+:	Return the indentation level of the given line.
 substring(int start, int end):
 :	Gets a substring of the whole text currently present in being edited.
 replace(int start, int end, str text):
@@ -150,6 +162,8 @@ int textLength (read only):
 :	The length of the whole text currently present in the editor; equivalent to `len(text)`.
 int lineCount (read only):
 :	The number of lines composing the text being edited.
+str indentString:
+:	A string representing a level of indentation, i.e. a tab or a couple of spaces.
 
 ## Events
 The following events can be passed to addEvent/removeEvent for a page. The first argument passed to the callback is always the page where the event occurred. Additional parameters passed are indicated in parenthesis.
@@ -187,7 +201,7 @@ keyUp (int vk):
 contextmenu ():
 :	Occurs when the user calls the context menu with application key and/or Shift+F10 and/or right mouse button. By returning False, you can prevent the default context menu from appearing.
 
-# Menu class
+# Menu class {#menuobj}
 ## Methods
 Menu add(...):
 :	Add a new item to the menu and returns it. Specify a serie of keyword arguments to define what kind of menu item to add:
@@ -204,7 +218,7 @@ void remove(...):
 int show():
 :	Make this menu appear to the user; this can work only if this menu is a popup menu (see [window.createPopupMenu](#wcpm1)). Return the command identifier of the item selected by the user, or 0 in case he cancelled the menu or if it failed to display for some reason.
 
-## Mapping/indexing {#mappingindexing}
+## Mapping, indexing and calling {#mappingindexing}
 You can use the indexing operator `[...]`or the direct attribute/member operator `.` to obtain a sub menu item of this menu, by its name or its index.
 - menu[0], return the first item of this menu
 - menu[-1], return the last item of this menu
@@ -212,6 +226,9 @@ You can use the indexing operator `[...]`or the direct attribute/member operator
 - menu.itemName equivalent to menu['itemName']
 - None is returned if the item is not found
 - *Warning: menu[1:3] doesn't work*
+
+In case this menu object represents a single menu item, you can use the regular call operator like a function to trigger the action normally executed by the item.
+I.e. `item()`. If the item represents a submenu, calling it like a function raises an error.
 
 ## Members
 int submenu (read only):

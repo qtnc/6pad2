@@ -9,9 +9,16 @@ using namespace std;
 
 #define DETECTION_MAX_LOOKUP 16384
 
-vector<tstring> split (const tstring& str, const tstring& delims) {
+vector<string> split (const string& str, const string& delims) {
 using namespace boost;
-vector<tstring> v;
+vector<string> v;
+split(v, str, is_any_of(delims));
+return v;
+}
+
+vector<wstring> split (const wstring& str, const wstring& delims) {
+using namespace boost;
+vector<wstring> v;
 split(v, str, is_any_of(delims));
 return v;
 }

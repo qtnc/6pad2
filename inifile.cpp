@@ -16,8 +16,7 @@ return true;
 bool IniFile::load (const tstring& fn) {
 File f(fn);
 if (!f) return false;
-while(f){
-string line = f.readLine();
+for (string line: split(f.readFully(), "\r\n")) {
 trim(line);
 if (line.size()<1 || line[0]=='#' || line[0]==';') continue;
 int pos = line.find('=');
@@ -26,7 +25,7 @@ string name = (line.substr(0, pos));
 string value = (line.substr(pos+1));
 trim(name);
 trim(value);
-set3(name, value);
+set3(name, value, true);
 }
 return true;
 }

@@ -53,12 +53,13 @@ if (it!=config.end()) return it->second;
 else return def;
 }
 
-static void PySetConfig (const string& key, const string& value) {
-config.set(key, value);
-}
-
-static void PySetConfigMulti (const string& key, const string& value) {
-config.set(key,value, true);
+static PyObject* PySetConfig (PyObject* unused, PyObject* args, PyObject* dic) {
+const char *key=NULL, *value=NULL;
+bool allowMulti = false;
+static const char* KWLST[] = {"key", "value", "multiple", NULL};
+if (!PyArg_ParseTupleAndKeywords(args, dic, "ss|p", (char**)KWLST, &key, &value, &allowMulti)) return NULL;
+if (key&&value) config.set(string(key), string(value), allowMulti);
+Py_RETURN_NONE;
 }
 
 static PyObject* PyGetConfigMulti (const string& key) {
@@ -76,10 +77,8 @@ PyDecl("msg", msg),
 
 // Configuration management
 PyDecl("getConfig", PyGetConfig),
-PyDecl("setConfig", PySetConfig),
+{"setConfig", (PyCFunction)PySetConfig, METH_VARARGS | METH_KEYWORDS, NULL},
 PyDecl("getConfigAsList", PyGetConfigMulti),
-PyDecl("addConfig", PySetConfigMulti),
-
 
 // Clipboard management
 PyDecl("setClipboardText", SetClipboardText),

@@ -18,6 +18,5 @@ def func (self) :
 	window.beep(1700,100)
 	print(self)
 
-#window.menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
+window.menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
 window.addEvent('pageOpened', func)
-print('Python OK, tabs=' + str(len(window.pages)) )
