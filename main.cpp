@@ -371,7 +371,7 @@ if (cp&&cp->IsEmpty()) PageDelete(cp);
 auto itrf = std::find(recentFiles.begin(), recentFiles.end(), file);
 if (itrf!=recentFiles.end()) recentFiles.erase(itrf);
 recentFiles.push_front(file);
-if (recentFiles.size()>config.get("nMaxRecentFiles", 10)) recentFiles.pop_back();
+if (recentFiles.size()>config.get("maxRecentFiles", 10)) recentFiles.pop_back();
 UpdateRecentFilesMenu();
 return p;
 }

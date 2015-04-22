@@ -13,7 +13,8 @@ std::vector<std::wstring> split (const std::wstring& str, const std::wstring& de
 void toLowerCase (tstring&);
 void toUpperCase (tstring&);
 bool startsWith (const tstring&, const tstring&);
-bool endsWith (const tstring&, const tstring&);
+bool endsWith (const std::wstring&, const std::wstring&);
+bool endsWith (const std::string&, const std::string&);
 
 void normalizeLineEndings (tstring& text) ;
 

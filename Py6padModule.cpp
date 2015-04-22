@@ -128,8 +128,12 @@ delete[] code;
 RunSync([](){});//Barrier to wait for the main loop to start
 string pyfn = toString(appDir + TEXT("\\") + appName + TEXT(".py"));
 PyInclude(pyfn);
-for (auto it = config.find("extension"); it!=config.end(); ++it) PyInclude(it->second);
-
+for (auto it = config.find("extension"); it!=config.end(); ++it) {
+string name = it->second;
+if (endsWith(name, ".py")) PyInclude(name);
+else if (endsWith(name, ".dll")) {}//C++ extension, not yet supported
+else PyImport_ImportModule(name.c_str());
+}
 // Ohter initialization stuff goes here
 
 // From now on, make this thread sleep forever

@@ -129,25 +129,11 @@ str name:
 str file:
 :	The file to which data are to be loaded/saved.
 int lineEnding:
-:	The current line ending convention to use when saving the file:
-	- 0=CRLF/windows
-	- 1=LF/UNIX
-	- 2=CR/Mac
-
+:	The current line ending convention to use when saving the file. See [line endings](configuration.html#le) for a list of possible values.
 int encoding:
-:	The encoding to use when saving the file: 
-	- 0=ANSI
-	- 65001=UTF-8
-	- 65002=UTF-8+BOM
-	- 1200=UTF-16Le
-	- 1201=UTF-16Be
-	- 1202=UTF-16Le+BOM
-	- 1203=UTF-16Be+BOM
-	- 28605=ISO-8859-15
-	- see <https://msdn.microsoft.com/en-us/library/windows/desktop/dd317756(v=vs.85).aspx> for other values.
-
+:	The encoding to use when saving the file. See [Character encodings](configuration.html#ce) for a list of possible values.
 int indentation:
-:	The indentation convention to use while editing the file: 0=tabs, 1-8=1 to 8 spaces
+:	The indentation convention to use while editing the file. See [indentation modes](configuration.html#indent) for a list of possible values.
 int autoLineBreak:
 :	Whether or not lines are broken automatically when displaying the text in the edition field.
 int selectionStart:

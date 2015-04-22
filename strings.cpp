@@ -35,7 +35,11 @@ bool startsWith (const tstring& a, const tstring& b) {
 return boost::starts_with(a,b);
 }
 
-bool endsWith (const tstring& a, const tstring& b) {
+bool endsWith (const wstring& a, const wstring& b) {
+return boost::ends_with(a,b);
+}
+
+bool endsWith (const string& a, const string& b) {
 return boost::ends_with(a,b);
 }
 
