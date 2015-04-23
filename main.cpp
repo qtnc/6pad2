@@ -51,6 +51,13 @@ tstring msg (const char* name) {
 return toTString(msgs.get<string>(name, name));
 }
 
+void UpdateWindowTitle () {
+tstring title = curPage->name + TEXT(" - ") + appName;
+var re = listeners.dispatch("title", var(), title);
+if (re.getType()==T_STR) title = re.toTString();
+SetWindowText(win, title.c_str() );
+}
+
 bool PageDeactivated (shared_ptr<Page> p) {
 if (!p) return true;
 if (!p->dispatchEvent<bool, true>("deactivate")) return false;
@@ -60,13 +67,14 @@ return true;
 }
 
 void PageActivated (shared_ptr<Page> p) {
+curPage = p;
 RECT r; GetClientRect(win, &r);
 r.left = 5; r.top = 5; r.right -= 10; r.bottom -= 49;
 SendMessage(tabctl, TCM_ADJUSTRECT, FALSE, &r);
 p->ShowZone(r);
 p->FocusZone();
 p->UpdateStatusBar(status);
-SetWindowText(win, (p->name + TEXT(" - ") + appName).c_str() );
+UpdateWindowTitle();
 int encidx = -1; for (int i=0; i<encodings.size(); i++) { if (p->encoding==encodings[i]) { encidx=i; break; }}
 CheckMenuRadioItem(menuEncoding, 0, encodings.size(), encidx, MF_BYPOSITION);
 CheckMenuRadioItem(menuLineEnding, 0, 2, p->lineEnding, MF_BYPOSITION);
@@ -89,7 +97,6 @@ EnableMenuItem2(menuFormat, 0, MF_BYPOSITION, !(p->flags&PF_NOENCODING));
 EnableMenuItem2(menuFormat, 1, MF_BYPOSITION, !(p->flags&PF_NOLINEENDING));
 EnableMenuItem2(menuFormat, 2, MF_BYPOSITION, !(p->flags&PF_NOINDENTATION));
 EnableMenuItem2(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND, !(p->flags&PF_NOAUTOLINEBREAK));
-curPage = p;
 curPage->dispatchEvent("activated");
 }
 
@@ -164,7 +171,7 @@ TCITEM it;
 it.mask = TCIF_TEXT;
 it.pszText = (LPTSTR)(p->name.c_str());
 SendMessage(tabctl, TCM_SETITEM, pos, &it);
-if (curPage==p) SetWindowText(win, (p->name + TEXT(" - ") + appName).c_str() );
+if (curPage==p) UpdateWindowTitle();
 }
 
 shared_ptr<Page> PageCreate (const string& type) {
@@ -319,7 +326,7 @@ if (file.size()<=0) return;
 curPage->file = file;
 curPage->name = file.substr(1+file.rfind((TCHAR)'\\'));
 curPage->SaveFile(file);
-SetWindowText(win, (curPage->name + TEXT(" - ") + appName).c_str() );
+UpdateWindowTitle();
 }
 else curPage->SaveFile();
 }
@@ -380,7 +387,7 @@ return p;
 
 void OpenFileDialog (int flags) {
 tstring file = (curPage? curPage->file : tstring(TEXT("")) );
-file = FileDialog(win, FD_OPEN, file, msg("Open file") );
+file = FileDialog(win, FD_OPEN, file, msg("Open") );
 if (file.size()<=0) return;
 OpenFile(file, flags);
 }
@@ -503,7 +510,7 @@ return 1;
 {//Create window block
 win = CreateWindowEx(
 WS_EX_CONTROLPARENT | WS_EX_ACCEPTFILES,
-CLASSNAME, TEXT("6Pad++"), 
+CLASSNAME, TEXT("6Pad++ ") TEXT(SIXPAD_VERSION), 
 WS_VISIBLE | WS_OVERLAPPEDWINDOW,
 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 
 HWND_DESKTOP, NULL, hinstance, NULL);
@@ -585,7 +592,7 @@ endmsgloop: ;
 {int i=0; for(const tstring& file: recentFiles) {
 config.set("recentFile" + toString(i++), file);
 }}
-config.save(appDir + TEXT("\\") + appName + TEXT(".ini") );
+if (config.size()>0) config.save(appDir + TEXT("\\") + appName + TEXT(".ini") );
 return msg.wParam;
 }
 
@@ -599,6 +606,17 @@ HWND hWin = GetForegroundWindow();
 int curPos = (win==hWin? n : (find(modlessWindows.begin(), modlessWindows.end(), hWin) -modlessWindows.begin() ));
 int nextPos = (curPos + dist + n +1)%(n+1);
 SetForegroundWindow(nextPos==n? win : modlessWindows[nextPos]);
+}
+
+void AboutDlg () {
+string pyver = Py_GetVersion();
+pyver = pyver.substr(0, pyver.find(' '));
+MessageBox(win, tsnprintf(512,
+TEXT("6pad++ %s\r\nCopyright \xA9 2015, Quentin Cosendey\r\nhttp://quentinc.net/\r\n\r\n") 
++ msg("This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License.")
++ TEXT("\r\n\r\n") + msg("This program embeds python %s from") + TEXT(" Guido van Rossum (http://www.python.org/)"),
+TEXT(SIXPAD_VERSION), toTString(pyver).c_str()
+).c_str(), msg("About").c_str(), MB_OK | MB_ICONINFORMATION);
 }
 
 bool ActionCommand (HWND hwnd, int cmd) {
@@ -637,6 +655,7 @@ case IDM_NEXTPAGE: PageGoToNext(1); break;
 case IDM_PREVPAGE: PageGoToNext(-1); break;
 case IDM_NEXT_MODLESS: GoToNextModlessWindow(1); return true;
 case IDM_PREV_MODLESS: GoToNextModlessWindow(-1); return true;
+case IDM_ABOUT: AboutDlg(); break;
 case IDM_EXIT: SendMessage(win, WM_CLOSE, 0, 0); return true;
 }
 if (cmd>=IDM_ENCODING && cmd<IDM_ENCODING+encodings.size() ) {

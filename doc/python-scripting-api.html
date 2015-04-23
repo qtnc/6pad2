@@ -129,6 +129,12 @@
 <dt>Menu menus:</dt>
 <dd>Menu object representing the main menu bar. See <a href="#menuobj">Menu object</a>.
 </dd>
+<dt>str status:</dt>
+<dd>The text of the status bar.
+</dd>
+<dt>str title:</dt>
+<dd>The window title.
+</dd>
 </dl>
 <h2 id="windowEvents">Events</h2>
 <p>The following events can be passed to addEvent/removeEvent for the window. In parenthesis are the arguments passed to the callback .</p>
@@ -150,6 +156,12 @@
 </dd>
 <dt>pageBeforeOpen (str fileName):</dt>
 <dd>Called before a new page is opened. The filename about to be opened is passed in the callback, and it is supposed to return the page type to create. By default, only the type ‘text’ is supported, but plugins may support additional types.
+</dd>
+<dt>status (str text):</dt>
+<dd>Called when the status bar contents is about to be updated. The text which is about to be set is passed to the callback and you can return a new text string to overwrite what will be shown on the status bar. Note that this event occurs after the status event of a specific page.
+</dd>
+<dt>title (str text):</dt>
+<dd>Called when the title of the application window is about to be changed. The title which is going to be set is passed in the callback, and you can return a new text string to overwrite what will be shown on the title bar of the application window.
 </dd>
 </dl>
 <h1 id="page-class">Page class</h1>
@@ -224,7 +236,7 @@
 <dt>int closed (read only):</dt>
 <dd>Indicates if the page has been closed by the user.
 </dd>
-<dt>int modified (read only):</dt>
+<dt>int modified:</dt>
 <dd>Indicates if the contents of the page has been modified since the last load/save.
 </dd>
 <dt>str name:</dt>

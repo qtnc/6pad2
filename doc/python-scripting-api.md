@@ -64,6 +64,10 @@ int pageCount:
 :	The number of pages currently open in the editor.
 Menu menus:
 :	Menu object representing the main menu bar. See [Menu object](#menuobj).
+str status:
+:	The text of the status bar.
+str title:
+:	The window title.
 
 ## Events {#windowEvents}
 The following events can be passed to addEvent/removeEvent for the window. In parenthesis are the arguments passed to the callback .
@@ -81,6 +85,11 @@ pageOpened (Page newPage):
 :	Called just after a new page has been opened
 pageBeforeOpen (str fileName):
 :	Called before a new page is opened. The filename about to be opened is passed in the callback, and it is supposed to return the page type to create. By default, only the type 'text' is supported, but plugins may support additional types.
+status (str text):
+:	Called when the status bar contents is about to be updated. The text which is about to be set is passed to the callback and you can return a new text string to overwrite what will be shown on the status bar.
+	Note that this event occurs after the status event of a specific page.
+title (str text):
+:	Called when the title of the application window is about to be changed. The title which is going to be set is passed in the callback, and you can return a new text string to overwrite what will be shown on the title bar of the application window.
 
 # Page class
 ## Methods
@@ -130,7 +139,7 @@ void pushUndoState(object):
 ## Members
 int closed (read only):
 :	Indicates if the page has been closed by the user.
-int modified (read only):
+int modified:
 :	Indicates if the contents of the page has been modified since the last load/save.
 str name:
 :	The name of the page as shown on the tablist and on the window title.

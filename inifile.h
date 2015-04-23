@@ -11,6 +11,7 @@ using super::erase;
 using super::count;
 using super::begin;
 using super::end;
+using super::size;
 bool load (const tstring& fn) ;
 bool save (const tstring& fn) ;
 inline bool contains (const std::string& key)  { return find(key)!=end(); }

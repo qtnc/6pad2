@@ -63,6 +63,7 @@ extern HINSTANCE hinstance;
 extern HWND win, status;
 extern IniFile config, msgs;
 extern tstring configFileName;
+extern eventlist listeners;
 
 tstring msg (const char* name) ;
 void SetClipboardText (const tstring&);
@@ -370,6 +371,8 @@ return tsnprintf(512, msg("Li %d, Col %d.\t%d%%, %d lines"), 1+sline, 1+scolumn,
 void Page::UpdateStatusBar (HWND hStatus) {
 tstring text = StatusBarUpdate(zone, hStatus);
 var re = dispatchEvent("status", var(), text);
+if (re.getType()==T_STR) text=re.toTString();
+re = ::listeners.dispatch("status", var(), text);
 if (re.getType()==T_STR) text=re.toTString();
 SetWindowText(hStatus, text);
 }

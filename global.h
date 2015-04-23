@@ -12,7 +12,6 @@
 #include<vector>
 #include "windows2.h"
 
-
 #ifdef UNICODE
 typedef std::wstring tstring;
 #define toTString toWString
@@ -33,6 +32,12 @@ typedef std::string tstring;
 #include "strings.hpp"
 #include "win32api++.hpp"
 #endif//windres
+
+#ifndef RELEASE
+#define RELEASE 0
+#endif
+
+#define SIXPAD_VERSION "Alpha 1"
 
 #define LE_DOS 0
 #define LE_UNIX 1

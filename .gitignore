@@ -1,9 +1,14 @@
 obj/
+lib/
+__pycache__/
 *.exe
 *.dll
 *.a
 *.o
 *.ini
+*.zip
+*.pyc
+*.pyo
 test*
 old*
 out*

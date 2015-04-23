@@ -1,4 +1,4 @@
-import sys, traceback, sixpad
+import sys, sixpad
 
 sysRead = sixpad.sysRead
 sysPrint = sixpad.sysPrint

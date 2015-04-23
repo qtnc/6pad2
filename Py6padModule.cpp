@@ -24,13 +24,14 @@ bool PyRegister_EditorTab(PyObject* m);
 bool PyRegister_MenuItem (PyObject* m);
 PyObject* CreatePyWindowObject ();
 
-static bool PyInclude (const string& fn) {
+static int PyInclude (const string& fn) {
+bool result = false;
 FILE* fp = msvcfopen(fn.c_str(), "r");
 if (fp) {
-PyRun_SimpleFile(fp, fn.c_str() );
+result = !PyRun_SimpleFile(fp, fn.c_str() );
 msvcfclose(fp);
 }
-return !!fp;
+return result;
 }
 
 static tstring ConsoleReadImpl (void) {
@@ -116,14 +117,15 @@ void PyStart (void) {
 Py_SetProgramName(const_cast<wchar_t*>(toWString(argv[0]).c_str()));
 PyImport_AppendInittab("sixpad", PyInit_6padMain);;
 Py_Initialize();
-//PySys_SetPath(appDir.c_str());
+PySys_SetPath( toTString( appDir + TEXT("\\python34.zip;") + appDir + TEXT("\\lib") ).c_str() );
 PyEval_InitThreads();
 GIL_PROTECT
 {
 Resource res(TEXT("init.py"),257);
 char* code = (char*)res.copy();
-PyRun_SimpleString(code);
+bool failed = !!PyRun_SimpleString(code);
 delete[] code;
+if (failed) exit(1);
 }
 RunSync([](){});//Barrier to wait for the main loop to start
 string pyfn = toString(appDir + TEXT("\\") + appName + TEXT(".py"));
@@ -141,6 +143,6 @@ else PyImport_ImportModule(name.c_str());
 // Any clue why this is the case is welcome
 //PyRun_SimpleString("from time import sleep");
 //PyRun_SimpleString("while(1): sleep(60000)");
-PyRun_SimpleString("import code");
+if (PyRun_SimpleString("import code")) exit(1);
 PyRun_SimpleString("code.interact(banner='')");
 }

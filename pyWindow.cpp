@@ -16,7 +16,7 @@ struct PyWindow {
 extern tstring appPath, appDir, appName, configFileName;
 extern IniFile config;
 extern bool headless;
-extern HWND win;
+extern HWND win, status;
 extern shared_ptr<Page> curPage;
 extern vector<shared_ptr<Page>> pages;
 extern vector<tstring> argv;
@@ -92,6 +92,22 @@ Py_END_ALLOW_THREADS
 return re;
 }
 
+static tstring PyGetStatusText () {
+return GetWindowText(status);
+}
+
+static void PySetStatusText (const tstring& text) {
+SetWindowText(status, text);
+}
+
+static tstring PyGetWinTitle () {
+return GetWindowText(win);
+}
+
+static void PySetWinTitle (const tstring& title) {
+SetWindowText(win, title);
+}
+
 static int PyEditorTabs_getTabCount () {
 return pages.size();
 }
@@ -150,6 +166,10 @@ PyDeclEnd
 };
 
 static PyGetSetDef PyWindowAccessors[] = {
+
+// Global attributes
+PyAccessor("status", PyGetStatusText, PySetStatusText),
+PyAccessor("title", PyGetWinTitle, PySetWinTitle),
 
 // Tabs management
 PyReadOnlyAccessor("curPage", PyEditorTabs_getCurTab),
