@@ -9,3 +9,4 @@ copy a.lng "6pad++.lng"
 call pycompile.bat
 call d.bat
 zip -9 -u -q -r 6pad++.zip 6pad++.exe python34.zip python34.dll libgcc_s_dw2-1.dll libstdc++-6.dll 6pad++.lng doc\*.html
+del "6pad++.lng"
