@@ -9,6 +9,7 @@ __pycache__/
 *.zip
 *.pyc
 *.pyo
+*.log
 test*
 old*
 out*
