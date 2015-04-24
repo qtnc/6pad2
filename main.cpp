@@ -11,6 +11,7 @@
 #include<list>
 #include<unordered_map>
 #include<functional>
+#include<csignal>
 using namespace std;
 
 #define OF_REUSEOPENEDTABS 1
@@ -19,6 +20,7 @@ using namespace std;
 
 tstring appPath, appDir, appName, configFileName;
 IniFile msgs, config;
+File dbg;
 eventlist listeners;
 shared_ptr<Page> curPage(0);
 list<tstring> consoleInput;
@@ -438,17 +440,32 @@ data += 2+strlen(str);
 SetMenuName(menu, cmd, cmd<1000, toTString(str).c_str() );
 }}
 
-extern "C" int WINAPI WinMain (HINSTANCE hThisInstance,                      HINSTANCE hPrevInstance,                      LPSTR lpszArgument,                      int nWindowStile) {
-hinstance = hThisInstance;
-long long time = GetTickCount();
+static void termHandler (void) {
+if (DEBUG) dbg << "terminate called.\r\n";
+if (win) MessageBox(win, msg("A fatal error occurred and the application must be terminated. Please excuse for the inconvenience.").c_str(), msg("Fatal error").c_str(), MB_OK | MB_ICONERROR);
+exit(3);
+}
 
-//signal(SIGSEGV, sigsegv);
-//signal(SIGFPE, sigsegv);
-//signal(SIGILL, sigsegv);
+static void sigsegv (int exCode) { 
+if (DEBUG) dbg << "Uncaught signal: " << exCode << "\r\n";
+std::terminate(); 
+}
+
+extern "C" int WINAPI WinMain (HINSTANCE hThisInstance,                      HINSTANCE hPrevInstance,                      LPSTR lpszArgument,                      int nWindowStile) {
+if (DEBUG) dbg.open(TEXT("6pad.log"), true);
+long long time = GetTickCount();
+hinstance = hThisInstance;
+if (DEBUG) dbg << "6pad log\r\n";
+
+set_terminate(termHandler);
+set_unexpected(termHandler);
+signal(SIGSEGV, sigsegv);
+signal(SIGFPE, sigsegv);
+signal(SIGILL, sigsegv);
 SetErrorMode(SEM_FAILCRITICALERRORS);
 
-
 {//Getting paths and such global parameters
+if (DEBUG) dbg << "Init paths...\r\n";
 TCHAR fn[512]={0};
 GetModuleFileName(NULL, fn, 511);
 appPath = fn;
@@ -460,16 +477,27 @@ tsnprintf(CLASSNAME, sizeof(CLASSNAME)/sizeof(TCHAR), TEXT("QC6Pad01_%s"), fnBs+
 appName = fnBs+1;
 appDir = fn;
 configFileName = appDir + TEXT("\\") + appName + TEXT(".ini");
+if (DEBUG) dbg << snsprintf(512, string("Window class name = %ls\r\nappName = %ls\r\nappDir = %ls\r\nconfig file = %ls\r\n"), CLASSNAME, appDir.c_str(), appName.c_str(), configFileName.c_str() );
+if (DEBUG) dbg << "Loading config file...\r\n";
 config.load(configFileName);
+if (DEBUG) dbg << "Loading language file...\r\n";
 msgs.load(appDir + TEXT("\\") + appName + TEXT(".lng") );
 }
 
 {//Loading command line parameters
+if (DEBUG) dbg << "Loading argvlist...\r\n";
 int argc=0;
-wchar_t** args = CommandLineToArgvW(GetCommandLineW(),&argc);
+
+wchar_t* argline = GetCommandLineW();
+if (argline) {
+wchar_t** args = CommandLineToArgvW(argline, &argc);
+if (args) {
 for (wchar_t** arg = args; *arg; ++arg) argv.push_back(toTString(*arg));
+if (DEBUG) for(int i=0, n=argv.size(); i<n; i++) dbg << snsprintf(512, "argv[%d]=%ls\r\n", i, argv[i].c_str() );
 LocalFree(args);
-}
+}}}
+if (DEBUG) dbg << "Parsing argvlist...\r\n";
+if (argv.size()<=0) argv.push_back(appPath);
 for (int i=1; i<argv.size(); i++) {
 tstring arg = argv[i];
 if (arg.size()<=0) continue;
@@ -479,11 +507,16 @@ if (arg==TEXT("/stdout")) writeToStdout=true;
 else if (arg==TEXT("/headless")) headless=true;
 continue; 
 } 
-if (OpenFile2(arg, OF_REUSEOPENEDTABS)) return 0;
-}
+if (DEBUG) dbg << "Checking open state of " << arg << "...\r\n";
+if (OpenFile2(arg, OF_REUSEOPENEDTABS)) {
+if (DEBUG) dbg << arg << " is already open in another instance, exiting\r\n";
+return 0;
+}}
 firstInstance = !FindWindow(CLASSNAME,NULL);
+if (DEBUG) dbg << "firstInstance = " << firstInstance << "\r\n";
 
 {//Register class and controls block
+if (DEBUG) dbg << "Registering window class...\r\n";
     WNDCLASSEX wincl;
 wincl.hInstance = hinstance;
 wincl.lpszClassName = CLASSNAME;
@@ -498,16 +531,18 @@ wincl.cbClsExtra = 0;
 wincl.cbWndExtra = 0;
 wincl.hbrBackground = (HBRUSH) COLOR_BACKGROUND;
 if (!RegisterClassEx(&wincl)) {
-MessageBox(NULL, TEXT("Couldn't register window class"), TEXT("Fatal error"), MB_OK|MB_ICONERROR);
+if (DEBUG) dbg << "Couldn't register window class, exiting\r\n";
 return 1;
 } 
+if (DEBUG) dbg << "Registering common controls...\r\n";
 INITCOMMONCONTROLSEX ccex = { sizeof(INITCOMMONCONTROLSEX), ICC_BAR_CLASSES | ICC_PROGRESS_CLASS | ICC_TAB_CLASSES | ICC_COOL_CLASSES | ICC_TREEVIEW_CLASSES | ICC_LISTVIEW_CLASSES   };
 if (!InitCommonControlsEx(&ccex)) {
-MessageBox(NULL, TEXT("Couldn't initialize common controls"), TEXT("Fatal error"), MB_OK|MB_ICONERROR);
+if (DEBUG) dbg << "Couldn't initialize common controls, exiting\r\n";
 return 1;
 }}
 
 {//Create window block
+if (DEBUG) dbg << "Init app window GUI...\r\n";
 win = CreateWindowEx(
 WS_EX_CONTROLPARENT | WS_EX_ACCEPTFILES,
 CLASSNAME, TEXT("6Pad++ ") TEXT(SIXPAD_VERSION), 
@@ -541,24 +576,29 @@ SetMenuNamesFromResource(menu);
 }
 
 {//Recent files
+if (DEBUG) dbg << "Loading recent files list...\r\n";
 for (int i=0; config.contains("recentFile"+toString(i)); i++) {
 recentFiles.push_back(config.get<tstring>("recentFile"+toString(i), TEXT("") ));
 }
 UpdateRecentFilesMenu();
 }//END Recentfiles
 
+if (DEBUG) dbg << "Init python...\r\n";
 consoleInputEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 InitializeCriticalSection(&csConsoleInput);
 Thread::start(PyStart);
 
+if (DEBUG) dbg << "Parsing argvlist again...\r\n";
 for (int i=1; i<argv.size(); i++) {
 const tstring& arg = argv[i];
 if (arg.size()<=0) continue;
 else if (arg[0]=='-' || arg[0]=='/') { continue; } // options
+if (DEBUG) dbg <<"Opening " << arg << "...\r\n"; 
 OpenFile(arg);
 }
 
 if (firstInstance) {//Reload last opened files
+if (DEBUG) dbg << "Reloading last opened files...\r\n";
 int mode = config.get("reloadLastFilesMode",0);
 if (mode==1 && pages.size()>0) mode=0;
 for (int i=0; config.contains("lastFile" + toString(i)); i++) {
@@ -575,6 +615,7 @@ if (pages.size()<=0) PageAddEmpty(false);
 time = GetTickCount() -time;
 printf("Init time = %d ms\r\n", time);
 
+if (DEBUG) dbg << "Show app window and starting event loop...\r\n";
 if (headless) PostQuitMessage(0);
 else ShowWindow(win, nWindowStile);
 PageActivated(pages[0]);
@@ -589,10 +630,12 @@ DispatchMessage(&msg);
 endmsgloop: ;
 }
 
+if (DEBUG) dbg << "End of message loop\r\nSaving config...\r\n";
 {int i=0; for(const tstring& file: recentFiles) {
 config.set("recentFile" + toString(i++), file);
 }}
 if (config.size()>0) config.save(appDir + TEXT("\\") + appName + TEXT(".ini") );
+if (DEBUG) dbg << "Finished, exiting with code " << msg.wParam;
 return msg.wParam;
 }
 
@@ -657,6 +700,7 @@ case IDM_NEXT_MODLESS: GoToNextModlessWindow(1); return true;
 case IDM_PREV_MODLESS: GoToNextModlessWindow(-1); return true;
 case IDM_ABOUT: AboutDlg(); break;
 case IDM_EXIT: SendMessage(win, WM_CLOSE, 0, 0); return true;
+case IDM_CRASH: { int* p=0; *p=0; } return true; // Force crash
 }
 if (cmd>=IDM_ENCODING && cmd<IDM_ENCODING+encodings.size() ) {
 PageSetEncoding(curPage, cmd-IDM_ENCODING);

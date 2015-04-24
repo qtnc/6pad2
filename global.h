@@ -37,6 +37,10 @@ typedef std::string tstring;
 #define RELEASE 0
 #endif
 
+#ifndef DEBUG
+#define DEBUG 1
+#endif
+
 #define SIXPAD_VERSION "Alpha 1"
 
 #define LE_DOS 0

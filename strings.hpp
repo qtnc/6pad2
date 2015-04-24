@@ -27,7 +27,7 @@ if (last<s.size()-1) s.erase(s.begin()+last+1, s.end());
 }
 
 // Sprintf++
-std::string snprintf (int max, const std::string& fmt, ...) ;
+std::string snsprintf (int max, const std::string& fmt, ...) ;
 std::wstring snwprintf (int max, const std::wstring& fmt, ...) ;
 
 // Conversion 
@@ -148,6 +148,18 @@ return buf;
 }
 
 inline std::wstring toWString (DWORD n, int base = 10) {
+wchar_t buf[64]={0};
+_i64tow(n, buf, base);
+return buf;
+}
+
+inline std::string toString (unsigned int n, int base = 10) {
+char buf[64]={0};
+lltoa(n, buf, base);
+return buf;
+}
+
+inline std::wstring toWString (unsigned int n, int base = 10) {
 wchar_t buf[64]={0};
 _i64tow(n, buf, base);
 return buf;

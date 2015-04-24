@@ -43,7 +43,7 @@ bool endsWith (const string& a, const string& b) {
 return boost::ends_with(a,b);
 }
 
-string snprintf (int max, const string& fmt, ...) {
+string snsprintf (int max, const string& fmt, ...) {
 string out(max+1, '\0');
 va_list ap;
 va_start(ap,fmt);

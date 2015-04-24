@@ -11,6 +11,10 @@ if (fd&&!noclose) CloseHandle(fd);
 fd=0;
 }
 
+void File::flush () {
+if (fd) FlushFileBuffers(fd);
+}
+
 bool File::open (const tstring& path, bool write) {
 if (path==TEXT("STDIN")) { fd = GetStdHandle(STD_INPUT_HANDLE); noclose=true; }
 else if (path==TEXT("STDOUT")) fd = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -21,6 +25,7 @@ return fd!=INVALID_HANDLE_VALUE;
 }
 
 int File::read (void* buf, int len) {
+if (!fd) return -1;
 DWORD nRead=0;
 if (ReadFile(fd, buf, len, &nRead, NULL)) return nRead;
 else { close(); return -1; }
@@ -28,6 +33,7 @@ else { close(); return -1; }
 
 int File::write (const void* buf, int len) {
 DWORD nWritten=0;
+if (!fd) return -1;
 if (len<0) len = strlen((const char*)buf);
 if (WriteFile(fd, buf, len, &nWritten, NULL)) return nWritten;
 else { close(); return -1; }
@@ -55,6 +61,7 @@ return str;
 
 bool File::writeFully (const void* buf, int len) {
 DWORD pos=0, nWritten=0;
+if (!fd) return false;
 while (pos<len && WriteFile(fd, buf+pos, len-pos, &nWritten, NULL)) pos+=nWritten;
 return pos>=len;
 }

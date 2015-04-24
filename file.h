@@ -17,8 +17,13 @@ string readFully () ;
 string readUntil (char c = '\n', char ign = '\r') ;
 string readLine () { return readUntil(); }
 void close () ;
+void flush () ;
 ~File();
 operator bool () ;
+
+inline File& operator<< (const string& s) { write(s); flush(); return *this; }
+inline File& operator<< (const char* s) { return operator<<(string(s)); }
+template<class T> inline File& operator<< (const T& x) { return operator<<(toString(x)); }
 };
 
 #endif

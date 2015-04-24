@@ -1,12 +1,14 @@
 #include "global.h"
 #include "strings.hpp"
 #include "IniFile.h"
+#include "File.h"
 #include "python34.h"
 #include "Resource.h"
 #include "Thread.h"
 using namespace std;
 
 extern IniFile config;
+extern File dbg;
 extern tstring appPath, appDir, appName, configFileName;
 extern vector<tstring> argv;
 
@@ -114,13 +116,21 @@ return mod;
 }
 
 void PyStart (void) {
+if (DEBUG) dbg << "Begin PyStart...\r\n";
+wstring modulePath = toWString( appDir + TEXT("\\python34.zip;") + appDir + TEXT("\\lib") );
+if (DEBUG) dbg <<"Set python path...\r\n";
+Py_SetPath( modulePath.c_str() );
 Py_SetProgramName(const_cast<wchar_t*>(toWString(argv[0]).c_str()));
+if (DEBUG) dbg << "Registering sixpad python module...\r\n";
 PyImport_AppendInittab("sixpad", PyInit_6padMain);;
+if (DEBUG) dbg << "Calling Py_Initialize...\r\n";
 Py_Initialize();
-PySys_SetPath( toTString( appDir + TEXT("\\python34.zip;") + appDir + TEXT("\\lib") ).c_str() );
+if (DEBUG) dbg <<"Init python GIL...\r\n";
 PyEval_InitThreads();
+if (DEBUG) dbg <<"Entering python GIL...\r\n";
 GIL_PROTECT
 {
+if (DEBUG) dbg << "Running builtin python script...\r\n";
 Resource res(TEXT("init.py"),257);
 char* code = (char*)res.copy();
 bool failed = !!PyRun_SimpleString(code);
@@ -129,14 +139,18 @@ if (failed) exit(1);
 }
 RunSync([](){});//Barrier to wait for the main loop to start
 string pyfn = toString(appDir + TEXT("\\") + appName + TEXT(".py"));
+if (DEBUG) dbg << "Running auto python script " << pyfn << "...\r\n";
 PyInclude(pyfn);
+if (DEBUG) dbg << "Init extensions...\r\n";
 for (auto it = config.find("extension"); it!=config.end(); ++it) {
 string name = it->second;
+if (DEBUG) dbg << "Loading extension: " << name << "...\r\n";
 if (endsWith(name, ".py")) PyInclude(name);
 else if (endsWith(name, ".dll")) {}//C++ extension, not yet supported
 else PyImport_ImportModule(name.c_str());
 }
 // Ohter initialization stuff goes here
+if (DEBUG) dbg << "Python ready, starting interactive console...\r\n";
 
 // From now on, make this thread sleep forever
 // For a yet unknown reason, if we don't do this, the python console window hangs
