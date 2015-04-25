@@ -1,4 +1,4 @@
-import sys
+import os, sys
 import sixpad
 from sixpad import window
 
@@ -19,5 +19,5 @@ def func () :
 
 window.menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
 
+print(os.getcwd())
 
-print(sys.path)

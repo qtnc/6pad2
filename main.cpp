@@ -457,11 +457,11 @@ long long time = GetTickCount();
 hinstance = hThisInstance;
 if (DEBUG) dbg << "6pad log\r\n";
 
-set_terminate(termHandler);
-set_unexpected(termHandler);
-signal(SIGSEGV, sigsegv);
-signal(SIGFPE, sigsegv);
-signal(SIGILL, sigsegv);
+//set_terminate(termHandler);
+//set_unexpected(termHandler);
+//signal(SIGSEGV, sigsegv);
+//signal(SIGFPE, sigsegv);
+//signal(SIGILL, sigsegv);
 SetErrorMode(SEM_FAILCRITICALERRORS);
 
 {//Getting paths and such global parameters
@@ -487,17 +487,16 @@ msgs.load(appDir + TEXT("\\") + appName + TEXT(".lng") );
 {//Loading command line parameters
 if (DEBUG) dbg << "Loading argvlist...\r\n";
 int argc=0;
-
-wchar_t* argline = GetCommandLineW();
-if (argline) {
-wchar_t** args = CommandLineToArgvW(argline, &argc);
+wchar_t** args = CommandLineToArgvW(GetCommandLineW(), &argc);
 if (args) {
-for (wchar_t** arg = args; *arg; ++arg) argv.push_back(toTString(*arg));
+if (DEBUG) dbg << "Argv split, collecting...\r\n";
+for (int i=0; i<argc; i++) argv.push_back(toTString(args[i]));
+if (DEBUG) dbg << argc << " args:\r\n";
 if (DEBUG) for(int i=0, n=argv.size(); i<n; i++) dbg << snsprintf(512, "argv[%d]=%ls\r\n", i, argv[i].c_str() );
+if (DEBUG) dbg << "Finished with argvlist\r\n";
 LocalFree(args);
-}}}
+}}
 if (DEBUG) dbg << "Parsing argvlist...\r\n";
-if (argv.size()<=0) argv.push_back(appPath);
 for (int i=1; i<argv.size(); i++) {
 tstring arg = argv[i];
 if (arg.size()<=0) continue;

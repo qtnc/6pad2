@@ -74,6 +74,12 @@ PyList_SetItem(list, i++, Py_BuildValue("s", it->second.c_str()) );
 return list;
 }
 
+static void PyLoadExtension (const string& name) {
+if (endsWith(name, ".py")) PyInclude(name);
+else if (endsWith(name, ".dll")) {}//C++ extension, not yet supported
+else PyImport_ImportModule(name.c_str());
+}
+
 static PyMethodDef _6padMainDefs[] = {
 // Translation management
 PyDecl("msg", msg),
@@ -87,10 +93,9 @@ PyDecl("getConfigAsList", PyGetConfigMulti),
 PyDecl("setClipboardText", SetClipboardText),
 PyDecl("getClipboardText", GetClipboardText),
 
-// FIle and directory management
+// Extension and includes
 PyDecl("include", PyInclude),
-PyDecl("getCurrentDirectory", GetCurrentDirectory2),
-PyDecl("setCurrentDirectory", SetCurrentDirectory),
+PyDecl("loadExtension", PyLoadExtension),
 
 // Overload of print, to be able to print in python console GUI
 PyDecl("sysPrint", ConsolePrint),
@@ -138,17 +143,15 @@ delete[] code;
 if (failed) exit(1);
 }
 RunSync([](){});//Barrier to wait for the main loop to start
-string pyfn = toString(appDir + TEXT("\\") + appName + TEXT(".py"));
-if (DEBUG) dbg << "Running auto python script " << pyfn << "...\r\n";
-PyInclude(pyfn);
 if (DEBUG) dbg << "Init extensions...\r\n";
 for (auto it = config.find("extension"); it!=config.end(); ++it) {
 string name = it->second;
 if (DEBUG) dbg << "Loading extension: " << name << "...\r\n";
-if (endsWith(name, ".py")) PyInclude(name);
-else if (endsWith(name, ".dll")) {}//C++ extension, not yet supported
-else PyImport_ImportModule(name.c_str());
+PyLoadExtension(name);
 }
+string pyfn = toString(appDir + TEXT("\\") + appName + TEXT(".py"));
+if (DEBUG) dbg << "Running auto python script " << pyfn << "...\r\n";
+PyInclude(pyfn);
 // Ohter initialization stuff goes here
 if (DEBUG) dbg << "Python ready, starting interactive console...\r\n";
 

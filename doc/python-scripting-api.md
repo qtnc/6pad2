@@ -9,12 +9,10 @@ void setClipboardText(str newText):
 :	Place a text in the system clipboard.
 str getClipboardText():
 :	Return the contents of the system clipboard.
-void setCurrentDirectory(str newDir):
-:	Move the current directory.
-str getCurrentDirectory():
-:	Return the current directory.
 void include(str filename):
 :	Run a file.
+void loadExtension(str extensionName)
+:	Load the specified extension; the name can be a python script to be included directly, a python module to be imported, or a C/C++ DLL extension.
 str msg(str key):
 :	Return the string associated to a given key in the translation file. Return the key itself if the string isn't found.
 setConfig(str key, str value, [Bool multiple=False]):
