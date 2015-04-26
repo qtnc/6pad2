@@ -45,7 +45,10 @@ else return 0;
 }
 
 static PyObject* PyOpenFile (const tstring& filename) {
-shared_ptr<Page> p = OpenFile(filename, 1);
+shared_ptr<Page> p;
+RunSync([&]()mutable{
+p = OpenFile(filename, 1);
+});
 if (!p) { Py_RETURN_NONE; }
 return p->GetPyData();
 }

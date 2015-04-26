@@ -17,8 +17,8 @@ str msg(str key):
 :	Return the string associated to a given key in the translation file. Return the key itself if the string isn't found.
 setConfig(str key, str value, [Bool multiple=False]):
 :	Set the value of a key in the configuration file. The multiple argument defines whether or not the key can be present multiple times. You can use keyword arguments 'key', 'value' and 'multiple'.
-str getConfig (str key):
-:	Return the value of a key from the configuration file. Return an empty string in case the key doesn't exist. If the key has multiple values, the first value found is returned.
+str getConfig (str key, str defaultValue):
+:	Return the value of a key from the configuration file. Return an empty string in case the key doesn't exist. If the key has multiple values, the first value found is returned. If the key isn't found, defaultValue is returned.
 [str] getConfigAsList(str key):
 :	Return a list containing all the values associated with the given key in the configuration file.
 

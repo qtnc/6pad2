@@ -15,7 +15,8 @@ def func4 () :
 	window.alert('Result=' + str(re), 'Info')
 
 def func () :
-	window.curPage.readOnly = not window.curPage.readOnly
+	window.open('a.py:8')
 
 window.menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
+
 
