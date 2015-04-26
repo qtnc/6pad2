@@ -89,6 +89,7 @@ virtual void SetText (const tstring& str);
 virtual void SelectAll () ;
 virtual int GetCurrentPosition ();
 virtual void SetCurrentPosition  (int);
+virtual void SetCurrentPositionLC (int, int);
 virtual void GoToDialog ();
 virtual void FindDialog () ;
 virtual void FindReplaceDialog () ;

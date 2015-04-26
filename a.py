@@ -19,5 +19,3 @@ def func () :
 
 window.menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
 
-print(os.getcwd())
-

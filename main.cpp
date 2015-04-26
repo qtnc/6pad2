@@ -166,9 +166,9 @@ p->FocusZone();
 
 void PageSetName (shared_ptr<Page> p, const tstring& name) {
 if (!p) return;
+p->name = name;
 int pos = std::find(pages.begin(), pages.end(), p) -pages.begin();
 if (pos<0 || pos>=pages.size()) return;
-p->name = name;
 TCITEM it;
 it.mask = TCIF_TEXT;
 it.pszText = (LPTSTR)(p->name.c_str());
@@ -326,7 +326,6 @@ if (saveas || curPage->file.size()<=0 || (curPage->flags&PF_MUSTSAVEAS)) {
 tstring file = FileDialog(win, FD_SAVE, curPage->file, msg("Save as") );
 if (file.size()<=0) return;
 curPage->file = file;
-curPage->name = file.substr(1+file.rfind((TCHAR)'\\'));
 curPage->SaveFile(file);
 UpdateWindowTitle();
 }
@@ -376,7 +375,6 @@ shared_ptr<Page> cp = curPage;
 shared_ptr<Page> p = PageCreate(type);
 if (!p) return p;
 p->file = file;
-p->name = file.substr(1+file.rfind((TCHAR)'\\'));
 PageAdd(p);
 if (cp&&cp->IsEmpty()) PageDelete(cp);
 auto itrf = std::find(recentFiles.begin(), recentFiles.end(), file);

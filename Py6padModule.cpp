@@ -149,7 +149,7 @@ string name = it->second;
 if (DEBUG) dbg << "Loading extension: " << name << "...\r\n";
 PyLoadExtension(name);
 }
-string pyfn = toString(appDir + TEXT("\\") + appName + TEXT(".py"));
+string pyfn = toString(appDir + TEXT("\\") + appName + TEXT(".py") , CP_ACP);
 if (DEBUG) dbg << "Running auto python script " << pyfn << "...\r\n";
 PyInclude(pyfn);
 // Ohter initialization stuff goes here

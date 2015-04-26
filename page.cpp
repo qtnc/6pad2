@@ -15,6 +15,7 @@ typedef boost::wcmatch tcmatch;
 #else
 typedef boost::regex tregex;
 typedef boost::cregex_iterator tcregex_iterator;
+typedef boost::cmatch tcmatch;
 #endif
 
 struct TextDeleted: UndoState {
@@ -87,6 +88,10 @@ int Page::GetCurrentPosition () {
 int pos=0;
 SendMessage(zone, EM_GETSEL, 0, &pos);
 return pos;
+}
+
+void Page::SetCurrentPositionLC (int line, int col) {
+if (line>=0 && col>=0) SetCurrentPosition(GetLineStartIndex(line) + col);
 }
 
 bool Page::IsEmpty ()  {
@@ -268,7 +273,7 @@ SendMessage(edit, EM_SCROLLCARET, 0, 0);
 else MessageBeep(MB_ICONASTERISK);
 }
 
-void Page::Find(const tstring& searchText, bool scase, bool regex, bool up) {
+void Page::Find (const tstring& searchText, bool scase, bool regex, bool up) {
 FindData fd(searchText, TEXT(""), (scase?FF_CASE:0) | (regex?FF_REGEX:0) | (up?FF_UPWARDS:0) );
 auto it = find(finds.begin(), finds.end(), fd);
 if (it!=finds.end()) finds.erase(it);
@@ -304,6 +309,32 @@ if (IsWindowVisible(edit)) SendMessage(edit, EM_SCROLLCARET, 0, 0);
 PushUndoState(std::shared_ptr<UndoState>(new TextReplaced( start!=end? start : 0, oldText, newText, start!=end)));
 }
 
+static inline tstring FileNameToPageName (Page& p, const tstring& file) {
+int pos = file.find_last_of(TEXT("\\/"));
+if (pos==tstring::npos) pos = -1;
+return file.substr(1+pos);
+}
+
+static void ParseLineCol (tstring& file, int& line, int& col) {
+using namespace boost;
+tregex r1(TEXT(":(\\d+):(\\d+)$"), regex_constants::perl | regex_constants::mod_s | regex_constants::collate);
+tcmatch m;
+if (regex_search(file.data(), file.data() + file.size(), m, r1, match_flag_type::match_default)) {
+int start = m[0].first - file.data();
+line = toInt(m[1].str());
+col = toInt(m[2].str());
+file = file.substr(0, start);
+return;
+}
+tregex r2(TEXT(":(\\d+)$"), regex_constants::perl | regex_constants::mod_s | regex_constants::collate);
+if (regex_search(file.data(), file.data() + file.size(), m, r2, match_flag_type::match_default)) {
+int start = m[0].first - file.data();
+line = toInt(m[1].str());
+col = 1;
+file = file.substr(0, start);
+return;
+}}
+
 string Page::SaveData () {
 tstring str = GetText();
 var re = dispatchEvent("save", var(), str);
@@ -317,8 +348,11 @@ return cstr;
 bool Page::SaveFile (const tstring& newFile) {
 if (flags&PF_NOSAVE) return false;
 if ((flags&PF_MUSTSAVEAS) && newFile.size()<=0) return false;
-if (newFile.size()>0) file = newFile; 
+if (newFile.size()>0) {
+file = newFile; 
+name = FileNameToPageName(*this, file);
 flags&=~(PF_MUSTSAVEAS|PF_READONLY);
+}
 if (file.size()<=0) return false;
 string cstr = SaveData();
 SetModified(false);
@@ -332,9 +366,14 @@ return true;
 bool Page::LoadFile (const tstring& filename, bool guessFormat) {
 if (filename.size()>0) file = filename;
 if (file.size()<=0) return false;
+int line = 0, col = 0;
+ParseLineCol(file, line, col);
+name = FileNameToPageName(*this, file);
 File fd(file);
 if (!fd) return false;
-return LoadData(fd.readFully(), guessFormat);
+bool re = LoadData(fd.readFully(), guessFormat);
+if (re && line>0 && col>0) SetCurrentPositionLC(line -1, col -1);
+return re;
 }
 
 bool Page::LoadData (const string& str, bool guessFormat) {
@@ -345,7 +384,6 @@ text = ConvertFromEncoding(str, encoding);
 if (lineEnding<0) lineEnding = guessLineEnding(text.c_str(), config.get("defaultLineEnding", LE_DOS));
 if (indentationMode<0) indentationMode = guessIndentationMode(text.c_str(), text.size(), config.get("defaultIndentationMode", 0));
 normalizeLineEndings(text);
-for (int i=0, n=text.size(); i<n; i++) if (text[i]==0) text[i]=127;
 var re = dispatchEvent("load", var(), text);
 if (re.getType()==T_STR) text = re.toTString();
 SetText(text);
@@ -866,6 +904,7 @@ MoveWindow(zone, r.left+3, r.top+3, r.right-r.left -6, r.bottom-r.top -6, TRUE);
 void Page::PushUndoState (shared_ptr<UndoState> u, bool tryToJoin) {
 if (curUndoState<undoStates.size()) undoStates.erase(undoStates.begin() + curUndoState, undoStates.end() );
 if (tryToJoin && curUndoState>0 && curUndoState<=undoStates.size() && undoStates[curUndoState -1]->Join(*u)) return;
+if (undoStates.size()>=50) undoStates.erase(undoStates.begin());
 undoStates.push_back(u);
 curUndoState = undoStates.size();
 }
