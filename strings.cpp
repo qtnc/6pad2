@@ -135,10 +135,11 @@ if (ch[0]==254 && ch[1]==255) return CP_UTF16_BE_BOM;
 if (ch[1]==0 && ch[3]==0 && ch[5]==0) return CP_UTF16_LE;
 if (ch[0]==0 && ch[2]==0 && ch[4]==0) return CP_UTF16_BE;
 BOOL encutf = FALSE;
-for (const unsigned char* x = ch; *x; ++x) {
+int count = 0;
+for (const unsigned char* x = ch; *x && count<16384; ++x, count++) {
 if (*x<0x80) continue;
-if (*x>=0x81 && *x<=0x90) return CP_MSDOS; 
-else if (*x==164) return CP_ISO_8859_15;
+if (*x==164) return CP_ISO_8859_15;
+else if (*x>=0x80 && *x<=0xA0 && *x!=146) return CP_MSDOS; 
 else if ((*x>=0x80 && *x<0xC0) || *x>=248) return CP_ACP;
 else if (*x>=0xF0 && !testUtf8rule(&x, 3)) return CP_ACP;
 else if (*x>=0xE0 && !testUtf8rule(&x, 2)) return CP_ACP;

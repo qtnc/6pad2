@@ -122,7 +122,7 @@ return mod;
 
 void PyStart (void) {
 if (DEBUG) dbg << "Begin PyStart...\r\n";
-wstring modulePath = toWString( appDir + TEXT("\\python34.zip;") + appDir + TEXT("\\lib") );
+wstring modulePath = toWString( appDir + TEXT("\\python34.zip;") + appDir + TEXT("\\lib;") + appDir + TEXT("\\plugins") );
 if (DEBUG) dbg <<"Set python path...\r\n";
 Py_SetPath( modulePath.c_str() );
 Py_SetProgramName(const_cast<wchar_t*>(toWString(argv[0]).c_str()));

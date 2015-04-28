@@ -28,13 +28,18 @@ bool IsClosed () { return !fd || fd==INVALID_HANDLE_VALUE; }
 
 static StdFile* Open (const tstring& path, bool write, bool append) {
 HANDLE fd = NULL;
-if (write) fd = CreateFile(path.c_str(), GENERIC_WRITE, 0, NULL, append? OPEN_ALWAYS : CREATE_ALWAYS, 0, NULL);
+if (write) fd = CreateFile(path.c_str(), GENERIC_WRITE, FILE_SHARE_READ, NULL, append? OPEN_ALWAYS : CREATE_ALWAYS, 0, NULL);
 else fd = CreateFile(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 if (fd) return new StdFile(fd);
 else return NULL;
 }
 
 };//StdFile
+
+struct StdFileNoClose: StdFile {
+using StdFile::StdFile;
+void Close () {}
+};
 
 IO* FileURIProtocolHandler (const tstring& uri, bool write) {
 if (!UrlIsFileUrl(uri.c_str())) return NULL;
@@ -43,6 +48,13 @@ TCHAR path[300] = {0};
 if (S_OK!=PathCreateFromUrl(uri.c_str(), path, &pathlen, NULL)) return NULL;
 path[pathlen]=0;
 return StdFile::Open(path, write, false);
+}
+
+IO* StdstreamsProtocolHandler (const tstring& uri, bool write) {
+if (startsWith(uri, TEXT("stdin:")) && !write) return new StdFileNoClose(GetStdHandle(STD_INPUT_HANDLE));
+else if (startsWith(uri, TEXT("stdout:")) && write) return new StdFileNoClose(GetStdHandle(STD_OUTPUT_HANDLE));
+else if (startsWith(uri, TEXT("stderr:")) && write) return new StdFileNoClose(GetStdHandle(STD_ERROR_HANDLE));
+else return NULL;
 }
 
 void File::close () { 
@@ -61,7 +73,7 @@ bool File::open (const tstring& path, bool write, bool append) {
 //else if (path==TEXT("STDOUT")) fd = GetStdHandle(STD_OUTPUT_HANDLE);
 //else if (path==TEXT("STDERR")) fd = GetStdHandle(STD_ERROR_HANDLE);
 int dot = path.find(':');
-if (dot>1 && dot<=5) { // Handling custom protocols
+if (dot>1 && dot<=6) { // Handling custom protocols
 for (auto handler: protocolHandlers) {
 if (io = handler(path, write)) break;
 }}
@@ -119,7 +131,12 @@ if (n<=0) close();
 return s;
 }
 
+void File::registerHandler (const function<IO*(const tstring&,bool)>& f) {
+File::protocolHandlers.push_back(f);
+}
+
 vector<function<IO*(const tstring&,bool)>> File::protocolHandlers = {
-FileURIProtocolHandler
+FileURIProtocolHandler,
+StdstreamsProtocolHandler
 };
 

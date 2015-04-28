@@ -47,14 +47,11 @@
 <dt>str getClipboardText():</dt>
 <dd>Return the contents of the system clipboard.
 </dd>
-<dt>void setCurrentDirectory(str newDir):</dt>
-<dd>Move the current directory.
-</dd>
-<dt>str getCurrentDirectory():</dt>
-<dd>Return the current directory.
-</dd>
 <dt>void include(str filename):</dt>
 <dd>Run a file.
+</dd>
+<dt>void loadExtension(str extensionName)</dt>
+<dd>Load the specified extension; the name can be a python script to be included directly, a python module to be imported, or a C/C++ DLL extension.
 </dd>
 <dt>str msg(str key):</dt>
 <dd>Return the string associated to a given key in the translation file. Return the key itself if the string isn’t found.
@@ -62,8 +59,8 @@
 <dt>setConfig(str key, str value, [Bool multiple=False]):</dt>
 <dd>Set the value of a key in the configuration file. The multiple argument defines whether or not the key can be present multiple times. You can use keyword arguments ‘key’, ‘value’ and ‘multiple’.
 </dd>
-<dt>str getConfig (str key):</dt>
-<dd>Return the value of a key from the configuration file. Return an empty string in case the key doesn’t exist. If the key has multiple values, the first value found is returned.
+<dt>str getConfig (str key, str defaultValue):</dt>
+<dd>Return the value of a key from the configuration file. Return an empty string in case the key doesn’t exist. If the key has multiple values, the first value found is returned. If the key isn’t found, defaultValue is returned.
 </dd>
 <dt>[str] getConfigAsList(str key):</dt>
 <dd>Return a list containing all the values associated with the given key in the configuration file.

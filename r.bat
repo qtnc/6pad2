@@ -7,5 +7,5 @@ del obj\*.o
 copy a.lng "6pad++.lng"
 call pycompile.bat
 call d.bat
-zip -9 -u -q -r 6pad++.zip 6pad++.exe python34.zip *.dll 6pad++.lng doc\*.html
+zip -9 -u -q -r 6pad++.zip 6pad++.exe python34.zip *.dll 6pad++.lng doc\*.html lib\*.dll lib\*.pyd
 del "6pad++.lng"

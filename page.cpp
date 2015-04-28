@@ -315,7 +315,7 @@ if (pos==tstring::npos) pos = -1;
 return file.substr(1+pos);
 }
 
-static void ParseLineCol (tstring& file, int& line, int& col) {
+void ParseLineCol (tstring& file, int& line, int& col) {
 using namespace boost;
 tregex r1(TEXT(":(\\d+):(\\d+)$"), regex_constants::perl | regex_constants::mod_s | regex_constants::collate);
 tcmatch m;
@@ -366,14 +366,10 @@ return true;
 bool Page::LoadFile (const tstring& filename, bool guessFormat) {
 if (filename.size()>0) file = filename;
 if (file.size()<=0) return false;
-int line = 0, col = 0;
-ParseLineCol(file, line, col);
 name = FileNameToPageName(*this, file);
 File fd(file);
 if (!fd) return false;
-bool re = LoadData(fd.readFully(), guessFormat);
-if (re && line>0 && col>0) SetCurrentPositionLC(line -1, col -1);
-return re;
+return LoadData(fd.readFully(), guessFormat);
 }
 
 bool Page::LoadData (const string& str, bool guessFormat) {

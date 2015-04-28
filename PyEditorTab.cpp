@@ -1,6 +1,7 @@
 #include "global.h"
 #include "strings.hpp"
 #include "page.h"
+#include "thread.h"
 #include "python34.h"
 #include<boost/weak_ptr.hpp>
 using namespace std;
@@ -45,18 +46,18 @@ int getEncoding () { return page()->encoding; }
 int getIndentationMode () { return page()->indentationMode; }
 tstring getIndentString () { shared_ptr<Page> p = page(); return tstring(max(p->indentationMode,1), p->indentationMode>0?' ':'\t'); }
 int getAutoLineBreak () { return 0!=(page()->flags&PF_AUTOLINEBREAK); }
-void setLineEnding (int le) { PageSetLineEnding(page(),le); }
-void setEncoding (int e) { PageSetEncoding(page(),e); }
-void setIndentationMode (int i) { PageSetIndentationMode(page(),i); }
-void setAutoLineBreak (int b) { PageSetAutoLineBreak(page(),b); }
+void setLineEnding (int le) { RunSync([&]()mutable{ PageSetLineEnding(page(),le); }); }
+void setEncoding (int e) { RunSync([&]()mutable{ PageSetEncoding(page(),e); }); }
+void setIndentationMode (int i) { RunSync([&]()mutable{ PageSetIndentationMode(page(),i); }); }
+void setAutoLineBreak (int b) { RunSync([&]()mutable{ PageSetAutoLineBreak(page(),b); }); }
 void addEvent (const string& type, const PyCallback& cb) {  page()->addEvent(type,cb); }
 void removeEvent (const string& type, const PyCallback& cb) { page()->removeEvent(type,cb); }
 void focus () { page()->EnsureFocus(); }
 void close () { page()->EnsureFocus(); page()->Close(); }
-void undo () { page()->Undo(); }
-void redo () { page()->Redo(); }
-void save () { page()->SaveFile(); }
-void reload () { page()->LoadFile(TEXT(""),false); }
+void undo () { RunSync([&]()mutable{ page()->Undo(); }); }
+void redo () { RunSync([&]()mutable{ page()->Redo(); }); }
+void save () { RunSync([&]()mutable{ page()->SaveFile(); }); }
+void reload () { RunSync([&]()mutable{ page()->LoadFile(TEXT(""),false); }); }
 int getTextLength () { return page()->GetTextLength(); }
 tstring getSelectedText () { return page()->GetSelectedText(); }
 void setSelectedText (const tstring& s) { page()->SetSelectedText(s); }
