@@ -194,6 +194,7 @@ if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 
 void Page::ReplaceTextRange (int start, int end, const tstring& newStr, bool keepOldSelection) {
 int oldStart, oldEnd;
+if (start>0 && end>0 && start>end) { int x=start; start=end; end=x; }
 SendMessage(zone, EM_GETSEL, &oldStart, &oldEnd);
 tstring oldStr = GetTextSubstring(start, end);
 if (start>=0||end>=0) SendMessage(zone, EM_SETSEL, start, end);
@@ -364,6 +365,7 @@ return true;
 }
 
 bool Page::LoadFile (const tstring& filename, bool guessFormat) {
+if (filename.size()<=0 && (flags&PF_NORELOAD)) return false;
 if (filename.size()>0) file = filename;
 if (file.size()<=0) return false;
 name = FileNameToPageName(*this, file);

@@ -15,7 +15,7 @@ def func4 () :
 	window.alert('Result=' + str(re), 'Info')
 
 def func () :
-	window.open('a.py:8')
+	window.curPage.curLineText = 'Yes! Ca marche!'
 
 window.menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
 

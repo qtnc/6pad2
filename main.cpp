@@ -12,6 +12,9 @@
 #include<unordered_map>
 #include<functional>
 #include<csignal>
+#include<io.h>
+#include<fcntl.h>
+#include<shellapi.h>
 using namespace std;
 
 #define OF_REUSEOPENEDTABS 1
@@ -86,6 +89,7 @@ CheckMenuRadioItem(menuIndentation, 0, 8, p->indentationMode, MF_BYPOSITION);
 CheckMenuItem(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND | (p->flags&PF_AUTOLINEBREAK? MF_CHECKED : MF_UNCHECKED));
 EnableMenuItem2(menu, IDM_SAVE, MF_BYCOMMAND, !(p->flags&PF_NOSAVE));
 EnableMenuItem2(menu, IDM_SAVE_AS, MF_BYCOMMAND, !(p->flags&PF_NOSAVE));
+EnableMenuItem2(menu, IDM_REOPEN, MF_BYCOMMAND, !(p->flags&PF_NORELOAD));
 EnableMenuItem2(menu, IDM_UNDO, MF_BYCOMMAND, !(p->flags&PF_NOUNDO));
 EnableMenuItem2(menu, IDM_REDO, MF_BYCOMMAND, !(p->flags&PF_NOUNDO));
 EnableMenuItem2(menu, IDM_COPY, MF_BYCOMMAND, !(p->flags&PF_NOCOPY));
@@ -108,7 +112,8 @@ bool PageClosing (shared_ptr<Page> p) {
 if (!p) return true;
 if (!p->dispatchEvent<bool, true>("close")) return false;
 if (p->flags&PF_WRITETOSTDOUT) { 
-printf("%s", p->SaveData().c_str()); 
+setmode(fileno(stdout),O_BINARY);
+printf("%s", p->SaveData().c_str() );
 fflush(stdout);
 return true;
 }
@@ -147,6 +152,7 @@ return i;
 void PageNoneActive (void) {
 EnableMenuItem2(menu, IDM_SAVE, MF_BYCOMMAND, false);
 EnableMenuItem2(menu, IDM_SAVE_AS, MF_BYCOMMAND, false);
+EnableMenuItem2(menu, IDM_REOPEN, MF_BYCOMMAND, false);
 EnableMenuItem2(menu, IDM_UNDO, MF_BYCOMMAND, false);
 EnableMenuItem2(menu, IDM_REDO, MF_BYCOMMAND, false);
 EnableMenuItem2(menu, IDM_COPY, MF_BYCOMMAND, false);
@@ -352,6 +358,30 @@ GlobalUnlock(hMem);
 CloseClipboard();
 return text;
 }
+
+static void DoPaste (void) {
+if (IsClipboardFormatAvailable(CF_HDROP) && OpenClipboard(win)) {
+HGLOBAL hMem = GetClipboardData(CF_HDROP);
+HDROP hDrop = (HDROP)GlobalLock(hMem);
+SendMessage(win, WM_DROPFILES, hDrop, 0);
+GlobalUnlock(hMem);
+CloseClipboard();
+}
+else if (curPage) curPage->Paste();
+}
+
+static void DoDropFiles (HDROP hDrop) {
+POINT pt;
+int nFiles = DragQueryFile(hDrop, -1, NULL, NULL);
+DragQueryPoint(hDrop, &pt);
+if (nFiles<=0) return;
+printf("Dropped at: %d, %d\r\n", pt.x, pt.y);
+for (int i=0; i<nFiles; i++) {
+TCHAR buf[300] = {0};
+if (!DragQueryFile(hDrop, i, buf, 299)) break;
+tstring file = buf;
+printf("File dropped: %ls\r\n", file.c_str());
+}}
 
 tstring ConsoleRead (void) {
 while (consoleInput.size()<=0) WaitForSingleObject(consoleInputEvent, INFINITE);
@@ -563,7 +593,8 @@ return 0;
 bool writeToStdout = !isatty(fileno(stdout)), readFromStdin = !isatty(fileno(stdin));
 string dataFromStdin;
 if (readFromStdin) {
-File f(TEXT("stdin:"));
+setmode(fileno(stdin),O_BINARY);
+File f(TEXT("&in:"));
 dataFromStdin = f.readFully();
 }
 firstInstance = !FindWindow(CLASSNAME,NULL);
@@ -666,7 +697,7 @@ p->SetCurrentPosition(pos);
 }}
 if (writeToStdout || readFromStdin) {
 shared_ptr<Page> p = PageAddEmpty(false);
-if (writeToStdout) p->flags |= PF_WRITETOSTDOUT | PF_NOSAVE;
+if (writeToStdout) p->flags |= PF_WRITETOSTDOUT | PF_NOSAVE | PF_NORELOAD;
 p->LoadData(dataFromStdin);
 PageSetName(p, msg("Standard input/output"));
 }
@@ -678,6 +709,7 @@ fprintf(stderr, "Init time = %d ms\r\n", time);
 if (DEBUG) dbg << "Show app window and starting event loop...\r\n";
 if (headless) PostQuitMessage(0);
 else ShowWindow(win, nWindowStile);
+DragAcceptFiles(win, true);
 PageActivated(pages[0]);
 
 MSG msg;
@@ -740,7 +772,7 @@ case IDM_CLOSE: PageDelete(curPage); return true;
 case IDM_SELECTALL: if (curPage) curPage->SelectAll(); return true;
 case IDM_COPY: if (curPage) curPage->Copy();  return true;
 case IDM_CUT: if (curPage) curPage->Cut();  return true;
-case IDM_PASTE: if (curPage) curPage->Paste();  return true;
+case IDM_PASTE: DoPaste(); return true;
 case IDM_UNDO: if (curPage) curPage->Undo(); break;
 case IDM_REDO: if (curPage) curPage->Redo(); break;
 case IDM_MARKSEL: if (curPage) curPage->MarkCurrentPosition(); break;
@@ -785,6 +817,36 @@ return true;
 return false;
 }
 
+static LRESULT CALLBACK ConsoleDlgInputSubclassProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, DWORD_PTR unused) {
+static vector<tstring> history;
+static int historyPtr=0;
+switch(msg){
+case WM_KEYDOWN:
+if (LOWORD(wp)==VK_DOWN) {
+historyPtr = min(historyPtr+1, (int)history.size());
+if (historyPtr<history.size()) SetWindowText(hwnd, history[historyPtr]);
+else SetWindowText(hwnd, TEXT(""));
+SendMessage(hwnd, EM_SETSEL, 0, -1);
+}
+else if (LOWORD(wp)==VK_UP) {
+historyPtr = max(min(historyPtr -1, (int)history.size()), -1);
+if (historyPtr>=0 && historyPtr<history.size()) SetWindowText(hwnd, history[historyPtr]);
+else SetWindowText(hwnd, TEXT(""));
+SendMessage(hwnd, EM_SETSEL, 0, -1);
+}
+break;
+case WM_USER: {
+tstring str = GetWindowText(hwnd);
+auto it = std::find(history.begin(), history.end(), str);
+if (it!=history.end()) history.erase(it);
+history.push_back(str);
+if (history.size()>50) history.erase(history.begin());
+historyPtr = history.size();
+return true;
+}}
+return DefSubclassProc(hwnd, msg, wp, lp);
+}
+
 INT_PTR consoleDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
 switch (umsg) {
 case WM_INITDIALOG : {
@@ -801,12 +863,14 @@ SendMessage(hEdit, EM_SETLIMITTEXT, 67108864, 0);
 //int xx = curPage->tabSpaces==0? 16 : ABS(curPage->tabSpaces)*4;
 //SendMessage(hEdit, EM_SETTABSTOPS, 1, &xx);
 SetDlgItemFocus(hwnd, 1002);
+SetWindowSubclass(GetDlgItem(hwnd,1002), (SUBCLASSPROC)ConsoleDlgInputSubclassProc, 0, 0);
 modlessWindows.push_back(hwnd);
 }return TRUE;
 case WM_COMMAND :
 switch(LOWORD(wp)) {
 case 1003 : {
 tstring line = GetDlgItemText(hwnd, 1002);
+SendDlgItemMessage(hwnd, 1002, WM_USER, 0, 0);
 SetDlgItemText(hwnd, 1002, TEXT(""));
 SetDlgItemFocus(hwnd, 1002);
 ConsolePrint(line + TEXT("\r\n"));
@@ -876,6 +940,10 @@ case WM_COPYDATA: {
 COPYDATASTRUCT& cp = *(COPYDATASTRUCT*)(lp);
 if (cp.dwData==76) return OpenFile3((LPCTSTR)(cp.lpData));
 }break;
+case WM_DROPFILES:
+DoDropFiles((HDROP)wp);
+DragFinish((HDROP)wp);
+return true;
 case WM_SETFOCUS :
 AppWindowGainedFocus();
 break;

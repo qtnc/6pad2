@@ -23,6 +23,7 @@
 #define PF_NOUNDO 0x400000
 #define PF_NOSELECTALL 0x200000
 #define PF_NOSAVE 0x100000
+#define PF_NORELOAD 0x80000
 
 struct Page;
 

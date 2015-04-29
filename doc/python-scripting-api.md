@@ -155,6 +155,14 @@ int selectionStart:
 :	The anchor point of the current selection.
 int selectionEnd:
 :	The end point of the current selection.
+int position
+:	Same as selectionEnd. Modifying this attribute is the same as doint `select(value, value)`, i.e. the selection is collapsed at given position.
+int curColumn (read only):
+:	The current column where the caret is. If there is a selection, selectionEnd is taken as being the current position.
+int curLine:
+:	The current line number where the caret is. If there is a selection, selectionEnd is taken as being the current position. Modifying this value is the same as doing `position = lineStartIndex(value)`.
+str curLineText:
+:	The text of the line where the caret currently is. If there is a selection, selectionEnd is taken as being the current position.
 str selectedText:
 :	The text currently selected; if there is no selection, this string is empty.
 str text:
@@ -165,6 +173,20 @@ int lineCount (read only):
 :	The number of lines composing the text being edited.
 str indentString:
 :	A string representing a level of indentation, i.e. a tab or a couple of spaces.
+<span id="rangesinlines"></span>int rangesInLines:
+:	Whether indexing and slicing indices are counted in lines. If this attribute is False, indices are counted in characters. By default, this attribute is False. See [Indexing and slicing](#pageindexing) for more details.
+
+## Indexing and slicing {#pageindexing}
+On a page object, you can use the indexing and slicing operator to obtain a substring or lines of text.
+Depending on the value of the [rangesInLines](#rangesinlines) attribute, the indices you give are expressed in characters or in lines.
+
+object[0]:
+:	Return the first character or the first line of text.
+object[4:9]:
+:	Return a substring of text from the 3rd to the 8th character, or the text between the beginning of the 3rd line and the end of 7th line.
+
+Replacing ranges, such as `object[4:9] = 'Hello'` also works, and overwrite the range specified.
+However, note that *specifying a step different than 1*, (e.g. `object[10:20:3]` *isn't supported* and raises an error.
 
 ## Events
 The following events can be passed to addEvent/removeEvent for a page. The first argument passed to the callback is always the page where the event occurred. Additional parameters passed are indicated in parenthesis.
@@ -221,14 +243,20 @@ int show():
 
 ## Mapping, indexing and calling {#mappingindexing}
 You can use the indexing operator `[...]`or the direct attribute/member operator `.` to obtain a sub menu item of this menu, by its name or its index.
-- menu[0], return the first item of this menu
-- menu[-1], return the last item of this menu
-- menu['itemName'], return the sub menu item having the name 'itemName'
-- menu.itemName equivalent to menu['itemName']
-- None is returned if the item is not found
-- *Warning: menu[1:3] doesn't work*
 
-In case this menu object represents a single menu item, you can use the regular call operator like a function to trigger the action normally executed by the item.
+menu[0]:
+:	Return the first item of this menu.
+menu[-1]:
+:	Return the last item of this menu.
+menu['itemName']:
+:	Return the sub menu item having the name 'itemName'.
+menu.itemName:
+:	Equivalent to menu['itemName'].
+
+IN any case, None is returned if the item is not found
+- *Warning: slicing, e.g. menu[1:3] doesn't work*
+
+In case this menu object represents a single menu item, you can also use the regular call operator like a function to trigger the action normally executed by the item.
 I.e. `item()`. If the item represents a submenu, calling it like a function raises an error.
 
 ## Members

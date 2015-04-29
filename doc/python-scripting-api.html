@@ -28,6 +28,7 @@
 <li><a href="#page-class">Page class</a><ul>
 <li><a href="#methods-1">Methods</a></li>
 <li><a href="#members-2">Members</a></li>
+<li><a href="#pageindexing">Indexing and slicing</a></li>
 <li><a href="#events">Events</a></li>
 </ul></li>
 <li><a href="#menuobj">Menu class</a><ul>
@@ -60,7 +61,7 @@
 <dd>Set the value of a key in the configuration file. The multiple argument defines whether or not the key can be present multiple times. You can use keyword arguments ‘key’, ‘value’ and ‘multiple’.
 </dd>
 <dt>str getConfig (str key, str defaultValue):</dt>
-<dd>Return the value of a key from the configuration file. Return an empty string in case the key doesn’t exist. If the key has multiple values, the first value found is returned. If the key isn’t found, defaultValue is returned.
+<dd>Return the value of a key from the configuration file. If the key has multiple values, the first value found is returned. If the key isn’t found, defaultValue is returned.
 </dd>
 <dt>[str] getConfigAsList(str key):</dt>
 <dd>Return a list containing all the values associated with the given key in the configuration file.
@@ -260,6 +261,18 @@
 <dt>int selectionEnd:</dt>
 <dd>The end point of the current selection.
 </dd>
+<dt>int position</dt>
+<dd>Same as selectionEnd. Modifying this attribute is the same as doint <code>select(value, value)</code>, i.e. the selection is collapsed at given position.
+</dd>
+<dt>int curColumn (read only):</dt>
+<dd>The current column where the caret is. If there is a selection, selectionEnd is taken as being the current position.
+</dd>
+<dt>int curLine:</dt>
+<dd>The current line number where the caret is. If there is a selection, selectionEnd is taken as being the current position. Modifying this value is the same as doing <code>position = lineStartIndex(value)</code>.
+</dd>
+<dt>str curLineText:</dt>
+<dd>The text of the line where the caret currently is. If there is a selection, selectionEnd is taken as being the current position.
+</dd>
 <dt>str selectedText:</dt>
 <dd>The text currently selected; if there is no selection, this string is empty.
 </dd>
@@ -275,7 +288,21 @@
 <dt>str indentString:</dt>
 <dd>A string representing a level of indentation, i.e. a tab or a couple of spaces.
 </dd>
+<dt><span id="rangesinlines"></span>int rangesInLines:</dt>
+<dd>Whether indexing and slicing indices are counted in lines. If this attribute is False, indices are counted in characters. By default, this attribute is False. See <a href="#pageindexing">Indexing and slicing</a> for more details.
+</dd>
 </dl>
+<h2 id="pageindexing">Indexing and slicing</h2>
+<p>On a page object, you can use the indexing and slicing operator to obtain a substring or lines of text. Depending on the value of the <a href="#rangesinlines">rangesInLines</a> attribute, the indices you give are expressed in characters or in lines.</p>
+<dl>
+<dt>object[0]:</dt>
+<dd>Return the first character or the first line of text.
+</dd>
+<dt>object[4:9]:</dt>
+<dd>Return a substring of text from the 3rd to the 8th character, or the text between the beginning of the 3rd line and the end of 7th line.
+</dd>
+</dl>
+<p>Replacing ranges, such as <code>object[4:9] = 'Hello'</code> also works, and overwrite the range specified. However, note that <em>specifying a step different than 1</em>, (e.g. <code>object[10:20:3]</code> <em>isn’t supported</em> and raises an error.</p>
 <h2 id="events">Events</h2>
 <p>The following events can be passed to addEvent/removeEvent for a page. The first argument passed to the callback is always the page where the event occurred. Additional parameters passed are indicated in parenthesis.</p>
 <dl>
@@ -349,15 +376,25 @@
 </dl>
 <h2 id="mappingindexing">Mapping, indexing and calling</h2>
 <p>You can use the indexing operator <code>[...]</code>or the direct attribute/member operator <code>.</code> to obtain a sub menu item of this menu, by its name or its index.</p>
+<dl>
+<dt>menu[0]:</dt>
+<dd>Return the first item of this menu.
+</dd>
+<dt>menu[-1]:</dt>
+<dd>Return the last item of this menu.
+</dd>
+<dt>menu[‘itemName’]:</dt>
+<dd>Return the sub menu item having the name ‘itemName’.
+</dd>
+<dt>menu.itemName:</dt>
+<dd>Equivalent to menu[‘itemName’].
+</dd>
+</dl>
+<p>IN any case, None is returned if the item is not found</p>
 <ul>
-<li>menu[0], return the first item of this menu</li>
-<li>menu[-1], return the last item of this menu</li>
-<li>menu[‘itemName’], return the sub menu item having the name ‘itemName’</li>
-<li>menu.itemName equivalent to menu[‘itemName’]</li>
-<li>None is returned if the item is not found</li>
-<li><em>Warning: menu[1:3] doesn’t work</em></li>
+<li><em>Warning: slicing, e.g. menu[1:3] doesn’t work</em></li>
 </ul>
-<p>In case this menu object represents a single menu item, you can use the regular call operator like a function to trigger the action normally executed by the item. I.e. <code>item()</code>. If the item represents a submenu, calling it like a function raises an error.</p>
+<p>In case this menu object represents a single menu item, you can also use the regular call operator like a function to trigger the action normally executed by the item. I.e. <code>item()</code>. If the item represents a submenu, calling it like a function raises an error.</p>
 <h2 id="members-3">Members</h2>
 <dl>
 <dt>int submenu (read only):</dt>

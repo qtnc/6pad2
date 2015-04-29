@@ -51,9 +51,9 @@ return StdFile::Open(path, write, false);
 }
 
 IO* StdstreamsProtocolHandler (const tstring& uri, bool write) {
-if (startsWith(uri, TEXT("stdin:")) && !write) return new StdFileNoClose(GetStdHandle(STD_INPUT_HANDLE));
-else if (startsWith(uri, TEXT("stdout:")) && write) return new StdFileNoClose(GetStdHandle(STD_OUTPUT_HANDLE));
-else if (startsWith(uri, TEXT("stderr:")) && write) return new StdFileNoClose(GetStdHandle(STD_ERROR_HANDLE));
+if (startsWith(uri, TEXT("&in:")) && !write) return new StdFileNoClose(GetStdHandle(STD_INPUT_HANDLE));
+else if (startsWith(uri, TEXT("&out:")) && write) return new StdFileNoClose(GetStdHandle(STD_OUTPUT_HANDLE));
+else if (startsWith(uri, TEXT("&err:")) && write) return new StdFileNoClose(GetStdHandle(STD_ERROR_HANDLE));
 else return NULL;
 }
 
@@ -73,7 +73,7 @@ bool File::open (const tstring& path, bool write, bool append) {
 //else if (path==TEXT("STDOUT")) fd = GetStdHandle(STD_OUTPUT_HANDLE);
 //else if (path==TEXT("STDERR")) fd = GetStdHandle(STD_ERROR_HANDLE);
 int dot = path.find(':');
-if (dot>1 && dot<=6) { // Handling custom protocols
+if (dot>1 && dot<=5) { // Handling custom protocols
 for (auto handler: protocolHandlers) {
 if (io = handler(path, write)) break;
 }}
