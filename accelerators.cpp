@@ -69,7 +69,7 @@ key=0;
 vector<tstring> parts = split(kn, TEXT("+ "));
 for (int i=0, n=parts.size(); i<n-1; i++) {
 tstring s = parts[i];
-toLowerCase(s);
+to_lower(s);
 if (s==TEXT("ctrl")) flags |= FCONTROL;
 else if (s==TEXT("shift")) flags  |= FSHIFT;
 else if (s==TEXT("alt")) flags |= FALT;

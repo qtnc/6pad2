@@ -377,7 +377,7 @@ return LoadData(fd.readFully(), guessFormat);
 bool Page::LoadData (const string& str, bool guessFormat) {
 tstring text = TEXT("");
 if (guessFormat) { encoding=-1; lineEnding=-1; indentationMode=-1; }
-if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), config.get("defaultEncoding", CP_ACP));
+if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), config.get("defaultEncoding", (int)GetACP() ));
 text = ConvertFromEncoding(str, encoding);
 if (lineEnding<0) lineEnding = guessLineEnding(text.c_str(), config.get("defaultLineEnding", LE_DOS));
 if (indentationMode<0) indentationMode = guessIndentationMode(text.c_str(), text.size(), config.get("defaultIndentationMode", 0));
@@ -572,7 +572,7 @@ if (n<0 || n>=indent.size()) n=indent.size();
 indent = indent.substr(0,n);
 while(++ln<maxline) {
 tstring line = EditGetLine(hEdit, ln);
-if (!startsWith(line, indent)) break;
+if (!starts_with(line, indent)) break;
 }
 n = SendMessage(hEdit, EM_LINEINDEX, ln -1, 0);
 n +=  SendMessage(hEdit, EM_LINELENGTH, n, 0);
@@ -588,7 +588,7 @@ if (n<0 || n>=indent.size()) n=indent.size();
 indent = indent.substr(0,n);
 while(--ln>=0) {
 tstring line = EditGetLine(hEdit, ln);
-if (!startsWith(line, indent)) break;
+if (!starts_with(line, indent)) break;
 }
 n = SendMessage(hEdit, EM_LINEINDEX, ln+1, 0);
 if (pos>=n && pos<=n+indent.size() && n>2) return EZGetStartIndentedBlockPos(hEdit, n -2);

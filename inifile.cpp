@@ -15,6 +15,7 @@ return true;
 
 bool IniFile::load (const tstring& fn) {
 File f(fn);
+if (!f) return false;
 for (string line: split(f.readFully(), "\r\n")) {
 trim(line);
 if (line.size()<1 || line[0]=='#' || line[0]==';') continue;

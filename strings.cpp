@@ -9,40 +9,6 @@ using namespace std;
 
 #define DETECTION_MAX_LOOKUP 16384
 
-vector<string> split (const string& str, const string& delims) {
-using namespace boost;
-vector<string> v;
-split(v, str, is_any_of(delims));
-return v;
-}
-
-vector<wstring> split (const wstring& str, const wstring& delims) {
-using namespace boost;
-vector<wstring> v;
-split(v, str, is_any_of(delims));
-return v;
-}
-
-void toLowerCase (tstring& s) {
-boost::to_lower(s);
-}
-
-void toUpperCase (tstring& s) {
-boost::to_upper(s);
-}
-
-bool startsWith (const tstring& a, const tstring& b) {
-return boost::starts_with(a,b);
-}
-
-bool endsWith (const wstring& a, const wstring& b) {
-return boost::ends_with(a,b);
-}
-
-bool endsWith (const string& a, const string& b) {
-return boost::ends_with(a,b);
-}
-
 string snsprintf (int max, const string& fmt, ...) {
 string out(max+1, '\0');
 va_list ap;
@@ -139,7 +105,7 @@ int count = 0;
 for (const unsigned char* x = ch; *x && count<16384; ++x, count++) {
 if (*x<0x80) continue;
 if (*x==164) return CP_ISO_8859_15;
-else if (*x>=0x80 && *x<=0xA0 && *x!=146) return CP_MSDOS; 
+else if (*x>=0x80 && *x<=0xA0 && *x!=146) return GetOEMCP(); 
 else if ((*x>=0x80 && *x<0xC0) || *x>=248) return CP_ACP;
 else if (*x>=0xF0 && !testUtf8rule(&x, 3)) return CP_ACP;
 else if (*x>=0xE0 && !testUtf8rule(&x, 2)) return CP_ACP;

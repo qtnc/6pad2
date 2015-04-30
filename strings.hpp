@@ -4,26 +4,27 @@
 #include<string>
 #include<cstring>
 #include<cstdlib>
+#include<boost/algorithm/string.hpp>
+using boost::to_lower;
+using boost::to_upper;
+using boost::ends_with;
+using boost::starts_with;
+using boost::trim;
+using boost::split;
+using boost::is_any_of;
 
 tstring str_replace (tstring& str, const tstring& needle, const tstring& repl);
 tstring preg_replace (tstring& str, const tstring& needle, const tstring& repl);
-std::vector<std::string> split (const std::string& str, const std::string& delims);
-std::vector<std::wstring> split (const std::wstring& str, const std::wstring& delims);
-
-void toLowerCase (tstring&);
-void toUpperCase (tstring&);
-bool startsWith (const tstring&, const tstring&);
-bool endsWith (const std::wstring&, const std::wstring&);
-bool endsWith (const std::string&, const std::string&);
-
 void normalizeLineEndings (tstring& text) ;
 
-template <class T> void trim (std::basic_string<T>& s) {
-int first=0, last=s.size()  -1;
-while (first<s.size() && s[first]<32) first++;
-while (last>0 && s[last]<32) last--;
-if (first>0) s.erase(s.begin(), s.begin()+first);
-if (last<s.size()-1) s.erase(s.begin()+last+1, s.end());
+template<class T> std::vector<std::basic_string<T>> split (const std::basic_string<T>& str, const std::basic_string<T>& delims) {
+std::vector<std::basic_string<T>> v;
+split(v, str, boost::is_any_of(delims));
+return v;
+}
+
+template<class T> std::vector<std::basic_string<T>> split (const std::basic_string<T>& str, const T* delims) {
+return split(str, std::basic_string<T>(delims));
 }
 
 // Sprintf++

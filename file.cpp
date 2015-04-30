@@ -51,9 +51,9 @@ return StdFile::Open(path, write, false);
 }
 
 IO* StdstreamsProtocolHandler (const tstring& uri, bool write) {
-if (startsWith(uri, TEXT("&in:")) && !write) return new StdFileNoClose(GetStdHandle(STD_INPUT_HANDLE));
-else if (startsWith(uri, TEXT("&out:")) && write) return new StdFileNoClose(GetStdHandle(STD_OUTPUT_HANDLE));
-else if (startsWith(uri, TEXT("&err:")) && write) return new StdFileNoClose(GetStdHandle(STD_ERROR_HANDLE));
+if (starts_with(uri, TEXT("&in:")) && !write) return new StdFileNoClose(GetStdHandle(STD_INPUT_HANDLE));
+else if (starts_with(uri, TEXT("&out:")) && write) return new StdFileNoClose(GetStdHandle(STD_OUTPUT_HANDLE));
+else if (starts_with(uri, TEXT("&err:")) && write) return new StdFileNoClose(GetStdHandle(STD_ERROR_HANDLE));
 else return NULL;
 }
 

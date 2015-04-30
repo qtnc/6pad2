@@ -11,6 +11,7 @@
 #include<list>
 #include<unordered_map>
 #include<functional>
+#include<clocale>
 #include<csignal>
 #include<io.h>
 #include<fcntl.h>
@@ -21,14 +22,13 @@ using namespace std;
 #define OF_NEWINSTANCE 2
 #define OF_EXITONDOUBLEOPEN 4
 
-tstring appPath, appDir, appName, configFileName;
+tstring appPath, appDir, appName, configFileName, appLocale;
 IniFile msgs, config;
-File dbg;
 eventlist listeners;
 shared_ptr<Page> curPage(0);
 list<tstring> consoleInput;
 list<tstring> recentFiles;
-vector<int> encodings = { CP_ACP, CP_UTF8, CP_UTF8_BOM, CP_UTF16_LE, CP_UTF16_LE_BOM, CP_UTF16_BE, CP_UTF16_BE_BOM, CP_MSDOS };
+vector<int> encodings = { GetACP(), GetOEMCP(), CP_UTF8, CP_UTF8_BOM, CP_UTF16_LE, CP_UTF16_LE_BOM, CP_UTF16_BE, CP_UTF16_BE_BOM };
 vector<tstring> argv;
 vector<shared_ptr<Page>> pages;
 vector<HWND> modlessWindows;
@@ -36,7 +36,7 @@ unordered_map<int, function<void(void)>> userCommands;
 unordered_map<string,function<Page*()>> pageFactories = { {"text", &Page::create} };
 
 TCHAR CLASSNAME[32] = {0};
-bool firstInstance = false, headless=false;
+bool firstInstance = false, headless=false, isDebug = false;
 HINSTANCE hinstance = 0;
 HWND win=0, tabctl=0, status=0, consoleWin=0;
 HMENU menu = 0, menuFormat=0, menuEncoding=0, menuLineEnding=0, menuIndentation=0, menuRecentFiles = 0;
@@ -143,6 +143,7 @@ return appName  + TEXT(" ") + tstring(TEXT(SIXPAD_VERSION));
 }
 
 static int EncodingAdd (int enc) {
+if (!IsValidCodePage(enc)) return -1;
 int i = encodings.size();
 encodings.push_back(enc);
 InsertMenu(menuEncoding, i, MF_STRING | MF_BYPOSITION, IDM_ENCODING+i, msg(("Encoding" + toString(enc)).c_str()).c_str() );
@@ -184,6 +185,7 @@ int idx = std::find(encodings.begin(), encodings.end(), enc) - encodings.begin()
 if (idx>=0&&idx<encodings.size()) enc=idx;
 else enc = EncodingAdd(enc);
 }
+if (enc<0 || enc>=encodings.size()) return;
 p->encoding = encodings[enc];
 if (p==curPage) CheckMenuRadioItem(menuEncoding, 0, encodings.size(), enc, MF_BYPOSITION);
 }
@@ -253,7 +255,7 @@ shared_ptr<Page> PageAddEmpty (bool focus = true, const string& type = "text") {
 static int count = 0;
 shared_ptr<Page> p = PageCreate(type);
 p->name = msg("Untitled") + TEXT(" ") + toTString(++count);
-p->encoding = config.get("defaultEncoding", CP_ACP);
+p->encoding = config.get("defaultEncoding", (int)GetACP() );
 p->lineEnding = config.get("defaultLineEnding", LE_DOS);
 p->indentationMode = config.get("defaultIndentationMode", 0);
 p->flags = config.get("defaultAutoLineBreak", false)? PF_AUTOLINEBREAK : 0;
@@ -375,12 +377,14 @@ POINT pt;
 int nFiles = DragQueryFile(hDrop, -1, NULL, NULL);
 DragQueryPoint(hDrop, &pt);
 if (nFiles<=0) return;
-printf("Dropped at: %d, %d\r\n", pt.x, pt.y);
 for (int i=0; i<nFiles; i++) {
 TCHAR buf[300] = {0};
 if (!DragQueryFile(hDrop, i, buf, 299)) break;
 tstring file = buf;
-printf("File dropped: %ls\r\n", file.c_str());
+if (curPage && !curPage->dispatchEvent<bool, true>("fileDropped", file, (int)pt.x, (int)pt.y)) continue;
+else if (!listeners.dispatch<bool, true>("fileDropped", file, (int)pt.x, (int)pt.y)) continue;
+if (2==config.get("instanceMode",0)) OpenFile(file, OF_NEWINSTANCE); 
+else OpenFile(file, OF_REUSEOPENEDTABS);
 }}
 
 tstring ConsoleRead (void) {
@@ -521,31 +525,27 @@ SetMenuName(menu, cmd, cmd<1000, toTString(str).c_str() );
 }}
 
 static void termHandler (void) {
-if (DEBUG) dbg << "terminate called.\r\n";
 if (win) MessageBox(win, msg("A fatal error occurred and the application must be terminated. Please excuse for the inconvenience.").c_str(), msg("Fatal error").c_str(), MB_OK | MB_ICONERROR);
 exit(3);
 }
 
 static void sigsegv (int exCode) { 
-if (DEBUG) dbg << "Uncaught signal: " << exCode << "\r\n";
 std::terminate(); 
 }
 
 extern "C" int WINAPI WinMain (HINSTANCE hThisInstance,                      HINSTANCE hPrevInstance,                      LPSTR lpszArgument,                      int nWindowStile) {
-if (DEBUG) dbg.open(TEXT("6pad.log"), true);
 long long time = GetTickCount();
 hinstance = hThisInstance;
-if (DEBUG) dbg << "6pad log\r\n";
-
+if (!(isDebug = IsDebuggerPresent())) {
 set_terminate(termHandler);
 set_unexpected(termHandler);
 signal(SIGSEGV, sigsegv);
 signal(SIGFPE, sigsegv);
 signal(SIGILL, sigsegv);
-SetErrorMode(SEM_FAILCRITICALERRORS);
+}
+SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
 
 {//Getting paths and such global parameters
-if (DEBUG) dbg << "Init paths...\r\n";
 TCHAR fn[512]={0};
 GetModuleFileName(NULL, fn, 511);
 appPath = fn;
@@ -554,29 +554,24 @@ TCHAR* fnDot = tstrrchr(fn, (TCHAR)'.');
 *fnBs=0;
 *fnDot=0;
 tsnprintf(CLASSNAME, sizeof(CLASSNAME)/sizeof(TCHAR), TEXT("QC6Pad01_%s"), fnBs+1);
+appLocale = toTString(setlocale(LC_ALL,""));
+int i = appLocale.find('_');
+if (i>=0&&i<appLocale.size()) appLocale = appLocale.substr(0,i);
+to_lower(appLocale);
 appName = fnBs+1;
 appDir = fn;
 configFileName = appDir + TEXT("\\") + appName + TEXT(".ini");
-if (DEBUG) dbg << snsprintf(512, string("Window class name = %ls\r\nappName = %ls\r\nappDir = %ls\r\nconfig file = %ls\r\n"), CLASSNAME, appDir.c_str(), appName.c_str(), configFileName.c_str() );
-if (DEBUG) dbg << "Loading config file...\r\n";
 config.load(configFileName);
-if (DEBUG) dbg << "Loading language file...\r\n";
-msgs.load(appDir + TEXT("\\") + appName + TEXT(".lng") );
+if (!msgs.load(appDir + TEXT("\\") + appName + TEXT("-") + appLocale + TEXT(".lng") )) msgs.load(appDir + TEXT("\\") + appName + TEXT("-english.lng") );
 }
 
 {//Loading command line parameters
-if (DEBUG) dbg << "Loading argvlist...\r\n";
 int argc=0;
 wchar_t** args = CommandLineToArgvW(GetCommandLineW(), &argc);
 if (args) {
-if (DEBUG) dbg << "Argv split, collecting...\r\n";
 for (int i=0; i<argc; i++) argv.push_back(toTString(args[i]));
-if (DEBUG) dbg << argc << " args:\r\n";
-if (DEBUG) for(int i=0, n=argv.size(); i<n; i++) dbg << snsprintf(512, "argv[%d]=%ls\r\n", i, argv[i].c_str() );
-if (DEBUG) dbg << "Finished with argvlist\r\n";
 LocalFree(args);
 }}
-if (DEBUG) dbg << "Parsing argvlist...\r\n";
 for (int i=1; i<argv.size(); i++) {
 tstring arg = argv[i];
 if (arg.size()<=0) continue;
@@ -585,9 +580,7 @@ arg[0]='/';
 if (arg==TEXT("/headless")) headless=true;
 continue; 
 } 
-if (DEBUG) dbg << "Checking open state of " << arg << "...\r\n";
 if (OpenFile2(arg, OF_REUSEOPENEDTABS)) {
-if (DEBUG) dbg << arg << " is already open in another instance, exiting\r\n";
 return 0;
 }}
 bool writeToStdout = !isatty(fileno(stdout)), readFromStdin = !isatty(fileno(stdin));
@@ -598,10 +591,8 @@ File f(TEXT("&in:"));
 dataFromStdin = f.readFully();
 }
 firstInstance = !FindWindow(CLASSNAME,NULL);
-if (DEBUG) dbg << "firstInstance = " << firstInstance << "\r\n";
 
 {//Register class and controls block
-if (DEBUG) dbg << "Registering window class...\r\n";
     WNDCLASSEX wincl;
 wincl.hInstance = hinstance;
 wincl.lpszClassName = CLASSNAME;
@@ -615,19 +606,12 @@ wincl.lpszMenuName = TEXT("menu");
 wincl.cbClsExtra = 0;
 wincl.cbWndExtra = 0;
 wincl.hbrBackground = (HBRUSH) COLOR_BACKGROUND;
-if (!RegisterClassEx(&wincl)) {
-if (DEBUG) dbg << "Couldn't register window class, exiting\r\n";
-return 1;
-} 
-if (DEBUG) dbg << "Registering common controls...\r\n";
+if (!RegisterClassEx(&wincl)) return 1;
 INITCOMMONCONTROLSEX ccex = { sizeof(INITCOMMONCONTROLSEX), ICC_BAR_CLASSES | ICC_PROGRESS_CLASS | ICC_TAB_CLASSES | ICC_COOL_CLASSES | ICC_TREEVIEW_CLASSES | ICC_LISTVIEW_CLASSES   };
-if (!InitCommonControlsEx(&ccex)) {
-if (DEBUG) dbg << "Couldn't initialize common controls, exiting\r\n";
-return 1;
-}}
+if (!InitCommonControlsEx(&ccex)) return 1;
+}
 
 {//Create window block
-if (DEBUG) dbg << "Init app window GUI...\r\n";
 win = CreateWindowEx(
 WS_EX_CONTROLPARENT | WS_EX_ACCEPTFILES,
 CLASSNAME, GetDefaultWindowTitle().c_str(), 
@@ -661,29 +645,24 @@ SetMenuNamesFromResource(menu);
 }
 
 {//Recent files
-if (DEBUG) dbg << "Loading recent files list...\r\n";
 for (int i=0; config.contains("recentFile"+toString(i)); i++) {
 recentFiles.push_back(config.get<tstring>("recentFile"+toString(i), TEXT("") ));
 }
 UpdateRecentFilesMenu();
 }//END Recentfiles
 
-if (DEBUG) dbg << "Init python...\r\n";
 consoleInputEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 InitializeCriticalSection(&csConsoleInput);
 Thread::start(PyStart);
 
-if (DEBUG) dbg << "Parsing argvlist again...\r\n";
 for (int i=1; i<argv.size(); i++) {
 const tstring& arg = argv[i];
 if (arg.size()<=0) continue;
 else if (arg[0]=='-' || arg[0]=='/') { continue; } // options
-if (DEBUG) dbg <<"Opening " << arg << "...\r\n"; 
 OpenFile(arg);
 }
 
 if (firstInstance) {//Reload last opened files
-if (DEBUG) dbg << "Reloading last opened files...\r\n";
 int mode = config.get("reloadLastFilesMode",0);
 if (mode==1 && pages.size()>0) mode=0;
 for (int i=0; config.contains("lastFile" + toString(i)); i++) {
@@ -706,7 +685,6 @@ if (pages.size()<=0) PageAddEmpty(false);
 time = GetTickCount() -time;
 fprintf(stderr, "Init time = %d ms\r\n", time);
 
-if (DEBUG) dbg << "Show app window and starting event loop...\r\n";
 if (headless) PostQuitMessage(0);
 else ShowWindow(win, nWindowStile);
 DragAcceptFiles(win, true);
@@ -722,12 +700,10 @@ DispatchMessage(&msg);
 endmsgloop: ;
 }
 
-if (DEBUG) dbg << "End of message loop\r\nSaving config...\r\n";
 {int i=0; for(const tstring& file: recentFiles) {
 config.set("recentFile" + toString(i++), file);
 }}
 if (config.size()>0) config.save(appDir + TEXT("\\") + appName + TEXT(".ini") );
-if (DEBUG) dbg << "Finished, exiting with code " << msg.wParam;
 return msg.wParam;
 }
 

@@ -88,6 +88,10 @@ status (str text):
 	Note that this event occurs after the status event of a specific page.
 title (str text):
 :	Called when the title of the application window is about to be changed. The title which is going to be set is passed in the callback, and you can return a new text string to overwrite what will be shown on the title bar of the application window.
+fileDropped (str file, int x, int y):
+:	Called when a file has been dragged from windows explorer and dropped onto the application window, or when a file from windows explorer is copied and pasted into the application  window. The callback receives the file name, and the mouse coordinates of the drop. In case of a clipboard operation, coordinates are (0;0).
+	By returning True, the normal action is taken, i.e. open the dragged file in 6pad++. You can return False to prevent this action from happening.
+	Note that this event is only triggered if no similar event is registered for the current page or if it returned True.
 
 # Page class
 ## Methods
@@ -223,6 +227,9 @@ keyUp (int vk):
 :	Occurs when the user releases a key in the edition area. By returning False, you can prevent the default action of the key from happening.
 contextmenu ():
 :	Occurs when the user calls the context menu with application key and/or Shift+F10 and/or right mouse button. By returning False, you can prevent the default context menu from appearing.
+fileDropped (str file, int x, int y):
+:	Called when a file has been dragged from windows explorer and dropped onto the application window, or when a file from windows explorer is copied and pasted into the application  window. The callback receives the file name, and the mouse coordinates of the drop. In case of a clipboard operation, coordinates are (0;0).
+	By returning True, the normal action is taken, i.e. open the dragged file in 6pad++. You can return False to prevent this action from happening.
 
 # Menu class {#menuobj}
 ## Methods
