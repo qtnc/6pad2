@@ -583,7 +583,8 @@ continue;
 if (OpenFile2(arg, OF_REUSEOPENEDTABS)) {
 return 0;
 }}
-bool writeToStdout = !isatty(fileno(stdout)), readFromStdin = !isatty(fileno(stdin));
+bool writeToStdout = (1&GetFileType(GetStdHandle(STD_OUTPUT_HANDLE))), 
+readFromStdin = (1&GetFileType(GetStdHandle(STD_INPUT_HANDLE)));
 string dataFromStdin;
 if (readFromStdin) {
 setmode(fileno(stdin),O_BINARY);
