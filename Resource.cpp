@@ -1,5 +1,6 @@
 #include "Resource.h"
 #include<cstring>
+using boost::shared_array;
 
 Resource::Resource (const TCHAR* name, int tp) : hf(0), hr(0) {
 hf = FindResource(NULL, name, MAKEINTRESOURCE(tp));
@@ -18,10 +19,10 @@ const void* Resource::data () {
 return LockResource(hr);
 }
 
-void* Resource::copy () {
+shared_array<char> Resource::copy () {
 size_t sz = size();
-char* ch = new char[sz+1];
-memcpy(ch, data(), sz);
+shared_array<char> ch( new char[sz+1] );
+memcpy(&ch[0], data(), sz);
 ch[sz]=0;
 return ch;
 }

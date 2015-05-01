@@ -15,7 +15,12 @@ def func4 () :
 	window.alert('Result=' + str(re), 'Info')
 
 def func () :
-	window.curPage.curLineText = 'Yes! Ca marche!'
+	window.beep(1047,300)
+	func2()
 
-window.menus.edit.add(label='Item inutile', accelerator='Ctrl+E', action=func)
+def func2() :
+	window.beep(524,300)
 
+window.menus.edit.add(name='test', label='Item inutile', accelerator='Ctrl+E', action=func)
+window.setTimeout(func, 4000)
+window.setTimeout(func2, 1000)

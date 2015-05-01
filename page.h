@@ -57,6 +57,7 @@ virtual void HideZone ();
 virtual void ShowZone (const RECT&);
 virtual void FocusZone ();
 virtual void EnsureFocus ();
+virtual void SetFont (HFONT);
 virtual void Close () ;
 virtual bool LoadFile (const tstring& fn = TEXT(""), bool guessFormat=true ) ;
 virtual bool LoadData (const string& data, bool guessFormat=true);

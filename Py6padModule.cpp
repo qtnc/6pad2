@@ -7,8 +7,8 @@
 #include "Thread.h"
 using namespace std;
 
-extern IniFile config;
-extern tstring appPath, appDir, appName, configFileName;
+extern IniFile config, msgs;
+extern tstring appPath, appDir, appName, configFileName, appLocale;
 extern vector<tstring> argv;
 
 extern "C" FILE* msvcfopen (const char* name, const char* ax) ;
@@ -79,6 +79,10 @@ else if (ends_with(name, ".dll")) {}//C++ extension, not yet supported
 else PyImport_ImportModule(name.c_str());
 }
 
+static void PyLoadLang (const tstring& langfile) {
+msgs.load(langfile);
+}
+
 static PyMethodDef _6padMainDefs[] = {
 // Translation management
 PyDecl("msg", msg),
@@ -92,9 +96,10 @@ PyDecl("getConfigAsList", PyGetConfigMulti),
 PyDecl("setClipboardText", SetClipboardText),
 PyDecl("getClipboardText", GetClipboardText),
 
-// Extension and includes
+// Extension, includes and other general functions
 PyDecl("include", PyInclude),
 PyDecl("loadExtension", PyLoadExtension),
+PyDecl("loadTranslation", PyLoadLang),
 
 // Overload of print, to be able to print in python console GUI
 PyDecl("sysPrint", ConsolePrint),
@@ -116,6 +121,7 @@ PyRegister_MenuItem(mod);
 PyRegister_EditorTab(mod);
 PyRegister_MyObj(mod);
 PyModule_AddObject(mod, "window", CreatePyWindowObject() );
+PyModule_AddObject(mod, "locale", Py_BuildValue("u", appLocale.c_str()));
 return mod;
 }
 
@@ -129,9 +135,8 @@ PyEval_InitThreads();
 GIL_PROTECT
 {
 Resource res(TEXT("init.py"),257);
-char* code = (char*)res.copy();
-bool failed = !!PyRun_SimpleString(code);
-delete[] code;
+auto code = res.copy();
+bool failed = !!PyRun_SimpleString(&code[0]);
 if (failed) exit(1);
 }
 RunSync([](){});//Barrier to wait for the main loop to start

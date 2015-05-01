@@ -6,6 +6,8 @@
 #define FD_OPEN 1
 #define FD_MULTI 2
 
-tstring FileDialog (HWND parent, int flags, const tstring& file = TEXT(""), const tstring& title = TEXT(""), const tstring& filters = TEXT(""), int* nFilterSelected = 0) ;
+tstring FileDialog (HWND parent, int flags, const tstring& file = TEXT(""), const tstring& title = TEXT(""), tstring  filters = TEXT(""), int* nFilterSelected = 0) ;
+bool FontDialog (HWND parent, LOGFONT&);
+COLORREF ColorDialog (HWND parent, COLORREF clr = RGB(0,0,0) );
 
 #endif

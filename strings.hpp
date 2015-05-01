@@ -13,8 +13,9 @@ using boost::trim;
 using boost::split;
 using boost::is_any_of;
 
-tstring str_replace (tstring& str, const tstring& needle, const tstring& repl);
-tstring preg_replace (tstring& str, const tstring& needle, const tstring& repl);
+tstring str_replace (const tstring& str, const tstring& needle, const tstring& repl);
+tstring preg_replace (const tstring& str, const tstring& needle, const tstring& repl);
+tstring str_replace (const tstring& str, const std::vector<std::pair<tstring,tstring>>& pairs);
 void normalizeLineEndings (tstring& text) ;
 
 template<class T> std::vector<std::basic_string<T>> split (const std::basic_string<T>& str, const std::basic_string<T>& delims) {

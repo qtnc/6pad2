@@ -2,6 +2,7 @@
 Ca&ncel=A&nnuler
 &File=&Fichier
 &New=&Nouveau
+&Text file=Fichier &texte
 &Open...=&Ouvrir...
 Open in a new &instance...=Ouvrir dans une nouvelle &instance...
 Re&load=Rec&harger
@@ -28,6 +29,7 @@ F&ormat=Forma&t
 &Tabs=&Tabulations
 %d spaces=%d espaces
 Automatic line break=Retour à la li&gne automatique
+Font...=Police...
 Mar&k current position=Mar&quer la position actuelle
 Select to mar&k=Sélectionner &jusqu'à la position marquée
 Go back to mar&k=Re&venir à la position marquée

@@ -149,7 +149,7 @@ tregex reg2(TEXT("(?:\r\n|\r|\n)"), options);
 text = regex_replace(text, reg2, TEXT("\r\n"), flags);
 }
 
-tstring preg_replace (tstring& str, const tstring& needle, const tstring& repl) {
+tstring preg_replace (const tstring& str, const tstring& needle, const tstring& repl) {
 using namespace boost;
 typedef boost::wregex tregex;
 const int options = regex_constants::perl | regex_constants::mod_s | regex_constants::collate;
@@ -158,13 +158,19 @@ tregex reg(needle, options);
 return regex_replace(str, reg, repl, flags);
 }
 
-tstring str_replace (tstring& str, const tstring& needle, const tstring& repl) {
+tstring str_replace (const tstring& str, const tstring& needle, const tstring& repl) {
 using namespace boost;
 typedef boost::wregex tregex;
 const int options = regex_constants::literal;
 const match_flag_type flags = match_flag_type::format_literal;
 tregex reg(needle, options);
 return regex_replace(str, reg, repl, flags);
+}
+
+tstring str_replace (const tstring& str, const std::vector<std::pair<tstring,tstring>>& pairs) {
+tstring re = str;
+for (auto p: pairs) re = str_replace(re, p.first, p.second);
+return re;
 }
 
 void PrepareSmartPaste (tstring& text, const tstring& indent) {

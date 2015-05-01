@@ -32,13 +32,14 @@ vector<int> encodings = { GetACP(), GetOEMCP(), CP_UTF8, CP_UTF8_BOM, CP_UTF16_L
 vector<tstring> argv;
 vector<shared_ptr<Page>> pages;
 vector<HWND> modlessWindows;
-unordered_map<int, function<void(void)>> userCommands;
+unordered_map<int, function<void(void)>> userCommands, timers;
 unordered_map<string,function<Page*()>> pageFactories = { {"text", &Page::create} };
 
 TCHAR CLASSNAME[32] = {0};
 bool firstInstance = false, headless=false, isDebug = false;
 HINSTANCE hinstance = 0;
 HWND win=0, tabctl=0, status=0, consoleWin=0;
+HFONT gfont = NULL;
 HMENU menu = 0, menuFormat=0, menuEncoding=0, menuLineEnding=0, menuIndentation=0, menuRecentFiles = 0;
 HACCEL hAccel = 0, hGlobAccel=0;
 HANDLE consoleInputEvent=0;
@@ -51,6 +52,7 @@ void UpdateRecentFilesMenu (void);
 bool FindAccelerator (int cmd, int& flags, int& key);
 tstring KeyCodeToName (int flags, int vk, bool i18n);
 void ParseLineCol (tstring& file, int& line, int& col);
+void ClearTimeout (int id);
 LRESULT WINAPI AppWinProc (HWND, UINT, WPARAM, LPARAM);
 
 tstring msg (const char* name) {
@@ -473,10 +475,15 @@ return p;
 
 void OpenFileDialog (int flags) {
 tstring file = (curPage? curPage->file : tstring(TEXT("")) );
-file = FileDialog(win, FD_OPEN, file, msg("Open") );
+file = FileDialog(win, FD_OPEN | FD_MULTI, file, msg("Open") );
 if (file.size()<=0) return;
-OpenFile(file, flags);
-}
+int nVbar = file.find('|');
+if (nVbar<0 || nVbar>=file.size()) OpenFile(file, flags);
+else {
+vector<tstring> files = split(file, TEXT("|"));
+for (int i=1, n=files.size(); i<n; i++) {
+OpenFile(files[0] + TEXT("\\") + files[i], flags);
+}}}
 
 void UpdateRecentFilesMenu (void) {
 for (int i=recentFiles.size() -1; i>=0; i--)  DeleteMenu(menuRecentFiles, i, MF_BYPOSITION);
@@ -645,6 +652,14 @@ I18NMenus(menu);
 SetMenuNamesFromResource(menu);
 }
 
+{//TExt font
+File fdFont(appDir + TEXT("\\") + appName + TEXT(".fnt"));
+if (fdFont) {
+LOGFONT lf = {0};
+fdFont.read(&lf, sizeof(lf));
+gfont = CreateFontIndirect(&lf);
+}}
+
 {//Recent files
 for (int i=0; config.contains("recentFile"+toString(i)); i++) {
 recentFiles.push_back(config.get<tstring>("recentFile"+toString(i), TEXT("") ));
@@ -720,7 +735,7 @@ int nextPos = (curPos + dist + n +1)%(n+1);
 SetForegroundWindow(nextPos==n? win : modlessWindows[nextPos]);
 }
 
-void AboutDlg () {
+static void AboutDlg () {
 string pyver = Py_GetVersion();
 pyver = pyver.substr(0, pyver.find(' '));
 MessageBox(win, tsnprintf(512,
@@ -729,6 +744,22 @@ TEXT("6pad++ %s\r\nCopyright \xA9 2015, Quentin Cosendey\r\nhttp://quentinc.net/
 + TEXT("\r\n\r\n") + msg("This program embeds python %s from") + TEXT(" Guido van Rossum (http://www.python.org/)"),
 TEXT(SIXPAD_VERSION), toTString(pyver).c_str()
 ).c_str(), msg("About").c_str(), MB_OK | MB_ICONINFORMATION);
+}
+
+static void SelFontDlg () {
+LOGFONT lf = { 0, 0, 0, 0, 400, false, false, false, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, FIXED_PITCH | FF_MODERN, TEXT("Courier")};
+{//Loading font
+File fdFont(appDir + TEXT("\\") + appName + TEXT(".fnt"));
+if (fdFont) {
+LOGFONT lf = {0};
+fdFont.read(&lf, sizeof(lf));
+}}
+if (!FontDialog(win,lf)) return;
+char* clf = (char*)&lf;
+File fdFont(appDir + TEXT("\\") + appName + TEXT(".fnt"), true);
+fdFont.write(&lf, sizeof(lf));
+gfont = CreateFontIndirect(&lf);
+for (auto p: pages) p->SetFont(gfont);
 }
 
 bool ActionCommand (HWND hwnd, int cmd) {
@@ -768,8 +799,11 @@ case IDM_PREVPAGE: PageGoToNext(-1); break;
 case IDM_NEXT_MODLESS: GoToNextModlessWindow(1); return true;
 case IDM_PREV_MODLESS: GoToNextModlessWindow(-1); return true;
 case IDM_ABOUT: AboutDlg(); break;
+case IDM_SELECTFONT: SelFontDlg(); break;
 case IDM_EXIT: SendMessage(win, WM_CLOSE, 0, 0); return true;
-case IDM_CRASH: { int* p=0; *p=0; } return true; // Force crash
+case IDM_CRASH:
+break;
+//{ int* p=0; *p=0; } return true; // Force crash
 }
 if (cmd>=IDM_ENCODING && cmd<IDM_ENCODING+encodings.size() ) {
 PageSetEncoding(curPage, cmd-IDM_ENCODING);
@@ -836,7 +870,7 @@ SetDlgItemText(hwnd, 1003, msg("E&val"));
 SetDlgItemText(hwnd, 1004, msg("Clea&r"));
 SetDlgItemText(hwnd, IDCANCEL, msg("&Close"));
 SendMessage(hEdit, EM_SETLIMITTEXT, 67108864, 0);
-//SendMessage(hEdit, WM_SETFONT, font, TRUE);
+SendMessage(hEdit, WM_SETFONT, gfont, TRUE);
 //int xx = curPage->tabSpaces==0? 16 : ABS(curPage->tabSpaces)*4;
 //SendMessage(hEdit, EM_SETTABSTOPS, 1, &xx);
 SetDlgItemFocus(hwnd, 1002);
@@ -913,6 +947,13 @@ Proc* proc = (Proc*)lp;
 if (wp) delete proc;
 return true;
 }break;
+case WM_TIMER: {
+int id = LOWORD(wp);
+auto it = timers.find(id);
+if (it!=timers.end()) {
+it->second();
+if (id&0x8000) ClearTimeout(id);
+}}break;
 case WM_COPYDATA: {
 COPYDATASTRUCT& cp = *(COPYDATASTRUCT*)(lp);
 if (cp.dwData==76) return OpenFile3((LPCTSTR)(cp.lpData));

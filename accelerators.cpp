@@ -2,8 +2,9 @@
 #include<unordered_map>
 using namespace std;
 
+extern HWND win;
 extern HACCEL hAccel;
-extern unordered_map<int, function<void(void)>> userCommands;
+extern unordered_map<int, function<void(void)>> userCommands, timers;
 
 extern tstring msg (const char* name);
 
@@ -156,5 +157,19 @@ key = accell[i].key;
 return true;
 }}
 return false;
+}
+
+int SetTimeout (const std::function<void(void)>& f, int time, bool repeat) {
+int id = 0;
+if (!repeat) id |= 0x8000;
+while(timers[++id]);
+timers[id] = f;
+SetTimer(win, id, time, NULL);
+}
+
+void ClearTimeout (int id) {
+KillTimer(win, id);
+auto it = timers.find(id);
+if (it!=timers.end()) timers.erase(it);
 }
 

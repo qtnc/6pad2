@@ -24,9 +24,13 @@ void close () ;
 void flush () ;
 inline File () : io(0)  { }
 inline File (const tstring& path, bool write=false, bool append=false): io(0) { open(path,write, append); }
+inline File (const File&) = delete;
+inline File (File&&) = default;
+inline File& operator= (const File&) = delete;
+inline File& operator= (File&&) = default;
 inline ~File() { close(); }
 inline operator bool () {   return io && !io->IsClosed();   }
-inline File& operator<< (const string& s) { write(s); flush(); return *this; }
+inline File& operator<< (const string& s) { write(s); return *this; }
 inline File& operator<< (const char* s) { return operator<<(string(s)); }
 template<class T> inline File& operator<< (const T& x) { return operator<<(toString(x)); }
 

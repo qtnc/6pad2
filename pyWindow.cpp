@@ -25,6 +25,8 @@ tstring msg (const char* name);
 void AppAddEvent (const string&, const PyCallback&);
 void AppRemoveEvent (const string&, const PyCallback&);
 int AddUserCommand (std::function<void(void)> f, int cmd=0);
+int SetTimeout (const std::function<void(void)>& f, int time, bool repeat);
+void ClearTimeout (int id);
 bool AddAccelerator (int flags, int key, int cmd);
 bool KeyNameToCode (const tstring& kn, int& flags, int& key);
 shared_ptr<Page> OpenFile (const tstring& filename, int flags);
@@ -111,6 +113,14 @@ static void PySetWinTitle (const tstring& title) {
 SetWindowText(win, title);
 }
 
+static int PySetTimer1 (const PyCallback& cb, int time) {
+return SetTimeout([=](){  cb(); }, time, false);
+}
+
+static int PySetTimer2 (const PyCallback& cb, int time) {
+return SetTimeout([=](){ cb(); }, time, true);
+}
+
 static int PyEditorTabs_getTabCount () {
 return pages.size();
 }
@@ -164,6 +174,11 @@ PyDecl("createPopupMenu", PyMenuItem_CreatePopupMenu),
 // Global events management
 PyDecl("addEvent", AppAddEvent),
 PyDecl("removeEvent", AppRemoveEvent),
+PyDecl("setTimeout", PySetTimer1),
+PyDecl("setInterval", PySetTimer2),
+PyDecl("clearTimeout", ClearTimeout),
+PyDecl("clearInterval", ClearTimeout),
+
 
 PyDeclEnd
 };

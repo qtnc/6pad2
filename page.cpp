@@ -62,6 +62,7 @@ static list<FindData> finds;
 
 extern HINSTANCE hinstance;
 extern HWND win, status;
+extern HFONT gfont;
 extern IniFile config, msgs;
 extern tstring configFileName;
 extern eventlist listeners;
@@ -865,7 +866,7 @@ WS_CHILD | WS_TABSTOP | WS_VSCROLL | WS_BORDER | ES_MULTILINE | ES_NOHIDESEL | E
 10, 10, 400, 400,
 parent, (HMENU)(IDC_EDITAREA + count++), hinstance, NULL);
 SendMessage(hEdit, EM_SETLIMITTEXT, 1073741823, 0);
-//SendMessage(hEdit, WM_SETFONT, font, TRUE);
+SendMessage(hEdit, WM_SETFONT, gfont, TRUE);
 { int x=16; SendMessage(hEdit, EM_SETTABSTOPS, 1, &x); }
 SetWindowText(hEdit, text.c_str());
 SendMessage(hEdit, EM_SETSEL, ss, se);
@@ -897,6 +898,10 @@ SetFocus(zone);
 
 void Page::ResizeZone (const RECT& r) {
 MoveWindow(zone, r.left+3, r.top+3, r.right-r.left -6, r.bottom-r.top -6, TRUE);
+}
+
+void Page::SetFont (HFONT font) {
+if (zone) SendMessage(zone, WM_SETFONT, font, true);
 }
 
 void Page::PushUndoState (shared_ptr<UndoState> u, bool tryToJoin) {

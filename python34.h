@@ -172,18 +172,27 @@ return cc;
 
 struct PySafeObject {
 PyObject* o;
-PySafeObject (PyObject* x = 0): o(0) { operator=(x); }
-PySafeObject (const PySafeObject& x): PySafeObject(x.o) {}
-PySafeObject& operator= (const PySafeObject& x) { return operator=(x.o); }
+inline PySafeObject (): o(0) {}
+inline PySafeObject (PyObject* x): o(0) { operator=(x); }
+inline PySafeObject (const PySafeObject& x): PySafeObject(x.o) {}
+inline PySafeObject& operator= (const PySafeObject& x) { return operator=(x.o); }
 PySafeObject& operator= (PyObject* x) {
-if (x==o) return *this;
 GIL_PROTECT
 Py_XINCREF(x);
 Py_XDECREF(o);
 o=x;
 return *this;
 }
-~PySafeObject  () { operator=(NULL); }
+PySafeObject& operator= (PySafeObject&& x) {
+if (this==&x) return *this;
+GIL_PROTECT;
+Py_XDECREF(o);
+o = x.o;
+x.o = 0;
+return *this;
+}
+inline PySafeObject (PySafeObject&& x): o(x.o) { x.o=0; }
+inline ~PySafeObject  () { operator=(NULL); }
 inline bool operator== (PyObject* x) { return x==o; }
 inline bool operator== (const PySafeObject& x) { return x.o==o; }
 inline PyObject* operator* () { return o; }
@@ -192,11 +201,11 @@ inline operator bool () { return !!o && o!=Py_None && o!=Py_False; }
 
 struct PyCallback {
 PyObject* func;
-PyCallback (PyObject* x = 0): func(0) { operator=(x); }
-PyCallback (const PyCallback& x): PyCallback(x.func) {}
-PyCallback& operator= (const PyCallback& x) { return operator=(x.func); }
+inline PyCallback (): func(0) {}
+inline PyCallback (PyObject* x): func(0) { operator=(x); }
+inline PyCallback (const PyCallback& x): PyCallback(x.func) {}
+inline PyCallback& operator= (const PyCallback& x) { return operator=(x.func); }
 PyCallback& operator= (PyObject* o) {
-if (func==o) return *this;
 GIL_PROTECT
 if (o && !PyCallable_Check(o)) o=NULL;
 Py_XINCREF(o);
@@ -204,7 +213,16 @@ Py_XDECREF(func);
 func=o;
 return *this;
 }
-~PyCallback () { operator=(NULL); }
+PyCallback& operator= (PyCallback&& x) {
+if (this==&x) return *this;
+GIL_PROTECT
+Py_XDECREF(func);
+func = x.func;
+x.func = 0;
+return *this;
+}
+inline PyCallback (PyCallback&& x): func(x.func) { x.func=0; }
+inline ~PyCallback () { operator=(NULL); }
 inline bool operator== (const PyCallback& pcb) { return func==pcb.func; }
 inline operator bool () const { return !!func && func!=Py_None; }
 template<class R, class... A> R operator() (A... args) const {
@@ -228,10 +246,10 @@ Py_XDECREF(pyResult);
 };//PyCallback
 
 template<> struct PyTypeSpec<PyCallback> { 
-typedef PyCallback type;
+typedef PyObject* type;
 static constexpr const char c = 'O'; 
-static inline PyCallback convert (const PyCallback& i) { return i; }
-static inline PyCallback convert2 (const PyCallback& i) { return i; }
+static inline PyCallback convert (PyObject* i) { return i; }
+static inline PyObject* convert2 (const PyCallback& i) { return i.func; }
 static inline PyCallback convert3 (PyObject* o) { 
 if (!PyCallable_Check(o)) { PyErr_SetString(PyExc_TypeError, "object must be callable"); return 0; }
 return o; 
@@ -239,14 +257,30 @@ return o;
 };
 
 template<> struct PyTypeSpec<const PyCallback&> { 
-typedef PyCallback type;
+typedef PyObject* type;
 static constexpr const char c = 'O'; 
-static inline PyCallback convert (const PyCallback& i) { return i; }
-static inline PyCallback convert2 (const PyCallback& i) { return i; }
+static inline PyCallback convert (PyObject* i) { return i; }
+static inline PyObject* convert2 (const PyCallback& i) { return i.func; }
 static inline PyCallback convert3 (PyObject* o) { 
 if (!PyCallable_Check(o)) { PyErr_SetString(PyExc_TypeError, "object must be callable"); return 0; }
 return o; 
 }
+};
+
+template<> struct PyTypeSpec<PySafeObject> { 
+typedef PyObject* type;
+static constexpr const char c = 'O'; 
+static inline PySafeObject convert (PyObject* i) { return i; }
+static inline PyObject* convert2 (const PySafeObject& i) { return i.o; }
+static inline PySafeObject convert3 (PyObject* o) {  return o;  }
+};
+
+template<> struct PyTypeSpec<const PySafeObject&> { 
+typedef PyObject* type;
+static constexpr const char c = 'O'; 
+static inline PySafeObject convert (PyObject* i) { return i; }
+static inline PyObject* convert2 (const PySafeObject& i) { return i.o; }
+static inline PySafeObject convert3 (PyObject* o) {  return o;  }
 };
 
 template<int... S> struct TemplateSequence {};
