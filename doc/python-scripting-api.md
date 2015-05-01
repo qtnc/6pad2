@@ -13,6 +13,8 @@ void include(str filename):
 :	Run a file.
 void loadExtension(str extensionName)
 :	Load the specified extension; the name can be a python script to be included directly, a python module to be imported, or a C/C++ DLL extension.
+void loadTranslation (str filename):
+:	Load a translation .lng file.
 str msg(str key):
 :	Return the string associated to a given key in the translation file. Return the key itself if the string isn't found.
 setConfig(str key, str value, [Bool multiple=False]):
@@ -52,6 +54,14 @@ void addEvent(str eventName, callback function):
 :	Install a callback to be called when the given event occurs. See the [list of supported events for window](#windowEvents).
 void removeEvent(str eventName, callback function):
 :	Remove an event previously registered.
+int setTimeout(callback function, int delay):
+:	Schedule the given callback function to be called asynchronously after the specified delay. Returns a timer identifier, which can be passed to [clearTimeout](#clearTimeout) to cancel this timer.
+int setInterval(callback function, int interval):
+:	Schedule the given callback function to be called asynchronously and repeatedly each specified interval until it is cancelled with a call to [clearInterval](#clearInterval). Returns the timer identifier, which must be given to `clearInterval` in order to stop this timer.
+<span id="clearTimeout"></span>clearTimeout(int timerId)
+:	Cancel the specified timer.
+<span id="clearInterval"></span>clearInterval(int timerId)
+:	Cancel the specified timer.
 
 ## Members
 Page curPage:

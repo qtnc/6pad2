@@ -112,6 +112,18 @@
 <dt>void removeEvent(str eventName, callback function):</dt>
 <dd>Remove an event previously registered.
 </dd>
+<dt>int setTimeout(callback function, int delay):</dt>
+<dd>Schedule the given callback function to be called asynchronously after the specified delay. Returns a timer identifier, which can be passed to <a href="#clearTimeout">clearTimeout</a> to cancel this timer.
+</dd>
+<dt>int setInterval(callback function, int interval):</dt>
+<dd>Schedule the given callback function to be called asynchronously and repeatedly each specified interval until it is cancelled with a call to <a href="#clearInterval">clearInterval</a>. Returns the timer identifier, which must be given to <code>clearInterval</code> in order to stop this timer.
+</dd>
+<dt><span id="clearTimeout"></span>clearTimeout(int timerId)</dt>
+<dd>Cancel the specified timer.
+</dd>
+<dt><span id="clearInterval"></span>clearInterval(int timerId)</dt>
+<dd>Cancel the specified timer.
+</dd>
 </dl>
 <h2 id="members-1">Members</h2>
 <dl>
