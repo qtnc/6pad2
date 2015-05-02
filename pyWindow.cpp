@@ -11,6 +11,7 @@ using namespace std;
 
 struct PyWindow { 
     PyObject_HEAD 
+PyObject* dic;
 };
 
 extern tstring appPath, appDir, appName, configFileName;
@@ -142,11 +143,14 @@ return list;
 
 static void PyWindowDealloc (PyObject* pySelf) {
 PyWindow* self = (PyWindow*)pySelf;
+Py_XDECREF(self->dic);
+self->dic=NULL;
 Py_TYPE(pySelf)->tp_free(pySelf);
 }
 
 static PyWindow* PyWindowNew (PyTypeObject* type, PyObject* args, PyObject* kwds) {
 PyWindow* self = (PyWindow*)(type->tp_alloc(type, 0));
+self->dic=NULL;
 return self;
 }
 
@@ -217,8 +221,8 @@ static PyTypeObject PyWindowType = {
     0,                         /* tp_hash  */ 
     0,                         /* tp_call */ 
     0,                         /* tp_str */ 
-    0,                         /* tp_getattro */ 
-    0,                         /* tp_setattro */ 
+    PyAttrGet,                         /* tp_getattro */ 
+    PyAttrSet,                         /* tp_setattro */ 
     0,                         /* tp_as_buffer */ 
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,        /* tp_flags */ 
     NULL,           /* tp_doc */

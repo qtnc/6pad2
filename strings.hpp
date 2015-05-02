@@ -13,10 +13,12 @@ using boost::trim;
 using boost::split;
 using boost::is_any_of;
 
-tstring str_replace (const tstring& str, const tstring& needle, const tstring& repl);
-tstring preg_replace (const tstring& str, const tstring& needle, const tstring& repl);
-tstring str_replace (const tstring& str, const std::vector<std::pair<tstring,tstring>>& pairs);
-void normalizeLineEndings (tstring& text) ;
+#define export __declspec(dllexport)
+
+tstring export str_replace (const tstring& str, const tstring& needle, const tstring& repl);
+tstring export preg_replace (const tstring& str, const tstring& needle, const tstring& repl);
+tstring export str_replace (const tstring& str, const std::vector<std::pair<tstring,tstring>>& pairs);
+void export normalizeLineEndings (tstring& text) ;
 
 template<class T> std::vector<std::basic_string<T>> split (const std::basic_string<T>& str, const std::basic_string<T>& delims) {
 std::vector<std::basic_string<T>> v;
@@ -29,8 +31,8 @@ return split(str, std::basic_string<T>(delims));
 }
 
 // Sprintf++
-std::string snsprintf (int max, const std::string& fmt, ...) ;
-std::wstring snwprintf (int max, const std::wstring& fmt, ...) ;
+std::string export snsprintf (int max, const std::string& fmt, ...) ;
+std::wstring export snwprintf (int max, const std::wstring& fmt, ...) ;
 
 // Conversion 
 
@@ -199,12 +201,12 @@ inline std::wstring toWString (bool b) {
 return (b?L"true":L"false");
 }
 
-int guessEncoding (const unsigned char* str, int def);
-int guessIndentationMode (const TCHAR* str, int len, int def);
-int guessLineEnding (const TCHAR* str, int def);
+int export guessEncoding (const unsigned char* str, int def);
+int export guessIndentationMode (const TCHAR* str, int len, int def);
+int export guessLineEnding (const TCHAR* str, int def);
 
 
-tstring ConvertFromEncoding (const std::string& str, int encoding);
-std::string ConvertToEncoding (const tstring& str, int encoding);
+tstring export ConvertFromEncoding (const std::string& str, int encoding);
+std::string export ConvertToEncoding (const tstring& str, int encoding);
 
 #endif

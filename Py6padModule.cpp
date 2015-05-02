@@ -25,6 +25,25 @@ bool PyRegister_EditorTab(PyObject* m);
 bool PyRegister_MenuItem (PyObject* m);
 PyObject* CreatePyWindowObject ();
 
+PyObject* PyAttrGet (PyObject* o, PyObject* k) {
+PyObject* re = PyObject_GenericGetAttr(o,k);
+if (re) return re;
+PyObject* dic = (((PyObjectWithDic*)o)->dic);
+if (!dic) return NULL;
+PyErr_Clear();
+re = PyDict_GetItem(dic, k);
+if (re) return re;
+return PyObject_GenericGetAttr(o,k);
+}
+
+int PyAttrSet (PyObject* o, PyObject* k, PyObject* v) {
+if (!PyObject_GenericSetAttr(o,k,v)) return 0;
+PyObjectWithDic* e = (PyObjectWithDic*)o;
+if (!e->dic) e->dic = PyDict_New();
+if (!v) return PyDict_DelItem(e->dic, k);
+else return PyDict_SetItem(e->dic, k, v);
+}
+
 static int PyInclude (const string& fn) {
 bool result = false;
 FILE* fp = msvcfopen(fn.c_str(), "r");

@@ -66,6 +66,7 @@ extern HFONT gfont;
 extern IniFile config, msgs;
 extern tstring configFileName;
 extern eventlist listeners;
+extern unordered_map<string,function<Page*()>> pageFactories;
 
 tstring msg (const char* name) ;
 void SetClipboardText (const tstring&);
@@ -926,6 +927,10 @@ MessageBeep(MB_OK);
 return;
 }
 undoStates[curUndoState++]->Redo(*this);
+}
+
+void Page::RegisterPageFactory (const string& name, const function<Page*()>& f) {
+pageFactories[name] = f;
 }
 
 void TextDeleted::Redo (Page& p) {

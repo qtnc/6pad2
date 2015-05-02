@@ -26,19 +26,19 @@ tstring appPath, appDir, appName, configFileName, appLocale;
 IniFile msgs, config;
 eventlist listeners;
 shared_ptr<Page> curPage(0);
-list<tstring> consoleInput;
+list<tstring> consoleInput = { TEXT("import sixpad"), TEXT("from sixpad import window") };
 list<tstring> recentFiles;
 vector<int> encodings = { GetACP(), GetOEMCP(), CP_UTF8, CP_UTF8_BOM, CP_UTF16_LE, CP_UTF16_LE_BOM, CP_UTF16_BE, CP_UTF16_BE_BOM };
 vector<tstring> argv;
 vector<shared_ptr<Page>> pages;
 vector<HWND> modlessWindows;
 unordered_map<int, function<void(void)>> userCommands, timers;
-unordered_map<string,function<Page*()>> pageFactories = { {"text", &Page::create} };
+unordered_map<string,function<Page*()>> pageFactories = { {"text", [](){return new Page();}} };
 
-TCHAR CLASSNAME[32] = {0};
-bool firstInstance = false, headless=false, isDebug = false;
-HINSTANCE hinstance = 0;
-HWND win=0, tabctl=0, status=0, consoleWin=0;
+TCHAR export CLASSNAME[32] = {0};
+bool export firstInstance = false, headless=false, isDebug = false;
+HINSTANCE export hinstance = 0;
+HWND export win=0, tabctl=0, status=0, consoleWin=0;
 HFONT gfont = NULL;
 HMENU menu = 0, menuFormat=0, menuEncoding=0, menuLineEnding=0, menuIndentation=0, menuRecentFiles = 0;
 HACCEL hAccel = 0, hGlobAccel=0;
@@ -876,7 +876,7 @@ SendMessage(hEdit, WM_SETFONT, gfont, TRUE);
 SetDlgItemFocus(hwnd, 1002);
 SetWindowSubclass(GetDlgItem(hwnd,1002), (SUBCLASSPROC)ConsoleDlgInputSubclassProc, 0, 0);
 modlessWindows.push_back(hwnd);
-}return TRUE;
+}return false;
 case WM_COMMAND :
 switch(LOWORD(wp)) {
 case 1003 : {

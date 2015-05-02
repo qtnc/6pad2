@@ -41,7 +41,9 @@ typedef std::string tstring;
 #define DEBUG 1
 #endif
 
-#define SIXPAD_VERSION "Alpha 1"
+#define export __declspec(dllexport)
+
+#define SIXPAD_VERSION "Alpha 2"
 
 #define LE_DOS 0
 #define LE_UNIX 1

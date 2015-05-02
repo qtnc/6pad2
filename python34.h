@@ -17,8 +17,14 @@ RAII_GIL():  gil(PyGILState_Ensure()) { }
 ~RAII_GIL(){  PyGILState_Release(gil); }
 };
 
-void PyStart (void);
+struct PyObjectWithDic {
+    PyObject_HEAD 
+PyObject* dic;
+};
 
+void PyStart (void);
+int PyAttrSet (PyObject* o, PyObject* k, PyObject* v);
+PyObject* PyAttrGet (PyObject* o, PyObject* k);
 
 ///Automatic wrappers!
 
@@ -384,6 +390,5 @@ template<G getf> static inline PyObject* getter (PyObject* self, void* unused) {
 #define PyWriteOnlyAccessor(n,s) {(n), NULL, (PySetterSpec<decltype(s)>::setter<s>), NULL, NULL}
 #define PyReadOnlyAccessor(n,g) {(n), (PyGetterSpec<decltype(g)>::getter<g>), NULL, NULL, NULL}
 #define PyDeclEnd {0, 0, 0, 0}
-
 
 #endif

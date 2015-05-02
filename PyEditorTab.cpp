@@ -22,6 +22,7 @@ void Redo (Page&);
 
 struct PyEditorTab { 
     PyObject_HEAD
+PyObject* dic;
 weak_ptr<Page> wpPage;
 bool seqAsLines;
 
@@ -30,7 +31,7 @@ shared_ptr<Page> p = wpPage.lock();
 if (p) return p;
 else {
 PyErr_SetString(PyExc_ValueError, "Page is closed");
-return shared_ptr<Page>(Page::create());
+return shared_ptr<Page>(new Page());
 }}
 
 int isClosed () { return wpPage.expired(); }
@@ -95,6 +96,8 @@ void pushUndoState (PyObject* o) { page()->PushUndoState(shared_ptr<UndoState>(n
 
 static void PyEditorTabDealloc (PyObject* pySelf) {
 PyEditorTab* self = (PyEditorTab*)pySelf;
+Py_XDECREF(self->dic);
+self->dic = NULL;
 self->wpPage = weak_ptr<Page>();
 Py_TYPE(pySelf)->tp_free(pySelf);
 }
@@ -103,6 +106,7 @@ static PyEditorTab* PyEditorTabNew (PyTypeObject* type, PyObject* args, PyObject
 PyEditorTab* self = (PyEditorTab*)(type->tp_alloc(type, 0));
 self->wpPage = weak_ptr<Page>();
 self->seqAsLines = false;
+self->dic = NULL;
 return self;
 }
 
@@ -248,8 +252,8 @@ static PyTypeObject PyEditorTabType = {
     0,                         /* tp_hash  */ 
     0,                         /* tp_call */ 
     0,                         /* tp_str */ 
-    0,                         /* tp_getattro */ 
-    0,                         /* tp_setattro */ 
+    PyAttrGet,                         /* tp_getattro */ 
+    PyAttrSet,                         /* tp_setattro */ 
     0,                         /* tp_as_buffer */ 
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,        /* tp_flags */ 
     NULL,           /* tp_doc */

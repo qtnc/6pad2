@@ -7,7 +7,7 @@ typedef std::function<void(void)> Proc;
 
 extern HWND win;
 
-class Thread {
+class export Thread {
 private:
 HANDLE handle;
 public:

@@ -3,6 +3,7 @@
 #include "global.h"
 #include "python34.h"
 #include "eventlist.h"
+#include<functional>
 #include<boost/enable_shared_from_this.hpp>
 
 #define PF_CLOSED 1
@@ -25,7 +26,7 @@
 #define PF_NOSAVE 0x100000
 #define PF_NORELOAD 0x80000
 
-struct Page;
+struct export Page;
 
 struct UndoState {
 virtual void Undo (Page&) = 0;
@@ -35,10 +36,10 @@ virtual int GetTypeId () { return 0; }
 virtual ~UndoState(){}
 };
 
-struct Page: std::enable_shared_from_this<Page>  {
+struct export Page: std::enable_shared_from_this<Page>  {
 tstring name=TEXT(""), file=TEXT("");
 int encoding=-1, indentationMode=-1, lineEnding=-1, markedPosition=0, curUndoState=0;
-DWORD flags = 0;
+unsigned long long flags = 0;
 HWND zone=0;
 PySafeObject pyData;
 eventlist listeners;
@@ -115,7 +116,7 @@ template<class... A> inline void dispatchEvent (const string& type, A... args) {
 inline void addEvent (const std::string& type, const PyCallback& cb) { listeners.add(type,cb); }
 inline void removeEvent (const std::string& type, const PyCallback& cb) { listeners.remove(type,cb); }
 
-static inline Page* create () { return new Page(); }
+static void RegisterPageFactory (const std::string& name, const std::function<Page*()>& factory);
 };
 
 #endif

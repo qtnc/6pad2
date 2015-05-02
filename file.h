@@ -10,7 +10,7 @@ virtual void Close () = 0;
 virtual bool IsClosed () = 0;
 };
 
-struct File {
+struct export File {
 IO* io;
 bool open (const tstring& path, bool write=false, bool append=false);
 int read (void* buf, int len);
