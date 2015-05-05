@@ -3,6 +3,8 @@
 #include<string>
 #include<map>
 #include "strings.hpp"
+using std::map;
+using std::multimap;
 
 struct IniFile: private std::multimap<string,string>  {
 typedef std::multimap<string,string> super;
@@ -12,6 +14,8 @@ using super::count;
 using super::begin;
 using super::end;
 using super::size;
+using super::clear;
+
 bool load (const tstring& fn) ;
 bool save (const tstring& fn) ;
 inline bool contains (const std::string& key)  { return find(key)!=end(); }

@@ -6,7 +6,7 @@
 #include<windows.h>
 #include<commctrl.h>
 #ifndef __WINDRES
-#include<boost/shared_ptr.hpp>
+//#include<boost/shared_ptr.hpp>
 #include<cstdio>
 #include<string>
 #include<vector>
@@ -67,6 +67,7 @@ typedef std::string tstring;
 #define IDD_CONSOLE 900
 #define IDD_GOTOLINE 901
 #define IDD_SEARCHREPLACE 902
+#define IDD_CHOICE 903
 
 #define IDM_NEW 1000
 #define IDM_OPEN 1001
@@ -102,6 +103,7 @@ typedef std::string tstring;
 #define IDM_SELTOMARK 2234
 #define IDM_GOTOMARK 2235
 #define IDM_SELECTFONT 2236
+#define IDM_OTHER_ENCODINGS 2237
 #define IDM_OPEN_CONSOLE 2400
 #define IDM_USER_COMMAND 4000
 #define IDM_NEXT_MODLESS 19997

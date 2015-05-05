@@ -42,5 +42,6 @@ inline bool IsShiftDown () { return GetKeyState(VK_SHIFT)<0; }
 inline bool IsAltDown () { return GetKeyState(VK_MENU)<0; }
 
 unsigned long long GetFileTime (LPCTSTR, int);
+unsigned long long GetCurTime ();
 
 #endif

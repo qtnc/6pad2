@@ -84,6 +84,10 @@ inline bool toBool (const std::wstring& str) {
 return str==L"1" || !wcsicmp(str.c_str(),L"true") || !wcsicmp(str.c_str(),L"on");
 }
 
+inline unsigned int gstoul (const wchar_t* s, wchar_t** e, int b) { return wcstoul(s,e,b); }
+inline unsigned int gstoul (const char* s, char** e, int b) { return strtoul(s,e,b); }
+inline bool isDigit (int c) { return c>='0'&&c<='9'; }
+
 template <class T> inline size_t& stringSize (std::basic_string<T>& s) {
 return ((size_t*)(s.data()))[-3];
 }
@@ -201,12 +205,45 @@ inline std::wstring toWString (bool b) {
 return (b?L"true":L"false");
 }
 
-int export guessEncoding (const unsigned char* str, int def);
+int export guessEncoding (const unsigned char* str, int len, int def, int acpdef = GetACP(), int oemdef = GetOEMCP() );
 int export guessIndentationMode (const TCHAR* str, int len, int def);
-int export guessLineEnding (const TCHAR* str, int def);
+int export guessLineEnding (const TCHAR* str, int len, int def);
 
 
 tstring export ConvertFromEncoding (const std::string& str, int encoding);
 std::string export ConvertToEncoding (const tstring& str, int encoding);
+const std::vector<int>& export getAllAvailableEncodings ();
+
+template<class T> int strnatcmp (const T* L, const T* R) {
+bool alphaMode=true;
+assert(L);
+assert(R);
+while(*L&&*R) {
+if (alphaMode) {
+while(*L&&*R) {
+bool lDigit = isDigit(*L), rDigit = isDigit(*R);
+if (lDigit&&rDigit) { alphaMode=false; break; }
+else if (lDigit) return -1;
+else if (rDigit) return 1;
+else if (*L!=*R) return *L-*R;
+++L; ++R;
+}} else { // numeric mode
+T *lEnd=0, *rEnd=0;
+unsigned int l = gstoul(L, &lEnd, 0), r = gstoul(R, &rEnd, 0);
+if (lEnd) L=lEnd; 
+if (rEnd) R=rEnd;
+if (l!=r) return l-r;
+alphaMode=true;
+}}
+if (*R) return -1;
+else if (*L) return 1;
+return 0;
+}
+
+template<class T> struct nat_less {
+inline bool operator() (const T* l, const T* r) { return strnatcmp(l,r)<0; }
+inline bool operator() (const std::basic_string<T>& l, const std::basic_string<T>& r) {  return strnatcmp(l.data(), r.data() )<0;  }
+};
+
 
 #endif

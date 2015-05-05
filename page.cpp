@@ -3,6 +3,7 @@
 #include "file.h"
 #include "inifile.h"
 #include<boost/regex.hpp>
+using namespace std;
 
 #define FF_CASE 1
 #define FF_REGEX 2
@@ -362,7 +363,7 @@ SetModified(false);
 File fd(file, true);
 if (!fd) return false;
 fd.writeFully(cstr.data(), cstr.size());
-if (file==configFileName) config.load(configFileName);
+lastSave = GetCurTime();
 return true; 
 }
 
@@ -379,15 +380,22 @@ return LoadData(fd.readFully(), guessFormat);
 bool Page::LoadData (const string& str, bool guessFormat) {
 tstring text = TEXT("");
 if (guessFormat) { encoding=-1; lineEnding=-1; indentationMode=-1; }
-if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), config.get("defaultEncoding", (int)GetACP() ));
+if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), str.size(), config.get("defaultEncoding", (int)GetACP() ));
 text = ConvertFromEncoding(str, encoding);
-if (lineEnding<0) lineEnding = guessLineEnding(text.c_str(), config.get("defaultLineEnding", LE_DOS));
-if (indentationMode<0) indentationMode = guessIndentationMode(text.c_str(), text.size(), config.get("defaultIndentationMode", 0));
+if (lineEnding<0) lineEnding = guessLineEnding(text.data(), text.size(), config.get("defaultLineEnding", LE_DOS));
+if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), config.get("defaultIndentationMode", 0));
 normalizeLineEndings(text);
 var re = dispatchEvent("load", var(), text);
 if (re.getType()==T_STR) text = re.toTString();
+lastSave = GetCurTime();
 SetText(text);
 return true;
+}
+
+bool Page::CheckFileModification () {
+if (file.size()<=0) return false;
+unsigned long long lastMod = GetFileTime(file.c_str(), LAST_MODIFIED_TIME);
+return lastMod>0 && lastSave>0 && lastMod>lastSave;
 }
 
 static tstring StatusBarUpdate (HWND hEdit, HWND status) {

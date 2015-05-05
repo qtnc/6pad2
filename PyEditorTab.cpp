@@ -3,7 +3,7 @@
 #include "page.h"
 #include "thread.h"
 #include "python34.h"
-#include<boost/weak_ptr.hpp>
+//#include<boost/weak_ptr.hpp>
 using namespace std;
 
 void PageSetLineEnding (shared_ptr<Page> p, int le);

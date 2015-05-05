@@ -10,6 +10,7 @@
 #include "eventlist.h"
 #include<list>
 #include<unordered_map>
+#include<map>
 #include<functional>
 #include<clocale>
 #include<csignal>
@@ -146,6 +147,8 @@ return appName  + TEXT(" ") + tstring(TEXT(SIXPAD_VERSION));
 
 static int EncodingAdd (int enc) {
 if (!IsValidCodePage(enc)) return -1;
+auto it = std::find(encodings.begin(), encodings.end(), enc);
+if (it!=encodings.end()) return it - encodings.begin();
 int i = encodings.size();
 encodings.push_back(enc);
 InsertMenu(menuEncoding, i, MF_STRING | MF_BYPOSITION, IDM_ENCODING+i, msg(("Encoding" + toString(enc)).c_str()).c_str() );
@@ -311,8 +314,15 @@ listeners.dispatch("closed");
 }
 
 void AppWindowActivated () {
+static bool on = false;
+if (on) return;
+struct _tmp_{bool&b; _tmp_(bool&x):b(x){b=true;} ~_tmp_(){b=false;} } _tmp1_(on);
 listeners.dispatch("activated");
-}
+for (auto p: pages) {
+if (p->CheckFileModification()) {
+if (p->IsModified() && IDYES!=MessageBox(win, tsnprintf(512, msg("%s has been modified in another application. Do you want to reload it ?"), p->name.c_str()).c_str(), p->name.c_str(), MB_ICONEXCLAMATION | MB_YESNO) ) p->lastSave = GetCurTime();
+else p->LoadFile(TEXT(""),false);
+}}}
 
 void AppWindowDeactivated () {
 listeners.dispatch("deactivated");
@@ -336,6 +346,28 @@ listeners.dispatch("resized");
 
 void AppAddEvent (const string& type, const PyCallback& cb) { listeners.add(type, cb); }
 void AppRemoveEvent (const string& type, const PyCallback& cb) { listeners.remove(type, cb); }
+
+static void EncodingShowAll () {
+map<tstring, int, nat_less<TCHAR>> encmap;
+vector<tstring> encstrs;
+vector<int> encvals;
+int curenc = (curPage? curPage->encoding : -1);
+for (int enc: getAllAvailableEncodings()) {
+if (enc==20127 || enc==21027) continue;
+tstring name = str_replace(msg(("Encoding" + toString(enc)).c_str()), TEXT("&"), TEXT(""));
+encmap.insert(pair<tstring,int>( name, enc));
+printf("%d %ls\r\n", enc, name.c_str());
+}
+for (auto it: encmap) {
+if (it.second==curenc) curenc = encvals.size();
+encstrs.push_back(it.first);
+encvals.push_back(it.second);
+}
+curenc = ChoiceDialog(win, msg("Choose encoding"), msg("Choose an encoding in the list below") + TEXT(":"), encstrs, curenc);
+if (curPage && curenc>=0 && curenc<=encvals.size()) PageSetEncoding(curPage, encvals[curenc]);
+}
+
+
 
 bool SetClipboardText (const tstring&  text2) {
 wstring text = toWString(text2);
@@ -415,6 +447,7 @@ curPage->SaveFile(file);
 UpdateWindowTitle();
 }
 else curPage->SaveFile();
+if (curPage->file==configFileName) { config.clear(); config.load(configFileName); }
 }
 
 bool OpenFile3 (const tstring& file) {
@@ -647,7 +680,6 @@ menuIndentation = GetSubMenu(menuFormat,2);
 menuRecentFiles = GetSubMenu(GetSubMenu(menu, 0), 6);
 for (int i=0; i<encodings.size(); i++) InsertMenu(menuEncoding, i, MF_STRING | MF_BYPOSITION, IDM_ENCODING+i, (TEXT("Encoding")+toTString(encodings[i])).c_str() );
 for (int i=1; i<=8; i++) InsertMenu(menuIndentation, i, MF_STRING | MF_BYPOSITION, IDM_INDENTATION_SPACES -1 +i, tsnprintf(32, msg("%d spaces"), i).c_str() );
-DeleteMenu(menuEncoding, encodings.size(), MF_BYPOSITION);
 I18NMenus(menu);
 SetMenuNamesFromResource(menu);
 }
@@ -793,7 +825,8 @@ case IDM_FINDNEXT: if (curPage) curPage->FindNext(); return true;
 case IDM_FINDPREV: if (curPage) curPage->FindPrev(); return true;
 case IDM_LE_DOS: case IDM_LE_UNIX: case IDM_LE_MAC: PageSetLineEnding(curPage, cmd-IDM_LE_DOS); return true;
 case IDM_AUTOLINEBREAK: PageSetAutoLineBreak(curPage, curPage&&!(curPage->flags&PF_AUTOLINEBREAK)); return true;
-case IDM_OPEN_CONSOLE: OpenConsoleWindow(); break;
+case IDM_OPEN_CONSOLE: OpenConsoleWindow(); return true;
+case IDM_OTHER_ENCODINGS: EncodingShowAll(); return true;
 case IDM_NEXTPAGE: PageGoToNext(1); break;
 case IDM_PREVPAGE: PageGoToNext(-1); break;
 case IDM_NEXT_MODLESS: GoToNextModlessWindow(1); return true;
@@ -912,7 +945,7 @@ SendMessage(hEdit, EM_SCROLLCARET, 0, 0);
 if (HIWORD(wp)==EN_SETFOCUS && LOWORD(wp)==1002) SendDlgItemMessage(hwnd,1002,EM_SETSEL,0,-1);
 break;
 case WM_ACTIVATE:
-SetDlgItemFocus(hwnd, 1002);
+//SetDlgItemFocus(hwnd, 1002);
 break;
 }
 return FALSE;

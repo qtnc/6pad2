@@ -49,15 +49,12 @@ LocalUnlock(hLoc);
 return str;
 }
 
-static unsigned long long filetimeTo1970 (unsigned long long l) {
-static unsigned long long rep = 0;
-if (!rep) {
-SYSTEMTIME st1 = { 1970, 1, 0, 1, 0, 0, 0, 0 };
-FILETIME ft1;
-SystemTimeToFileTime(&st1, &ft1);
-rep = (((unsigned long long)ft1.dwHighDateTime)<<32) | ft1.dwLowDateTime;
-}
-return ((l-rep)/10000000LL);
+unsigned long long GetCurTime () {
+unsigned long long l=0;
+FILETIME ft;
+GetSystemTimeAsFileTime(&ft);
+l = (((unsigned long long)ft.dwHighDateTime)<<32ULL) | ft.dwLowDateTime;
+return l;
 }
 
 unsigned long long GetFileTime (LPCTSTR fn, int type) {
@@ -67,5 +64,5 @@ HANDLE h = CreateFile(fn, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
 if (h==INVALID_HANDLE_VALUE) return 0;
 if (GetFileTime(h, type==0?&ft:0, type==1?&ft:0, type==2?&ft:0)) l = (((unsigned long long)ft.dwHighDateTime)<<32) | ft.dwLowDateTime;
 CloseHandle(h);
-return filetimeTo1970(l);
+return l;
 }

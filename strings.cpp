@@ -94,29 +94,30 @@ while (i<n && (*++(*x)&0xC0)==0x80) i++;
 return i==n;
 }
 
-int guessEncoding (const unsigned char* ch, int def) {
-if (ch[0]==0xEF && ch[1]==0xBB && ch[2]==0xBF) return CP_UTF8_BOM;
-if (ch[0]==255 && ch[1]==254) return CP_UTF16_LE_BOM;
-if (ch[0]==254 && ch[1]==255) return CP_UTF16_BE_BOM;
-if (ch[1]==0 && ch[3]==0 && ch[5]==0) return CP_UTF16_LE;
-if (ch[0]==0 && ch[2]==0 && ch[4]==0) return CP_UTF16_BE;
+int guessEncoding (const unsigned char* ch, int len, int def, int acpdef, int oemdef) {
+if (len>=3 && ch[0]==0xEF && ch[1]==0xBB && ch[2]==0xBF) return CP_UTF8_BOM;
+if (len>=2 && ch[0]==255 && ch[1]==254) return CP_UTF16_LE_BOM;
+if (len>=2 && ch[0]==254 && ch[1]==255) return CP_UTF16_BE_BOM;
+if (len>=6 && ch[1]==0 && ch[3]==0 && ch[5]==0) return CP_UTF16_LE;
+if (len>=6 && ch[0]==0 && ch[2]==0 && ch[4]==0) return CP_UTF16_BE;
 BOOL encutf = FALSE;
 int count = 0;
-for (const unsigned char* x = ch; *x && count<16384; ++x, count++) {
+for (const unsigned char* x = ch; *x && count<len && count<DETECTION_MAX_LOOKUP; ++x, count++) {
 if (*x<0x80) continue;
 if (*x==164) return CP_ISO_8859_15;
-else if (*x>=0x80 && *x<=0xA0 && *x!=146) return GetOEMCP(); 
-else if ((*x>=0x80 && *x<0xC0) || *x>=248) return CP_ACP;
-else if (*x>=0xF0 && !testUtf8rule(&x, 3)) return CP_ACP;
-else if (*x>=0xE0 && !testUtf8rule(&x, 2)) return CP_ACP;
-else if (*x>=0xC0 && !testUtf8rule(&x, 1)) return CP_ACP;
+else if (*x>=0x80 && *x<=0xA0 && *x!=146) return oemdef;
+else if ((*x>=0x80 && *x<0xC0) || *x>=248) return acpdef;
+else if (*x>=0xF0 && !testUtf8rule(&x, 3)) return acpdef;
+else if (*x>=0xE0 && !testUtf8rule(&x, 2)) return acpdef;
+else if (*x>=0xC0 && !testUtf8rule(&x, 1)) return acpdef;
 encutf = TRUE;
 }
 return encutf? CP_UTF8 : def;
 }
 
-int guessLineEnding (const TCHAR* s, int def) {
-while(*s){
+int guessLineEnding (const TCHAR* s, int len, int def) {
+int count = 0;
+while(*s && count++<DETECTION_MAX_LOOKUP && count<len){
 if (*s=='\n') return LE_UNIX;
 else if (*s=='\r') return *(++s) == '\n'? LE_DOS : LE_MAC;
 else ++s;
@@ -190,4 +191,6 @@ normalizeLineEndings(text);
 int pos = text.find_first_not_of(TEXT(" \t"));
 if (pos<text.size()) text.erase(text.begin(), text.begin()+pos);
 }
+
+
 

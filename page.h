@@ -4,7 +4,7 @@
 #include "python34.h"
 #include "eventlist.h"
 #include<functional>
-#include<boost/enable_shared_from_this.hpp>
+//#include<boost/enable_shared_from_this.hpp>
 
 #define PF_CLOSED 1
 #define PF_READONLY 2
@@ -39,7 +39,7 @@ virtual ~UndoState(){}
 struct export Page: std::enable_shared_from_this<Page>  {
 tstring name=TEXT(""), file=TEXT("");
 int encoding=-1, indentationMode=-1, lineEnding=-1, markedPosition=0, curUndoState=0;
-unsigned long long flags = 0;
+unsigned long long flags = 0, lastSave=0;
 HWND zone=0;
 PySafeObject pyData;
 eventlist listeners;
@@ -64,6 +64,7 @@ virtual bool LoadFile (const tstring& fn = TEXT(""), bool guessFormat=true ) ;
 virtual bool LoadData (const string& data, bool guessFormat=true);
 virtual bool SaveFile (const tstring& fn = TEXT(""));
 virtual string SaveData ();
+virtual bool CheckFileModification ();
 virtual void Copy () ;
 virtual void Cut ();
 virtual void Paste ();
