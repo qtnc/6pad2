@@ -3,6 +3,7 @@ lib/
 __pycache__/
 *.exe
 *.dll
+*.pyd
 *.a
 *.o
 *.ini
