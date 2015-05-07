@@ -15,6 +15,8 @@ Define an extension to be loaded in 6pad++. This entry can be present multiple t
 
 Note that the python file named after the 6pad++ executable is automatically run if it exists, i.e. if the 6pad++ executable is called 6pad2.exe, a file 6pad2.py is automatically executed at startup.
 
+Python modules must be in *lib* or *plugins* directories in order to be importable. However, DLLs of C++ extensions must be in the same folder as the 6pad++ executable.
+
 ## defaultLineEnding {#le}
 The default line ending convention to use when creating a new empty file. Default to 0.
 

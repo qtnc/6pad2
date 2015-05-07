@@ -11,16 +11,15 @@ Stay tuned !
 Main changes compared to 6pad are:
 
 * 6pad++ is in C++ instead of C
-* 6pad++ will be scriptable in python 3.4 instead of lua 5.1.4/luajit 2.x
+* 6pad++ is scriptable in python 3.4 instead of lua 5.1.4/luajit 2.x
 * Dropped PCRE API in favor of boost::regex
 
-# Latest introduced or re-introduced features
+# Organization
 
-* 24.01.2015: Tab system with independant text areas and properties (encoding, line ending, indentation, auto line wrap)
-* 07.02.2015: Smart paste, taking care of indentation
-* 07.02.2015: Ctrl+C/X when no selection copys/cuts current line
-* 14.02.2015: Automatically reopen files opened at last session
-* 14.02.2015: Recent files list; 10 entries by default
-* 20.02.2015: option /stdout to write the output of current file to stdout on exit
-* 01.03.2015: python console, mimiquing python interactive interpreter
+* IN this root directory, are the main C++ source code of 6pad++.
+* IN *doc* folder, are documentations about the final product 6pad++.
+* In *lib* folder, are python libraries or DLLs
+*In *plugins* subfolder, are 6pad++ plugins programmed in python. Read each subfolder's readme for more info.
+* In *addons* folder, are 6pad++ extension DLLs, and their associated source code. Read each subfolder's readme for more info.
+* IN *extensions* folder, are python extensions; they might be used outside 6pad++. Read each subfolder's readme for more info.
 

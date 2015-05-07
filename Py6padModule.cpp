@@ -62,12 +62,6 @@ Py_END_ALLOW_THREADS
 return s;
 }
 
-static tstring GetCurrentDirectory2 (void) {
-TCHAR buf[300] = {0};
-GetCurrentDirectory(300, buf);
-return buf;
-}
-
 static string PyGetConfig (const string& key, const string& def) {
 auto it = config.find(key);
 if (it!=config.end()) return it->second;
