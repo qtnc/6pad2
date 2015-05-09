@@ -11,8 +11,8 @@ extern IniFile config, msgs;
 extern tstring appPath, appDir, appName, configFileName, appLocale;
 extern vector<tstring> argv;
 
-extern "C" FILE* msvcfopen (const char* name, const char* ax) ;
-extern "C" void msvcfclose (FILE*);
+//extern "C" FILE* msvcfopen (const char* name, const char* ax) ;
+//extern "C" void msvcfclose (FILE*);
 tstring ConsoleRead (void);
 void ConsolePrint (const tstring& str);
 void SetClipboardText (const tstring&);
@@ -46,10 +46,10 @@ else return PyDict_SetItem(e->dic, k, v);
 
 static int PyInclude (const string& fn) {
 bool result = false;
-FILE* fp = msvcfopen(fn.c_str(), "r");
+FILE* fp = fopen(fn.c_str(), "r");
 if (fp) {
 result = !PyRun_SimpleFile(fp, fn.c_str() );
-msvcfclose(fp);
+fclose(fp);
 }
 return result;
 }
