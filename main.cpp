@@ -146,7 +146,7 @@ return appName  + TEXT(" ") + tstring(TEXT(SIXPAD_VERSION));
 }
 
 static int EncodingAdd (int enc) {
-if (!IsValidCodePage(enc)) return -1;
+//if (!IsValidCodePage(enc)) return -1;
 auto it = std::find(encodings.begin(), encodings.end(), enc);
 if (it!=encodings.end()) return it - encodings.begin();
 int i = encodings.size();

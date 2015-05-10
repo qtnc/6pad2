@@ -54,9 +54,14 @@ typedef std::string tstring;
 #define CP_UTF16_BE 1201
 #define CP_UTF16_LE_BOM 1202
 #define CP_UTF16_BE_BOM 1203
+#define CP_UTF32 12000
+#define CP_UTF32_LE 12000
+#define CP_UTF32_BE 12001
+#define CP_UTF32_LE_BOM 12002
+#define CP_UTF32_BE_BOM 12003
 #define CP_UTF8_BOM 65002
 #define CP_ISO_8859_15 28605
-#define CP_MSDOS 850
+//#define CP_MSDOS 850
 
 #define WM_RUNPROC WM_USER + 1563
 
