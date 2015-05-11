@@ -430,13 +430,15 @@ consoleInput.pop_front();
 return s;
 }
 
-void ConsolePrint (const tstring& s2) {
+void ConsolePrint (const tstring& s2, bool say) {
 tstring s=s2; s = preg_replace(s, TEXT("(?:\r\n|\n|\r)"), TEXT("\r\n"));
+if (!RELEASE) {
 fprintf(stderr, "%ls", s.c_str());
 fflush(stderr);
+}
 if (s2!=TEXT(">>> ")) {
 if (!consoleWin ) RunSync(OpenConsoleWindow);
-speechSay(s.c_str(), false);
+if (say) speechSay(s2.c_str(), false);
 }
 if (consoleWin) SendMessage(consoleWin, WM_COMMAND, 999, &s);
 }
@@ -735,7 +737,7 @@ PageSetName(p, msg("Standard input/output"));
 if (pages.size()<=0) PageAddEmpty(false);
 
 time = GetTickCount() -time;
-fprintf(stderr, "Init time = %d ms\r\n", time);
+if (!RELEASE) fprintf(stderr, "Init time = %d ms\r\n", time);
 
 if (headless) PostQuitMessage(0);
 else ShowWindow(win, nWindowStile);
@@ -921,7 +923,7 @@ tstring line = GetDlgItemText(hwnd, 1002);
 SendDlgItemMessage(hwnd, 1002, WM_USER, 0, 0);
 SetDlgItemText(hwnd, 1002, TEXT(""));
 SetDlgItemFocus(hwnd, 1002);
-ConsolePrint(line + TEXT("\r\n"));
+ConsolePrint(line + TEXT("\r\n"), false);
 SCOPE_LOCK(csConsoleInput);
 consoleInput.push_back(line);
 if (consoleInput.size()==1) SetEvent(consoleInputEvent);

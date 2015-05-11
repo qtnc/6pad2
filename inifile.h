@@ -15,6 +15,7 @@ using super::begin;
 using super::end;
 using super::size;
 using super::clear;
+using super::equal_range;
 
 bool load (const tstring& fn) ;
 bool save (const tstring& fn) ;

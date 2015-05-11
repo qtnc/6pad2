@@ -7,9 +7,9 @@ sixpad.sysPrint = None
 
 class Console:
 	def write (self, text):
-		sysPrint(text)
+		sysPrint(text,1)
 	def print (self, text):
-		sysPrint(text)
+		sysPrint(text,1)
 	def readline (self):
 		return sysRead()
 

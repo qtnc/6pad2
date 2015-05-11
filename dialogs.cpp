@@ -77,6 +77,27 @@ int selection;
 ChoiceDlgData (const vector<tstring>&  c, const tstring& t, const tstring& p, int s= -1): choices(c), title(t), prompt(p), selection(s) {}
 };
 
+static LRESULT CALLBACK ChoiceListDlgSubclassProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, DWORD_PTR unused) {
+static tstring input = TEXT("");
+static DWORD lastInput = 0;
+switch(msg){
+case WM_CHAR: {
+TCHAR ch = LOWORD(wp);
+if (ch<32) break;
+DWORD time = GetTickCount();
+int pos = SendMessage(hwnd, LB_GETCURSEL, 0, 0);
+if (time-lastInput>500) input = TEXT("");
+lastInput = time;
+input += ch;
+int npos = SendMessage(hwnd, LB_FINDSTRING, pos -1, input.c_str() );
+if (npos<0 || npos==LB_ERR) { MessageBeep(MB_OK); return true; }
+else if (npos==pos) return true;
+else { SendMessage(hwnd, LB_SETCURSEL, npos, 0); return true; }
+}break;
+}
+return DefSubclassProc(hwnd, msg, wp, lp);
+}
+
 static INT_PTR CALLBACK ChoiceDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
 static ChoiceDlgData* data = NULL;
 switch (umsg) {
@@ -93,6 +114,7 @@ l = SendMessage(hList, LB_ADDSTRING, 0, data->choices[i].c_str() );
 SendMessage(hList, LB_SETITEMDATA, l, i);
 }
 SendMessage(hList, LB_SETCURSEL, data->selection, 0);
+SetWindowSubclass(hList, ChoiceListDlgSubclassProc, 0, 0);
 SetFocus(hList);
 }return TRUE;
 case WM_COMMAND :

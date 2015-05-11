@@ -131,14 +131,14 @@ return i==n;
 
 int guessEncoding (const unsigned char* ch, int len, int def, int acpdef, int oemdef) {
 if (len>=3 && ch[0]==0xEF && ch[1]==0xBB && ch[2]==0xBF) return CP_UTF8_BOM;
-if (len>=8 && ch[0]==255 && ch[1]==254 && ch[2]==0 && ch[3]==0) return CP_UTF32_LE_BOM;
+//if (len>=8 && ch[0]==255 && ch[1]==254 && ch[2]==0 && ch[3]==0) return CP_UTF32_LE_BOM;
 if (len>=2 && ch[0]==255 && ch[1]==254) return CP_UTF16_LE_BOM;
 if (len>=2 && ch[0]==254 && ch[1]==255) return CP_UTF16_BE_BOM;
+//if (len>=8 && ch[2]==254 && ch[3]==255 && ch[0]==0 && ch[1]==0) return CP_UTF32_BE_BOM;
+//if (len>=8 && ch[0]!=0 && ch[1]==0 && ch[2]==0 && ch[3]==0 && ch[4]!=0 && ch[5]==0 && ch[6]==0 && ch[7]==0) return CP_UTF32_LE;
+//if (len>=8 && ch[0]==0 && ch[1]==0 && ch[2]==0 && ch[3]!=0 && ch[4]==0 && ch[5]==0 && ch[6]==0 && ch[7]!=0) return CP_UTF32_BE;
 if (len>=6 && ch[1]==0 && ch[3]==0 && ch[5]==0) return CP_UTF16_LE;
 if (len>=6 && ch[0]==0 && ch[2]==0 && ch[4]==0) return CP_UTF16_BE;
-if (len>=8 && ch[2]==254 && ch[3]==255 && ch[0]==0 && ch[1]==0) return CP_UTF32_BE_BOM;
-if (len>=8 && ch[0]!=0 && ch[1]==0 && ch[2]==0 && ch[3]==0 && ch[4]!=0 && ch[5]==0 && ch[6]==0 && ch[7]==0) return CP_UTF32_LE;
-if (len>=8 && ch[0]==0 && ch[1]==0 && ch[2]==0 && ch[3]!=0 && ch[4]==0 && ch[5]==0 && ch[6]==0 && ch[7]!=0) return CP_UTF32_BE;
 BOOL encutf = FALSE;
 int count = 0;
 for (const unsigned char* x = ch; *x && count<len && count<DETECTION_MAX_LOOKUP; ++x, count++) {

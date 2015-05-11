@@ -310,6 +310,7 @@ SetWindowText(edit, newText);
 SendMessage(edit, EM_SETSEL, start, end);
 }
 if (IsWindowVisible(edit)) SendMessage(edit, EM_SCROLLCARET, 0, 0);
+SendMessage(edit, EM_SETMODIFY, true, 0);
 PushUndoState(std::shared_ptr<UndoState>(new TextReplaced( start!=end? start : 0, oldText, newText, start!=end)));
 }
 

@@ -2,6 +2,7 @@
 #include "strings.hpp"
 #include "IniFile.h"
 #include "File.h"
+#include "range.h"
 #include "python34.h"
 #include "Resource.h"
 #include "Thread.h"
@@ -15,7 +16,7 @@ extern vector<tstring> argv;
 //extern "C" FILE* msvcfopen (const char* name, const char* ax) ;
 //extern "C" void msvcfclose (FILE*);
 tstring ConsoleRead (void);
-void ConsolePrint (const tstring& str);
+void ConsolePrint (const tstring& str, bool say);
 void SetClipboardText (const tstring&);
 tstring GetClipboardText (void);
 tstring msg (const char* name);
@@ -194,8 +195,8 @@ bool failed = !!PyRun_SimpleString(&code[0]);
 if (failed) exit(1);
 }
 RunSync([](){});//Barrier to wait for the main loop to start
-for (auto it = config.find("extension"); it!=config.end(); ++it) {
-string name = it->second;
+for (auto it: range(config.equal_range("extension"))) {
+string name = it.second;
 PyLoadExtension(name);
 }
 string pyfn = toString(appDir + TEXT("\\") + appName + TEXT(".py") , CP_ACP);
