@@ -6,6 +6,7 @@
 #include "dialogs.h"
 #include "Thread.h"
 #include "Resource.h"
+#include "UniversalSpeech.h"
 #include "python34.h"
 #include "eventlist.h"
 #include<list>
@@ -433,7 +434,10 @@ void ConsolePrint (const tstring& s2) {
 tstring s=s2; s = preg_replace(s, TEXT("(?:\r\n|\n|\r)"), TEXT("\r\n"));
 fprintf(stderr, "%ls", s.c_str());
 fflush(stderr);
-if (!consoleWin && s2!=TEXT(">>> ")) RunSync(OpenConsoleWindow);
+if (s2!=TEXT(">>> ")) {
+if (!consoleWin ) RunSync(OpenConsoleWindow);
+speechSay(s.c_str(), false);
+}
 if (consoleWin) SendMessage(consoleWin, WM_COMMAND, 999, &s);
 }
 

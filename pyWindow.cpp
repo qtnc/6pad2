@@ -122,6 +122,10 @@ static int PySetTimer2 (const PyCallback& cb, int time) {
 return SetTimeout([=](){ cb(); }, time, true);
 }
 
+static int PyPlaySound (const tstring& filename) {
+PlaySound(filename.c_str(), NULL, SND_ASYNC | SND_FILENAME);
+}
+
 static int PyEditorTabs_getTabCount () {
 return pages.size();
 }
@@ -162,6 +166,7 @@ static PyMethodDef PyWindowMethods[] = {
 // General 6pad++ functions
 PyDecl("open", PyOpenFile),
 PyDecl("new", PyNewPage),
+PyDecl("playSound", PyPlaySound),
 
 // Basic dialog boxes and related functions
 PyDecl("beep", Beep),
@@ -182,7 +187,6 @@ PyDecl("setTimeout", PySetTimer1),
 PyDecl("setInterval", PySetTimer2),
 PyDecl("clearTimeout", ClearTimeout),
 PyDecl("clearInterval", ClearTimeout),
-
 
 PyDeclEnd
 };

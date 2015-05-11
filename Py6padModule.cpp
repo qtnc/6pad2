@@ -5,6 +5,7 @@
 #include "python34.h"
 #include "Resource.h"
 #include "Thread.h"
+#include "UniversalSpeech.h"
 using namespace std;
 
 extern IniFile config, msgs;
@@ -118,6 +119,18 @@ static void PyLoadLang (const tstring& langfile) {
 msgs.load(langfile);
 }
 
+static void PyBraille (const tstring& str) {
+brailleDisplay(str.c_str());
+}
+
+static PyObject* PySayStr (PyObject* unused, PyObject* args) {
+const wchar_t* str = 0;
+bool interrupt = false;
+if (!PyArg_ParseTuple(args, "u|p", &str, &interrupt)) return NULL;
+if (speechSay(str, interrupt)) Py_RETURN_TRUE;
+else Py_RETURN_FALSE;
+}
+
 static PyMethodDef _6padMainDefs[] = {
 // Translation management
 PyDecl("msg", msg),
@@ -130,6 +143,12 @@ PyDecl("getConfigAsList", PyGetConfigMulti),
 // Clipboard management
 PyDecl("setClipboardText", SetClipboardText),
 PyDecl("getClipboardText", GetClipboardText),
+
+// Speech
+PyDecl("stopSpeech", speechStop),
+{"say", PySayStr, METH_VARARGS, NULL},
+PyDecl("braille", PyBraille),
+
 
 // Extension, includes and other general functions
 PyDecl("include", PyInclude),
