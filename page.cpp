@@ -358,6 +358,8 @@ file = newFile;
 name = FileNameToPageName(*this, file);
 flags&=~(PF_MUSTSAVEAS|PF_READONLY);
 }
+var re = dispatchEvent("beforeSave", var(), file);
+if (re.getType()==T_STR) file = re.toTString();
 if (file.size()<=0) return false;
 string cstr = SaveData();
 SetModified(false);

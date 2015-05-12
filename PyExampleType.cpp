@@ -1,4 +1,5 @@
 #include "global.h"
+#if DEBUG
 #include "strings.hpp"
 #include "page.h"
 #include "python34.h"
@@ -82,3 +83,5 @@ Py_INCREF(&PyMyObjType);
 PyModule_AddObject(m, "MyObj", (PyObject*)&PyMyObjType); 
 return true;
 }
+
+#endif

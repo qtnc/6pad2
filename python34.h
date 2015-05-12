@@ -23,8 +23,6 @@ PyObject* dic;
 };
 
 void PyStart (void);
-int PyAttrSet (PyObject* o, PyObject* k, PyObject* v);
-PyObject* PyAttrGet (PyObject* o, PyObject* k);
 
 ///Automatic wrappers!
 

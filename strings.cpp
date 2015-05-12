@@ -181,12 +181,7 @@ return c>=0 && c<=32 && c!=10 && c!=13;
 }
 
 void normalizeLineEndings (tstring& text) {
-using namespace boost;
-typedef boost::wregex tregex;
-const int options = regex_constants::literal;
-const match_flag_type flags = match_flag_type::format_literal;
-tregex reg2(TEXT("(?:\r\n|\r|\n)"), options);
-text = regex_replace(text, reg2, TEXT("\r\n"), flags);
+text = preg_replace(text, TEXT("\r\n|\n|\r"), TEXT("\r\n") );
 }
 
 tstring preg_replace (const tstring& str, const tstring& needle, const tstring& repl) {

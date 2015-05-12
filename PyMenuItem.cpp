@@ -219,7 +219,7 @@ CheckMenuItem(menu, pos, MF_BYPOSITION | checked);
 }
 
 void PyMenuItem::setEnabled (int enabled) {
-enabled = enabled? MF_ENABLED | MF_GRAYED  : MF_DISABLED;
+enabled = enabled? MF_ENABLED :  MF_GRAYED  | MF_DISABLED;
 RunSync([&]()mutable{
 EnableMenuItem(menu, pos, MF_BYPOSITION | enabled);
 });//RunSync

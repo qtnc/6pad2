@@ -25,6 +25,16 @@ str getConfig (str key, str defaultValue):
 :	Return a list containing all the values associated with the given key in the configuration file.
 
 ## Members
+locale:
+:	The language of the application, e.g. `french`.
+appdir:
+:	The application directory, e.g. `C:\6pad++\`.
+appname:
+:	The name of the application executable, e.g. `6pad++`.
+appfullpath:
+:	The full path of 6pad++ executable, e.g. `C:\6pad++\6pad++.exe`.
+configfile:
+:	The path of the main 6pad++ configuration file, e.g. `C:\6pad++\6pad++.ini`.
 window:
 :	The window object (see below)
 
@@ -218,6 +228,8 @@ closed ():
 :	Called just after the page has been closed.
 load (str text):
 :	Occurs when the text of the page is about to be loaded. The text which is going to appear in the edition field is passed to the callback. You can return a new string to overwrite the text being loaded.
+beforeSave (str fileName):
+:	Occurs when the page is about to be saved. The file name is passed in the callback and you can return another file name in order to save to a different file, 
 save (str text):
 :	Occurs when the page is about to be saved. The text that is about to be saved is passed in the callback. You can return a new text string to overwrite what is going to be saved.
 status (str text):

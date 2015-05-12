@@ -106,7 +106,7 @@ static PyEditorTab* PyEditorTabNew (PyTypeObject* type, PyObject* args, PyObject
 PyEditorTab* self = (PyEditorTab*)(type->tp_alloc(type, 0));
 self->wpPage = weak_ptr<Page>();
 self->seqAsLines = false;
-self->dic = NULL;
+self->dic = PyDict_New();
 return self;
 }
 
@@ -237,7 +237,7 @@ PyDeclEnd
 
 static PyTypeObject PyEditorTabType = { 
     PyVarObject_HEAD_INIT(NULL, 0) 
-    "sixpad.EditorTab",             /* tp_name */ 
+    "sixpad.Page",             /* tp_name */ 
     sizeof(PyEditorTab), /* tp_basicsize */ 
     0,                         /* tp_itemsize */ 
     PyEditorTabDealloc,                         /* tp_dealloc */ 
@@ -252,8 +252,8 @@ static PyTypeObject PyEditorTabType = {
     0,                         /* tp_hash  */ 
     0,                         /* tp_call */ 
     0,                         /* tp_str */ 
-    PyAttrGet,                         /* tp_getattro */ 
-    PyAttrSet,                         /* tp_setattro */ 
+    0,                         /* tp_getattro */ 
+    0,                         /* tp_setattro */ 
     0,                         /* tp_as_buffer */ 
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,        /* tp_flags */ 
     NULL,           /* tp_doc */
@@ -270,7 +270,7 @@ NULL,             /* tp_members */
     0,                         /* tp_dict */ 
     0,                         /* tp_descr_get */ 
     0,                         /* tp_descr_set */ 
-    0,                         /* tp_dictoffset */ 
+    offsetof(PyEditorTab,dic),                         /* tp_dictoffset */ 
     (initproc)PyEditorTabInit,      /* tp_init */ 
     0,                         /* tp_alloc */ 
 }; 

@@ -1,6 +1,6 @@
 # 6pad++, the successor of 6pad
 
-6pad++ will be the successor of 6pad; 6pad is now abandonned.  
+6pad++ is the successor of 6pad; 6pad is now abandonned.  
 6pad old repository is at <http://github.com/qtnc/6pad>
 
 The current version isn't ready for proper usage, not even a 0.1. Python is linked but nothing is done with it at the moment.  

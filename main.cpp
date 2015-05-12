@@ -357,7 +357,6 @@ for (int enc: getAllAvailableEncodings()) {
 if (enc==20127 || enc==21027) continue;
 tstring name = str_replace(msg(("Encoding" + toString(enc)).c_str()), TEXT("&"), TEXT(""));
 encmap.insert(pair<tstring,int>( name, enc));
-printf("%d %ls\r\n", enc, name.c_str());
 }
 for (auto it: encmap) {
 if (it.second==curenc) curenc = encvals.size();

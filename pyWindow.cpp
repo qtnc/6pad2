@@ -154,7 +154,7 @@ Py_TYPE(pySelf)->tp_free(pySelf);
 
 static PyWindow* PyWindowNew (PyTypeObject* type, PyObject* args, PyObject* kwds) {
 PyWindow* self = (PyWindow*)(type->tp_alloc(type, 0));
-self->dic=NULL;
+self->dic=PyDict_New();
 return self;
 }
 
@@ -225,10 +225,10 @@ static PyTypeObject PyWindowType = {
     0,                         /* tp_hash  */ 
     0,                         /* tp_call */ 
     0,                         /* tp_str */ 
-    PyAttrGet,                         /* tp_getattro */ 
-    PyAttrSet,                         /* tp_setattro */ 
+    0,                         /* tp_getattro */ 
+    0,                         /* tp_setattro */ 
     0,                         /* tp_as_buffer */ 
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,        /* tp_flags */ 
+    Py_TPFLAGS_DEFAULT,        /* tp_flags */ 
     NULL,           /* tp_doc */
     0,                         /* tp_traverse */ 
     0,                         /* tp_clear */ 
@@ -243,7 +243,7 @@ NULL,             /* tp_members */
     0,                         /* tp_dict */ 
     0,                         /* tp_descr_get */ 
     0,                         /* tp_descr_set */ 
-    0,                         /* tp_dictoffset */ 
+    offsetof(PyWindow,dic),                         /* tp_dictoffset */ 
     (initproc)PyWindowInit,      /* tp_init */ 
     0,                         /* tp_alloc */ 
 }; 

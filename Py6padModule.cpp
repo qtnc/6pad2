@@ -2,7 +2,6 @@
 #include "strings.hpp"
 #include "IniFile.h"
 #include "File.h"
-#include "range.h"
 #include "python34.h"
 #include "Resource.h"
 #include "Thread.h"
@@ -21,30 +20,10 @@ void SetClipboardText (const tstring&);
 tstring GetClipboardText (void);
 tstring msg (const char* name);
 
-bool PyRegister_MyObj (PyObject* m);
 bool PyRegister_Window (PyObject* m); 
 bool PyRegister_EditorTab(PyObject* m);
 bool PyRegister_MenuItem (PyObject* m);
 PyObject* CreatePyWindowObject ();
-
-PyObject* PyAttrGet (PyObject* o, PyObject* k) {
-PyObject* re = PyObject_GenericGetAttr(o,k);
-if (re) return re;
-PyObject* dic = (((PyObjectWithDic*)o)->dic);
-if (!dic) return NULL;
-PyErr_Clear();
-re = PyDict_GetItem(dic, k);
-if (re) return re;
-return PyObject_GenericGetAttr(o,k);
-}
-
-int PyAttrSet (PyObject* o, PyObject* k, PyObject* v) {
-if (!PyObject_GenericSetAttr(o,k,v)) return 0;
-PyObjectWithDic* e = (PyObjectWithDic*)o;
-if (!e->dic) e->dic = PyDict_New();
-if (!v) return PyDict_DelItem(e->dic, k);
-else return PyDict_SetItem(e->dic, k, v);
-}
 
 tstring decodeFromPythonEncoding (const string& str, int offset, const char* encoding) {
 GIL_PROTECT
@@ -116,7 +95,7 @@ else if (ends_with(name, ".dll")) {}//C++ extension, not yet supported
 else PyImport_ImportModule(name.c_str());
 }
 
-static void PyLoadLang (const tstring& langfile) {
+static int PyLoadLang (const tstring& langfile) {
 msgs.load(langfile);
 }
 
@@ -155,6 +134,7 @@ PyDecl("braille", PyBraille),
 PyDecl("include", PyInclude),
 PyDecl("loadExtension", PyLoadExtension),
 PyDecl("loadTranslation", PyLoadLang),
+PyDecl("preg_replace", preg_replace),
 
 // Overload of print, to be able to print in python console GUI
 PyDecl("sysPrint", ConsolePrint),
@@ -174,9 +154,13 @@ PyObject* mod = PyModule_Create(&_6padMainMod);
 PyRegister_Window(mod);
 PyRegister_MenuItem(mod);
 PyRegister_EditorTab(mod);
-PyRegister_MyObj(mod);
+//PyRegister_MyObj(mod);
 PyModule_AddObject(mod, "window", CreatePyWindowObject() );
 PyModule_AddObject(mod, "locale", Py_BuildValue("u", appLocale.c_str()));
+PyModule_AddObject(mod, "appdir", Py_BuildValue("u", appDir.c_str()));
+PyModule_AddObject(mod, "appfullpath", Py_BuildValue("u", appPath.c_str()));
+PyModule_AddObject(mod, "appname", Py_BuildValue("u", appName.c_str()));
+PyModule_AddObject(mod, "configfile", Py_BuildValue("u", configFileName.c_str()));
 return mod;
 }
 
@@ -195,10 +179,10 @@ bool failed = !!PyRun_SimpleString(&code[0]);
 if (failed) exit(1);
 }
 RunSync([](){});//Barrier to wait for the main loop to start
-for (auto it: range(config.equal_range("extension"))) {
-string name = it.second;
+{auto p=config.equal_range("extension"); for(auto it=p.first; it!=p.second; ++it) {
+string name = it->second;
 PyLoadExtension(name);
-}
+}}
 string pyfn = toString(appDir + TEXT("\\") + appName + TEXT(".py") , CP_ACP);
 PyInclude(pyfn);
 // Ohter initialization stuff goes here

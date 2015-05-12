@@ -38,7 +38,7 @@ typedef std::string tstring;
 #endif
 
 #ifndef DEBUG
-#define DEBUG 1
+#define DEBUG 0
 #endif
 
 #define export __declspec(dllexport)
