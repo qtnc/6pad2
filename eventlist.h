@@ -39,7 +39,8 @@ int count (const std::string& type);
 
 template<class R, R initial, class... A> R dispatch (const string& type, A... args) {
 R r = initial;
-for (auto it = m.find(type); it!=m.end(); ++it) {
+auto p = m.equal_range(type);
+for (auto it = p.first; it!=p.second; ++it) {
 r = (it->second).operator()<R>(args...);
 }
 return r;
@@ -47,14 +48,16 @@ return r;
 
 template<class... A> var dispatch (const string& type, const var& def, A... args) {
 var r = def;
-for (auto it = m.find(type); it!=m.end(); ++it) {
+auto p = m.equal_range(type);
+for (auto it = p.first; it!=p.second; ++it) {
 r = (it->second).operator()<var>(args...);
 }
 return r;
 }
 
 template<class... A> void dispatch (const string& type, A... args) {
-for (auto it = m.find(type); it!=m.end(); ++it) {
+auto p = m.equal_range(type);
+for (auto it = p.first; it!=p.second; ++it) {
 (it->second)(args...);
 }}
 

@@ -111,7 +111,7 @@ inline void MarkCurrentPosition () { markedPosition = GetCurrentPosition(); }
 inline void SelectToMark () { SetSelection(markedPosition, GetSelectionEnd()); }
 inline void GoToMark () { SetCurrentPosition(markedPosition); }
 
-template<class R, R initial, class... A> inline R dispatchEvent (const string& type, A... args) { return listeners.dispatch<R,initial>(type, *pyData, args...); }
+template<class R, R initial, class... A> inline R dispatchEvent (const string& type, A... args) {  return listeners.dispatch<R,initial>(type, *pyData, args...);  }
 template<class... A> inline var dispatchEvent (const string& type, const var& def, A... args) { return listeners.dispatch(type, def, *pyData, args...); }
 template<class... A> inline void dispatchEvent (const string& type, A... args) { listeners.dispatch(type, *pyData, args...); }
 inline void addEvent (const std::string& type, const PyCallback& cb) { listeners.add(type,cb); }

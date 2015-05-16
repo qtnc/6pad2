@@ -72,6 +72,21 @@
 </dl>
 <h2 id="members">Members</h2>
 <dl>
+<dt>locale:</dt>
+<dd>The language of the application, e.g. <code>french</code>.
+</dd>
+<dt>appdir:</dt>
+<dd>The application directory, e.g. <code>C:\6pad++\</code>.
+</dd>
+<dt>appname:</dt>
+<dd>The name of the application executable, e.g. <code>6pad++</code>.
+</dd>
+<dt>appfullpath:</dt>
+<dd>The full path of 6pad++ executable, e.g. <code>C:\6pad++\6pad++.exe</code>.
+</dd>
+<dt>configfile:</dt>
+<dd>The path of the main 6pad++ configuration file, e.g. <code>C:\6pad++\6pad++.ini</code>.
+</dd>
 <dt>window:</dt>
 <dd>The window object (see below)
 </dd>
@@ -341,6 +356,9 @@
 </dd>
 <dt>load (str text):</dt>
 <dd>Occurs when the text of the page is about to be loaded. The text which is going to appear in the edition field is passed to the callback. You can return a new string to overwrite the text being loaded.
+</dd>
+<dt>beforeSave (str fileName):</dt>
+<dd>Occurs when the page is about to be saved. The file name is passed in the callback and you can return another file name in order to save to a different file,
 </dd>
 <dt>save (str text):</dt>
 <dd>Occurs when the page is about to be saved. The text that is about to be saved is passed in the callback. You can return a new text string to overwrite what is going to be saved.

@@ -792,7 +792,7 @@ case VK_DELETE:
 if (!IsShiftDown()&&!IsCtrlDown()&&!IsAltDown()) EZHandleDel(curPage, hwnd);
 break;
 }}break;//WM_KEYDOWN
-case WM_KEYUP: 
+case WM_KEYUP:
 if (!curPage->dispatchEvent<bool, true>("keyUp", (int)LOWORD(wp) )) return true;
 curPage->UpdateStatusBar(status);
 break;//WM_KEYUP
@@ -813,6 +813,9 @@ break;
 case VK_RIGHT: 
 if (IsShiftDown()) return EZHandleSelectDown(hwnd, EZGetEndIndentedBlockPos);
 else return EZHandleMoveDown(hwnd, EZGetEndIndentedBlockPos, false);
+break;
+case VK_HOME:
+if (!IsCtrlDown() && !IsShiftDown()) return EZHandleHome(hwnd, IsAltDown());
 break;
 }}break;//WM_SYSKEYDOWN
 case WM_PASTE : {
