@@ -2,7 +2,7 @@
 #define ___PAGE_H9
 #include "global.h"
 #include "python34.h"
-#include "eventlist.h"
+//#include "eventlist.h"
 #include<functional>
 
 #define PF_CLOSED 1
@@ -41,7 +41,7 @@ int encoding=-1, indentationMode=-1, lineEnding=-1, markedPosition=0, curUndoSta
 unsigned long long flags = 0, lastSave=0;
 HWND zone=0;
 PySafeObject pyData;
-eventlist listeners;
+//eventlist listeners;
 std::vector<shared_ptr<UndoState>> undoStates;
 
 virtual ~Page() {}
@@ -114,12 +114,20 @@ inline void MarkCurrentPosition () { markedPosition = GetCurrentPosition(); }
 inline void SelectToMark () { SetSelection(markedPosition, GetSelectionEnd()); }
 inline void GoToMark () { SetCurrentPosition(markedPosition); }
 
-template<class R, R initial, class... A> inline R dispatchEvent (const string& type, A... args) {  return listeners.dispatch<R,initial>(type, *pyData, args...);  }
-template<class... A> inline var dispatchEvent (const string& type, const var& def, A... args) { return listeners.dispatch(type, def, *pyData, args...); }
-template<class... A> inline void dispatchEvent (const string& type, A... args) { listeners.dispatch(type, *pyData, args...); }
+//template<class R, R initial, class... A> inline R dispatchEvent (const string& type, A... args) {  return listeners.dispatch<R,initial>(type, *pyData, args...);  }
+//template<class... A> inline var dispatchEvent (const string& type, const var& def, A... args) { return listeners.dispatch(type, def, *pyData, args...); }
+//template<class... A> inline void dispatchEvent (const string& type, A... args) { listeners.dispatch(type, *pyData, args...); }
 
-inline void addEvent (const std::string& type, const PyCallback& cb) { listeners.add(type,cb); }
-inline void removeEvent (const std::string& type, const PyCallback& cb) { listeners.remove(type,cb); }
+inline void addEvent (const std::string& type, const PySafeObject& cb) {  
+std::function<int(int,int)> f = cb.asFunction<int, int, int>();
+std::function<void(double)> g = cb.asFunction<void, double>();
+//listeners.add(type,cb);  
+}
+
+inline void removeEvent (const std::string& type, const PySafeObject& cb) { 
+//listeners.remove(type,cb); 
+}
+
 };
 
 #endif

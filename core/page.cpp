@@ -66,7 +66,7 @@ extern HINSTANCE hinstance;
 extern HFONT gfont;
 extern IniFile config;
 extern tstring configFileName;
-extern eventlist listeners;
+//extern eventlist listeners;
 
 tstring msg (const char* name) ;
 void SetClipboardText (const tstring&);
@@ -77,27 +77,27 @@ void PageEnsureFocus (shared_ptr<Page>);
 
 void Page::SetName (const tstring& n) { 
 name = n;
-dispatchEvent("nameChanged", name);
+//dispatchEvent("nameChanged", name);
 }
 
 void Page::SetEncoding (int e) {
 encoding = e;
-dispatchEvent("encodingChanged", e);
+//dispatchEvent("encodingChanged", e);
 }
 
 void Page::SetLineEnding (int e) {
 lineEnding = e;
-dispatchEvent("lineEndingChanged", e);
+//dispatchEvent("lineEndingChanged", e);
 }
 
 void Page::SetIndentationMode (int e) {
 indentationMode = e;
-dispatchEvent("indentationModeChanged", e);
+//dispatchEvent("indentationModeChanged", e);
 }
 
 void Page::SetAutoLineBreak (bool b) {
 //todo
-dispatchEvent("autoLineBreakChanged", b);
+//dispatchEvent("autoLineBreakChanged", b);
 }
 
 bool Page::Close () { 
@@ -366,7 +366,7 @@ return;
 
 string Page::SaveData () {
 tstring str = GetText();
-var re = dispatchEvent("save", var(), str);
+var re ;//= dispatchEvent("save", var(), str);
 if (re.getType()==T_STR) str = re.toTString();
 if (lineEnding==LE_UNIX) str = str_replace(str, TEXT("\r\n"), TEXT("\n"));
 else if (lineEnding==LE_MAC) str = str_replace(str, TEXT("\r\n"), TEXT("\r"));
@@ -382,7 +382,7 @@ file = newFile;
 name = FileNameToPageName(*this, file);
 flags&=~(PF_MUSTSAVEAS|PF_READONLY);
 }
-var re = dispatchEvent("beforeSave", var(), file);
+var re ;//= dispatchEvent("beforeSave", var(), file);
 if (re.getType()==T_STR) file = re.toTString();
 if (file.size()<=0) return false;
 string cstr = SaveData();
@@ -412,7 +412,7 @@ text = ConvertFromEncoding(str, encoding);
 if (lineEnding<0) lineEnding = guessLineEnding(text.data(), text.size(), sp.configGetInt("defaultLineEnding", LE_DOS)  );
 if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), sp.configGetInt("defaultIndentationMode", 0)  );
 normalizeLineEndings(text);
-var re = dispatchEvent("load", var(), text);
+var re ;//= dispatchEvent("load", var(), text);
 if (re.getType()==T_STR) text = re.toTString();
 lastSave = GetCurTime();
 SetText(text);
@@ -443,7 +443,7 @@ return tsnprintf(512, msg("Li %d, Col %d.\t%d%%, %d lines"), 1+sline, 1+scolumn,
 
 void Page::UpdateStatusBar (HWND hStatus) {
 tstring text = StatusBarUpdate(zone, hStatus);
-var re = dispatchEvent("status", var(), text);
+var re ;//= dispatchEvent("status", var(), text);
 if (re.getType()==T_STR) text=re.toTString();
 //re = ::listeners.dispatch("status", var(), text);
 if (re.getType()==T_STR) text=re.toTString();
@@ -659,7 +659,7 @@ int pos=0, nLine=0, addIndent=0;
 SendMessage(hEdit, EM_GETSEL, &pos, 0);
 nLine = SendMessage(hEdit, EM_LINEFROMCHAR, pos, 0);
 tstring addString, line = EditGetLine(hEdit, nLine, pos);
-var re = page->dispatchEvent("enter", var(), line, nLine);
+var re ;//= page->dispatchEvent("enter", var(), line, nLine);
 switch(re.getType()) {
 case T_NULL: break;
 case T_BOOL: if (!re) return false; break;
@@ -767,7 +767,7 @@ return curPage->indentationMode>0;
 static LRESULT CALLBACK EditProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, Page* curPage) {
 switch(msg){
 case WM_CHAR: {
-var re = curPage->dispatchEvent("keyPressed", var(), (int)LOWORD(wp) );
+var re ;//= curPage->dispatchEvent("keyPressed", var(), (int)LOWORD(wp) );
 switch(re.getType()) {
 case T_NULL: break;
 case T_BOOL: if (!re) return true; break;
@@ -793,12 +793,12 @@ EZTextInserted(curPage, hwnd, tstring(1,LOWORD(wp)) );
 break;
 }}break;//WM_CHAR
 case WM_KEYUP: case WM_SYSKEYUP:
-if (!curPage->dispatchEvent<bool, true>("keyUp", (int)(LOWORD(wp) | GetCurrentModifiers()) )) return true;
+//if (!curPage->dispatchEvent<bool, true>("keyUp", (int)(LOWORD(wp) | GetCurrentModifiers()) )) return true;
 curPage->UpdateStatusBar(sp.status);
 break;//WM_KEYUP
 case WM_KEYDOWN :  case WM_SYSKEYDOWN:  {
 int kc = LOWORD(wp) | GetCurrentModifiers();
-if (!curPage->dispatchEvent<bool, true>("keyDown", kc )) return true;
+//if (!curPage->dispatchEvent<bool, true>("keyDown", kc )) return true;
 switch(kc){
 case VK_DOWN | VKM_CTRL | VKM_SHIFT : return EZHandleSelectDown(hwnd, EZGetNextParagPos);
 case VK_DOWN | VKM_CTRL: return EZHandleMoveDown(hwnd, EZGetNextParagPos);
@@ -855,7 +855,7 @@ SendMessage(hwnd, EM_SETSEL, lindex, lindex+llen);
 else curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(spos, epos, EditGetSubstring(hwnd, spos, epos), true) ));
 }break;//WM_CUT
 case WM_CONTEXTMENU:
-if (curPage->dispatchEvent<bool, true>("contextmenu", IsShiftDown(), IsCtrlDown() )) {
+if (true) { //curPage->dispatchEvent<bool, true>("contextmenu", IsShiftDown(), IsCtrlDown() )) {
 POINT p;
 GetCursorPos(&p);
 HMENU menu = GetSubMenu(GetMenu(sp.win), 1);

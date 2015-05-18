@@ -9,6 +9,7 @@
 #include "UniversalSpeech.h"
 #include "python34.h"
 #include "eventlist.h"
+#include "sixpad.h"
 #include<list>
 #include<unordered_map>
 #include<map>
@@ -24,8 +25,8 @@ using namespace std;
 #define OF_NEWINSTANCE 2
 #define OF_EXITONDOUBLEOPEN 4
 
-tstring appPath, appDir, appName, configFileName, appLocale;
 IniFile msgs, config;
+tstring appPath, appDir, appName, configFileName, appLocale;
 eventlist listeners;
 shared_ptr<Page> curPage(0);
 list<tstring> consoleInput = { TEXT("import sixpad"), TEXT("from sixpad import window") };
@@ -57,9 +58,16 @@ void ParseLineCol (tstring& file, int& line, int& col);
 void ClearTimeout (int id);
 LRESULT WINAPI AppWinProc (HWND, UINT, WPARAM, LPARAM);
 
-tstring msg (const char* name) {
-return toTString(msgs.get<string>(name, name));
+
+tstring msg (const char* x) {
+auto it = msgs.find(string(x));
+if (it!=msgs.end()) return toTString(it->second);
+else return toTString(string(x));
 }
+
+int configGetInt (const string& name, int def) { return config.get(name,def); }
+
+SixpadData sp;
 
 void UpdateWindowTitle () {
 tstring title = curPage->name + TEXT(" - ") + appName;
@@ -367,34 +375,6 @@ curenc = ChoiceDialog(win, msg("Choose encoding"), msg("Choose an encoding in th
 if (curPage && curenc>=0 && curenc<=encvals.size()) PageSetEncoding(curPage, encvals[curenc]);
 }
 
-
-
-bool SetClipboardText (const tstring&  text2) {
-wstring text = toWString(text2);
-int len = text.size();
-HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, sizeof(wchar_t)*(1+len));
-if (!hMem) return false;
-wchar_t* mem = (wchar_t*)GlobalLock(hMem);
-memcpy(mem, text.data(), sizeof(wchar_t) * len);
-mem[len]=0;
-GlobalUnlock(hMem);
-if (!OpenClipboard(win)) return false;
-EmptyClipboard();
-SetClipboardData(CF_UNICODETEXT, hMem);
-CloseClipboard();
-return true;
-}
-
-tstring GetClipboardText (void) {
-if (!IsClipboardFormatAvailable(CF_UNICODETEXT) || !OpenClipboard(win)) return TEXT("");
-HGLOBAL hMem = GetClipboardData(CF_UNICODETEXT);
-const wchar_t* hMemData = (wchar_t*)GlobalLock(hMem);
-tstring text= toTString(hMemData);
-GlobalUnlock(hMem);
-CloseClipboard();
-return text;
-}
-
 static void DoPaste (void) {
 if (IsClipboardFormatAvailable(CF_HDROP) && OpenClipboard(win)) {
 HGLOBAL hMem = GetClipboardData(CF_HDROP);
@@ -580,7 +560,7 @@ std::terminate();
 
 extern "C" int WINAPI WinMain (HINSTANCE hThisInstance,                      HINSTANCE hPrevInstance,                      LPSTR lpszArgument,                      int nWindowStile) {
 long long time = GetTickCount();
-hinstance = hThisInstance;
+sp.hinstance = hinstance = hThisInstance;
 if (!(isDebug = IsDebuggerPresent())) {
 set_terminate(termHandler);
 set_unexpected(termHandler);
@@ -658,7 +638,11 @@ if (!InitCommonControlsEx(&ccex)) return 1;
 }
 
 {//Create window block
-win = CreateWindowEx(
+printf("msg= %p, %p\r\n",msg, &msg);
+sp.msg = &msg;
+sp.configGetInt = &configGetInt;
+SixpadDLLInit(&sp);
+sp.win = win = CreateWindowEx(
 WS_EX_CONTROLPARENT | WS_EX_ACCEPTFILES,
 CLASSNAME, GetDefaultWindowTitle().c_str(), 
 WS_VISIBLE | WS_OVERLAPPEDWINDOW,
@@ -670,7 +654,7 @@ tabctl = CreateWindowEx(
 WS_VISIBLE | WS_CHILD | TCS_SINGLELINE | TCS_FOCUSNEVER | (config.get("tabsAtBottom", false)? TCS_BOTTOM:0),
 5, 5, r.right -10, r.bottom -49, 
 win, (HMENU)IDC_TABCTL, hinstance, NULL);
-status = CreateWindowEx(
+sp.status = status = CreateWindowEx(
 0, L"STATIC", TEXT("Status"), 
 WS_VISIBLE | WS_CHILD | WS_BORDER | SS_NOPREFIX | SS_LEFT, 
 5, r.bottom -32, r.right -10, 27, 
@@ -687,6 +671,7 @@ for (int i=0; i<encodings.size(); i++) InsertMenu(menuEncoding, i, MF_STRING | M
 for (int i=1; i<=8; i++) InsertMenu(menuIndentation, i, MF_STRING | MF_BYPOSITION, IDM_INDENTATION_SPACES -1 +i, tsnprintf(32, msg("%d spaces"), i).c_str() );
 I18NMenus(menu);
 SetMenuNamesFromResource(menu);
+SixpadDLLInit(&sp);
 }
 
 {//TExt font
@@ -694,7 +679,7 @@ File fdFont(appDir + TEXT("\\") + appName + TEXT(".fnt"));
 if (fdFont) {
 LOGFONT lf = {0};
 fdFont.read(&lf, sizeof(lf));
-gfont = CreateFontIndirect(&lf);
+sp.font = gfont = CreateFontIndirect(&lf);
 }}
 
 {//Recent files
@@ -957,7 +942,7 @@ return FALSE;
 }
 
 void OpenConsoleWindow () {
-if (!consoleWin) consoleWin = CreateDialogParam(IDD_CONSOLE, win, consoleDlgProc, NULL);
+if (!consoleWin) consoleWin = CreateDialogParam(sp.hinstance, IDD_CONSOLE, sp.win, consoleDlgProc, NULL);
 if (consoleWin) {
 ShowWindow(consoleWin, SW_SHOW);
 SetForegroundWindow(consoleWin);

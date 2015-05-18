@@ -5,6 +5,7 @@
 #include "variant.h"
 #include<tuple>
 #include<functional>
+#include<type_traits>
 #include<string>
 
 #define GIL_PROTECT RAII_GIL ___RAII_GIL_VAR_##__LINE__; 
@@ -197,39 +198,15 @@ return *this;
 }
 inline PySafeObject (PySafeObject&& x): o(x.o) { x.o=0; }
 inline ~PySafeObject  () { operator=(NULL); }
-inline bool operator== (PyObject* x) { return x==o; }
-inline bool operator== (const PySafeObject& x) { return x.o==o; }
-inline PyObject* operator* () { return o; }
-inline operator bool () { return !!o && o!=Py_None && o!=Py_False; }
+inline bool operator== (PyObject* x) const { return x==o; }
+inline bool operator== (const PySafeObject& x) const { return x.o==o; }
+inline PyObject* operator* () const { return o; }
+inline operator bool () const { return !!o && o!=Py_None && o!=Py_False; }
+template<class R, class...A> std::function<R(A...)> asFunction () const;
 };
 
-struct PyCallback {
-PyObject* func;
-inline PyCallback (): func(0) {}
-inline PyCallback (PyObject* x): func(0) { operator=(x); }
-inline PyCallback (const PyCallback& x): PyCallback(x.func) {}
-inline PyCallback& operator= (const PyCallback& x) { return operator=(x.func); }
-PyCallback& operator= (PyObject* o) {
-GIL_PROTECT
-if (o && !PyCallable_Check(o)) o=NULL;
-Py_XINCREF(o);
-Py_XDECREF(func);
-func=o;
-return *this;
-}
-PyCallback& operator= (PyCallback&& x) {
-if (this==&x) return *this;
-GIL_PROTECT
-Py_XDECREF(func);
-func = x.func;
-x.func = 0;
-return *this;
-}
-inline PyCallback (PyCallback&& x): func(x.func) { x.func=0; }
-inline ~PyCallback () { operator=(NULL); }
-inline bool operator== (const PyCallback& pcb) { return func==pcb.func; }
-inline operator bool () const { return !!func && func!=Py_None; }
-template<class R, class... A> R operator() (A... args) const {
+template<class R, class... A> struct CallbackSpec {
+static R call (PyObject* func, A... args) {
 GIL_PROTECT
 PyObject* argtuple = Py_BuildValue(PyTypeSpecsTuple<A...>(), PyTypeSpec<A>::convert2(args)...);
 PyObject* pyResult = PyObject_CallObject(func, argtuple);
@@ -239,35 +216,16 @@ R cResult = PyTypeSpec<R>::convert3(pyResult);
 Py_XDECREF(pyResult);
 return cResult;
 }
-template<class... A> void operator() (A... args) const {
+};
+
+template<class... A> struct CallbackSpec<void,A...> {
+static void call (PyObject* func, A... args) {
 GIL_PROTECT
 PyObject* argtuple = Py_BuildValue(PyTypeSpecsTuple<A...>(), PyTypeSpec<A>::convert2(args)...);
 PyObject* pyResult = PyObject_CallObject(func, argtuple);
 if (!pyResult) PyErr_Print();
 Py_XDECREF(argtuple);
 Py_XDECREF(pyResult);
-}
-};//PyCallback
-
-template<> struct PyTypeSpec<PyCallback> { 
-typedef PyObject* type;
-static constexpr const char c = 'O'; 
-static inline PyCallback convert (PyObject* i) { return i; }
-static inline PyObject* convert2 (const PyCallback& i) { return i.func; }
-static inline PyCallback convert3 (PyObject* o) { 
-if (!PyCallable_Check(o)) { PyErr_SetString(PyExc_TypeError, "object must be callable"); return 0; }
-return o; 
-}
-};
-
-template<> struct PyTypeSpec<const PyCallback&> { 
-typedef PyObject* type;
-static constexpr const char c = 'O'; 
-static inline PyCallback convert (PyObject* i) { return i; }
-static inline PyObject* convert2 (const PyCallback& i) { return i.func; }
-static inline PyCallback convert3 (PyObject* o) { 
-if (!PyCallable_Check(o)) { PyErr_SetString(PyExc_TypeError, "object must be callable"); return 0; }
-return o; 
 }
 };
 
@@ -286,6 +244,11 @@ static inline PySafeObject convert (PyObject* i) { return i; }
 static inline PyObject* convert2 (const PySafeObject& i) { return i.o; }
 static inline PySafeObject convert3 (PyObject* o) {  return o;  }
 };
+
+template<class R, class...A> std::function<R(A...)> PySafeObject::asFunction () const {
+PySafeObject f(*this);
+return[=](A... args)mutable{ return CallbackSpec<R,A...>::call(*f, args...); };
+}
 
 template<int... S> struct TemplateSequence {};
 template<int N, int... S> struct TemplateSequenceGenerator: TemplateSequenceGenerator<N -1, N -1, S...> {};
