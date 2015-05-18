@@ -202,10 +202,13 @@ inline bool operator== (PyObject* x) const { return x==o; }
 inline bool operator== (const PySafeObject& x) const { return x.o==o; }
 inline PyObject* operator* () const { return o; }
 inline operator bool () const { return !!o && o!=Py_None && o!=Py_False; }
-template<class R, class...A> std::function<R(A...)> asFunction () const;
+template<class S> std::function<S> asFunction () const;
 };
 
-template<class R, class... A> struct CallbackSpec {
+template<class S> class CallbackSpec {
+};
+
+template<class R, class... A> struct CallbackSpec<R(A...)> {
 static R call (PyObject* func, A... args) {
 GIL_PROTECT
 PyObject* argtuple = Py_BuildValue(PyTypeSpecsTuple<A...>(), PyTypeSpec<A>::convert2(args)...);
@@ -216,9 +219,12 @@ R cResult = PyTypeSpec<R>::convert3(pyResult);
 Py_XDECREF(pyResult);
 return cResult;
 }
-};
+static std::function<R(A...)> fromPySafeObject (const PySafeObject& obj) {
+PySafeObject f(obj);
+return[=](A... args)mutable{ return call(*f, args...); };
+}};
 
-template<class... A> struct CallbackSpec<void,A...> {
+template<class... A> struct CallbackSpec<void(A...)> {
 static void call (PyObject* func, A... args) {
 GIL_PROTECT
 PyObject* argtuple = Py_BuildValue(PyTypeSpecsTuple<A...>(), PyTypeSpec<A>::convert2(args)...);
@@ -227,7 +233,10 @@ if (!pyResult) PyErr_Print();
 Py_XDECREF(argtuple);
 Py_XDECREF(pyResult);
 }
-};
+static std::function<void(A...)> fromPySafeObject (const PySafeObject& obj) {
+PySafeObject f(obj);
+return[=](A... args)mutable{ call(*f, args...); };
+}};
 
 template<> struct PyTypeSpec<PySafeObject> { 
 typedef PyObject* type;
@@ -245,9 +254,8 @@ static inline PyObject* convert2 (const PySafeObject& i) { return i.o; }
 static inline PySafeObject convert3 (PyObject* o) {  return o;  }
 };
 
-template<class R, class...A> std::function<R(A...)> PySafeObject::asFunction () const {
-PySafeObject f(*this);
-return[=](A... args)mutable{ return CallbackSpec<R,A...>::call(*f, args...); };
+template<class S> std::function<S> PySafeObject::asFunction () const {
+return CallbackSpec<S>::fromPySafeObject(*this);
 }
 
 template<int... S> struct TemplateSequence {};

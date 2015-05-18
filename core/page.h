@@ -2,8 +2,9 @@
 #define ___PAGE_H9
 #include "global.h"
 #include "python34.h"
-//#include "eventlist.h"
+#include<boost/signals2.hpp>
 #include<functional>
+using boost::signals2::signal;
 
 #define PF_CLOSED 1
 #define PF_READONLY 2
@@ -35,14 +36,40 @@ virtual int GetTypeId () { return 0; }
 virtual ~UndoState(){}
 };
 
+struct BoolSignalCombiner {
+typedef bool result_type;
+template<class I> bool operator() (I start, I end) {
+bool re = true;
+while(start!=end && (re=*start)) ++start;
+return re;
+}};
+
+struct VarSignalCombiner {
+typedef var result_type;
+template<class I> var operator() (I start, I end) {
+var re;
+while(start!=end) {
+re = *start++;
+if (re.getType()==T_BOOL && !re) break;
+}
+return re;
+}};
+
 struct export Page: std::enable_shared_from_this<Page>  {
 tstring name=TEXT(""), file=TEXT("");
 int encoding=-1, indentationMode=-1, lineEnding=-1, markedPosition=0, curUndoState=0;
 unsigned long long flags = 0, lastSave=0;
 HWND zone=0;
 PySafeObject pyData;
-//eventlist listeners;
 std::vector<shared_ptr<UndoState>> undoStates;
+
+signal<void(shared_ptr<Page>)> ondeactivated, onactivated, onclosed;
+signal<bool(shared_ptr<Page>), BoolSignalCombiner> onclose, ondeactivate;
+signal<bool(shared_ptr<Page>,int), BoolSignalCombiner> onkeyDown, onkeyUp, oncontextMenu, onencodingChange, onlineEndingChange, onindentationModeChange, onautoLineBreakChange;
+signal<bool(shared_ptr<Page>,const tstring&), BoolSignalCombiner> onnameChange;
+signal<var(shared_ptr<Page>,const tstring&), VarSignalCombiner> onsave, onbeforeSave, onload, onkeyPress, onstatus;
+signal<var(shared_ptr<Page>, const tstring&, int), VarSignalCombiner> onenter;
+
 
 virtual ~Page() {}
 virtual void SetName (const tstring& name) ;
@@ -118,16 +145,16 @@ inline void GoToMark () { SetCurrentPosition(markedPosition); }
 //template<class... A> inline var dispatchEvent (const string& type, const var& def, A... args) { return listeners.dispatch(type, def, *pyData, args...); }
 //template<class... A> inline void dispatchEvent (const string& type, A... args) { listeners.dispatch(type, *pyData, args...); }
 
-inline void addEvent (const std::string& type, const PySafeObject& cb) {  
-std::function<int(int,int)> f = cb.asFunction<int, int, int>();
-std::function<void(double)> g = cb.asFunction<void, double>();
-//listeners.add(type,cb);  
-}
+void AddEvent (const std::string& type, const PySafeObject& cb) ;
+//void RemoveEvent (const std::string& type, const PySafeObject& cb);
+};
 
-inline void removeEvent (const std::string& type, const PySafeObject& cb) { 
-//listeners.remove(type,cb); 
-}
-
+template<> struct PyTypeSpec<shared_ptr<Page>> { 
+typedef PyObject* type;
+static constexpr const char c = 'O'; 
+//static inline shared_ptr<Page> convert (PyObject* i) { return i; }
+static inline PyObject* convert2 (const shared_ptr<Page>& p) { return p->GetPyData(); }
+//static inline PySafeObject convert3 (PyObject* o) {  return o;  }
 };
 
 #endif

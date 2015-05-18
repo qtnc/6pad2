@@ -43,7 +43,7 @@ int getItemCount (void);
 PyObject* getItem (int n);
 PyObject* getItemByName (const tstring&);
 PyObject* getParent (void) { return parent; }
-PyObject* addItem (tstring label, PyCallback action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator);
+PyObject* addItem (tstring label, PySafeObject action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator);
 void remove (void);
 int show (void);
 };
@@ -415,10 +415,10 @@ Py_END_ALLOW_THREADS
 return re;
 }
 
-PyObject* PyMenuItem::addItem (tstring  label, PyCallback action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator) {
+PyObject* PyMenuItem::addItem (tstring  label, PySafeObject action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator) {
 if (!submenu) { Py_RETURN_NONE; }
 int cmd = pos+1, kf=0, key= 0;
-if (action && !isSeparator && !isSubmenu) cmd = AddUserCommand([=]()mutable{  action(); });
+if (action && !isSeparator && !isSubmenu) cmd = AddUserCommand(action.asFunction<void()>() );
 if (cmd && accelerator.size()>0 && KeyNameToCode(accelerator, kf, key)) AddAccelerator(kf, key, cmd);
 if (key) label += TEXT("\t\t") + KeyCodeToName(kf, key, true);
 PyObject* re = NULL;

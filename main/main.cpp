@@ -8,18 +8,18 @@
 #include "Resource.h"
 #include "UniversalSpeech.h"
 #include "python34.h"
-#include "eventlist.h"
 #include "sixpad.h"
+#include<boost/signals2.hpp>
 #include<list>
 #include<unordered_map>
 #include<map>
 #include<functional>
 #include<clocale>
-#include<csignal>
 #include<io.h>
 #include<fcntl.h>
 #include<shellapi.h>
 using namespace std;
+using boost::signals2::signal;
 
 #define OF_REUSEOPENEDTABS 1
 #define OF_NEWINSTANCE 2
@@ -27,7 +27,6 @@ using namespace std;
 
 IniFile msgs, config;
 tstring appPath, appDir, appName, configFileName, appLocale;
-eventlist listeners;
 shared_ptr<Page> curPage(0);
 list<tstring> consoleInput = { TEXT("import sixpad"), TEXT("from sixpad import window") };
 list<tstring> recentFiles;
@@ -37,6 +36,11 @@ vector<shared_ptr<Page>> pages;
 vector<HWND> modlessWindows;
 unordered_map<int, function<void(void)>> userCommands, timers;
 unordered_map<string,function<Page*()>> pageFactories = { {"text", [](){return new Page();}} };
+
+signal<void()> onactivated, ondeactivated, onclosed, onresized;
+signal<bool(), BoolSignalCombiner> onclose;
+signal<var(const tstring&)> onpageBeforeOpen, ontitle;
+signal<void(shared_ptr<Page>)> onpageOpened;
 
 TCHAR CLASSNAME[32] = {0};
 bool firstInstance = false, headless=false, isDebug = false;
@@ -56,6 +60,7 @@ bool FindAccelerator (int cmd, int& flags, int& key);
 tstring KeyCodeToName (int flags, int vk, bool i18n);
 void ParseLineCol (tstring& file, int& line, int& col);
 void ClearTimeout (int id);
+void CSignal ( void(*)(int) );
 LRESULT WINAPI AppWinProc (HWND, UINT, WPARAM, LPARAM);
 
 
@@ -71,16 +76,16 @@ SixpadData sp;
 
 void UpdateWindowTitle () {
 tstring title = curPage->name + TEXT(" - ") + appName;
-var re = listeners.dispatch("title", var(), title);
+var re = ontitle(title);
 if (re.getType()==T_STR) title = re.toTString();
 SetWindowText(win, title.c_str() );
 }
 
 bool PageDeactivated (shared_ptr<Page> p) {
 if (!p) return true;
-if (!p->dispatchEvent<bool, true>("deactivate")) return false;
+if (!p->ondeactivate(p)) return false;
 p->HideZone();
-p->dispatchEvent("deactivated");
+p->ondeactivated(p);
 return true;
 }
 
@@ -117,12 +122,12 @@ EnableMenuItem2(menuFormat, 0, MF_BYPOSITION, !(p->flags&PF_NOENCODING));
 EnableMenuItem2(menuFormat, 1, MF_BYPOSITION, !(p->flags&PF_NOLINEENDING));
 EnableMenuItem2(menuFormat, 2, MF_BYPOSITION, !(p->flags&PF_NOINDENTATION));
 EnableMenuItem2(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND, !(p->flags&PF_NOAUTOLINEBREAK));
-curPage->dispatchEvent("activated");
+curPage->onactivated(curPage);
 }
 
 bool PageClosing (shared_ptr<Page> p) {
 if (!p) return true;
-if (!p->dispatchEvent<bool, true>("close")) return false;
+if (!p->onclose(p)) return false;
 if (p->flags&PF_WRITETOSTDOUT) { 
 setmode(fileno(stdout),O_BINARY);
 printf("%s", p->SaveData().c_str() );
@@ -142,12 +147,11 @@ else return re==IDNO;
 }
 
 void PageClosed (shared_ptr<Page> p) { 
-p->dispatchEvent("closed");
+p->onclosed(p);
 }
 
 void PageOpened (shared_ptr<Page> p) { 
-if (listeners.count("pageOpened")>0) listeners.dispatch("pageOpened", p->GetPyData() );
-p->dispatchEvent("opened");
+onpageOpened(p);
 }
 
 static tstring GetDefaultWindowTitle (void) {
@@ -305,7 +309,7 @@ return true;
 }
 
 bool AppWindowClosing () {
-if (!listeners.dispatch<bool, true>("close")) return false;
+if (!onclose()) return false;
 for (int i=0, j=0; i<pages.size(); i++) {
 shared_ptr<Page> p = pages[i];
 if ((p->flags&PF_NOSAVE) || p->file.size()<=0) continue;
@@ -319,14 +323,14 @@ return true;
 }
 
 void AppWindowClosed () { 
-listeners.dispatch("closed");
+onclosed();
 }
 
 void AppWindowActivated () {
 static bool on = false;
 if (on) return;
 struct _tmp_{bool&b; _tmp_(bool&x):b(x){b=true;} ~_tmp_(){b=false;} } _tmp1_(on);
-listeners.dispatch("activated");
+onactivated();
 for (auto p: pages) {
 if (p->CheckFileModification()) {
 if (p->IsModified() && IDYES!=MessageBox(win, tsnprintf(512, msg("%s has been modified in another application. Do you want to reload it ?"), p->name.c_str()).c_str(), p->name.c_str(), MB_ICONEXCLAMATION | MB_YESNO) ) p->lastSave = GetCurTime();
@@ -334,7 +338,7 @@ else p->LoadFile(TEXT(""),false);
 }}}
 
 void AppWindowDeactivated () {
-listeners.dispatch("deactivated");
+ondeactivated();
 }
 
 void AppWindowGainedFocus () {
@@ -350,11 +354,18 @@ r.left = 5; r.top = 5; r.right -= 10; r.bottom -= 49;
 SendMessage(tabctl, TCM_ADJUSTRECT, FALSE, &r);
 curPage->ResizeZone(r);
 }
-listeners.dispatch("resized");
+onresized();
 }
 
-void AppAddEvent (const string& type, const PyCallback& cb) { listeners.add(type, cb); }
-void AppRemoveEvent (const string& type, const PyCallback& cb) { listeners.remove(type, cb); }
+void AppAddEvent (const string& type, const PySafeObject& cb) { 
+#define E(n) if (type==#n) on##n .connect(cb.asFunction<typename decltype(on##n)::signature_type>());
+E(pageBeforeOpen) E(pageOpened)
+E(close) E(resized) E(activated) E(deactivated)
+E(title)
+#undef E
+}
+
+//void AppRemoveEvent (const string& type, const PyCallback& cb) { listeners.remove(type, cb); }
 
 static void EncodingShowAll () {
 map<tstring, int, nat_less<TCHAR>> encmap;
@@ -395,8 +406,8 @@ for (int i=0; i<nFiles; i++) {
 TCHAR buf[300] = {0};
 if (!DragQueryFile(hDrop, i, buf, 299)) break;
 tstring file = buf;
-if (curPage && !curPage->dispatchEvent<bool, true>("fileDropped", file, (int)pt.x, (int)pt.y)) continue;
-else if (!listeners.dispatch<bool, true>("fileDropped", file, (int)pt.x, (int)pt.y)) continue;
+//if (curPage && !curPage->dispatchEvent<bool, true>("fileDropped", file, (int)pt.x, (int)pt.y)) continue;
+//else if (!listeners.dispatch<bool, true>("fileDropped", file, (int)pt.x, (int)pt.y)) continue;
 if (2==config.get("instanceMode",0)) OpenFile(file, OF_NEWINSTANCE); 
 else OpenFile(file, OF_REUSEOPENEDTABS);
 }}
@@ -474,7 +485,7 @@ tstring file=file1; int line=0, col=0;
 ParseLineCol(file, line, col);
 if (OpenFile2(file, flags)) return NULL;
 string type = "text";
-var vtype = listeners.dispatch("pageBeforeOpen", var(), file);
+var vtype = onpageBeforeOpen(file);
 if (vtype.getType()==T_STR) type = toString(vtype.toTString());
 shared_ptr<Page> cp = curPage;
 shared_ptr<Page> p = PageCreate(type);
@@ -564,9 +575,7 @@ sp.hinstance = hinstance = hThisInstance;
 if (!(isDebug = IsDebuggerPresent())) {
 set_terminate(termHandler);
 set_unexpected(termHandler);
-signal(SIGSEGV, sigsegv);
-signal(SIGFPE, sigsegv);
-signal(SIGILL, sigsegv);
+CSignal(sigsegv);
 }
 SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
 

@@ -5,9 +5,7 @@ HINSTANCE dllHinstance=0;
 SixpadData sp;
 
 BOOL extern SixpadDLLInit (const SixpadData* d) {
-printf("d.msg=%p, sp.msg=%p\r\n", d->msg, sp.msg);
 sp = *d;
-printf("init.sp.msg=%p\r\n", sp.msg);
 return true;
 }
 

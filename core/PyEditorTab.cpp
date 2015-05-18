@@ -49,8 +49,8 @@ void setLineEnding (int le) { RunSync([&]()mutable{ page()->SetLineEnding(le); }
 void setEncoding (int e) { RunSync([&]()mutable{ page()->SetEncoding(e); }); }
 void setIndentationMode (int i) { RunSync([&]()mutable{ page()->SetIndentationMode(i); }); }
 void setAutoLineBreak (int b) { RunSync([&]()mutable{ page()->SetAutoLineBreak(b); }); }
-void addEvent (const string& type, const PyCallback& cb) {  page()->addEvent(type,cb); }
-void removeEvent (const string& type, const PyCallback& cb) { page()->removeEvent(type,cb); }
+void addEvent (const string& type, const PySafeObject& cb) {  page()->AddEvent(type,cb); }
+//void removeEvent (const string& type, const PyCallback& cb) { page()->removeEvent(type,cb); }
 void focus () { page()->EnsureFocus(); }
 void close () { page()->EnsureFocus(); page()->Close(); }
 void undo () { RunSync([&]()mutable{ page()->Undo(); }); }
@@ -181,7 +181,7 @@ PyMapSet, // set
 
 static PyMethodDef PyEditorTabMethods[] = {
 PyDecl("addEvent", &PyEditorTab::addEvent),
-PyDecl("removeEvent", &PyEditorTab::removeEvent),
+//PyDecl("removeEvent", &PyEditorTab::removeEvent),
 PyDecl("select", &PyEditorTab::setSelection),
 PyDecl("line", &PyEditorTab::getLine),
 PyDecl("lineLength", &PyEditorTab::getLineLength),

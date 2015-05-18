@@ -68,41 +68,44 @@ extern IniFile config;
 extern tstring configFileName;
 //extern eventlist listeners;
 
-tstring msg (const char* name) ;
 void SetClipboardText (const tstring&);
 tstring GetClipboardText (void);
 void PrepareSmartPaste (tstring& text, const tstring& indent);
 bool PageGoToNext (int);
 void PageEnsureFocus (shared_ptr<Page>);
 
+inline tstring msg (const char* name) { 
+return sp.msg(name); 
+}
+
 void Page::SetName (const tstring& n) { 
 name = n;
-//dispatchEvent("nameChanged", name);
+onnameChange(shared_from_this(), name);
 }
 
 void Page::SetEncoding (int e) {
 encoding = e;
-//dispatchEvent("encodingChanged", e);
+onencodingChange(shared_from_this(), e);
 }
 
 void Page::SetLineEnding (int e) {
 lineEnding = e;
-//dispatchEvent("lineEndingChanged", e);
+onlineEndingChange(shared_from_this(), e);
 }
 
 void Page::SetIndentationMode (int e) {
 indentationMode = e;
-//dispatchEvent("indentationModeChanged", e);
+onindentationModeChange(shared_from_this(), e);
 }
 
 void Page::SetAutoLineBreak (bool b) {
 //todo
-//dispatchEvent("autoLineBreakChanged", b);
+onautoLineBreakChange(shared_from_this(), b);
 }
 
 bool Page::Close () { 
 //todo
-return false; 
+return true; 
 }
 
 void Page::SetCurrentPosition (int pos) {
@@ -366,7 +369,7 @@ return;
 
 string Page::SaveData () {
 tstring str = GetText();
-var re ;//= dispatchEvent("save", var(), str);
+var re = onsave(shared_from_this(), str);
 if (re.getType()==T_STR) str = re.toTString();
 if (lineEnding==LE_UNIX) str = str_replace(str, TEXT("\r\n"), TEXT("\n"));
 else if (lineEnding==LE_MAC) str = str_replace(str, TEXT("\r\n"), TEXT("\r"));
@@ -382,7 +385,7 @@ file = newFile;
 name = FileNameToPageName(*this, file);
 flags&=~(PF_MUSTSAVEAS|PF_READONLY);
 }
-var re ;//= dispatchEvent("beforeSave", var(), file);
+var re = onbeforeSave(shared_from_this(), file);
 if (re.getType()==T_STR) file = re.toTString();
 if (file.size()<=0) return false;
 string cstr = SaveData();
@@ -412,7 +415,7 @@ text = ConvertFromEncoding(str, encoding);
 if (lineEnding<0) lineEnding = guessLineEnding(text.data(), text.size(), sp.configGetInt("defaultLineEnding", LE_DOS)  );
 if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), sp.configGetInt("defaultIndentationMode", 0)  );
 normalizeLineEndings(text);
-var re ;//= dispatchEvent("load", var(), text);
+var re = onload(shared_from_this(), text);
 if (re.getType()==T_STR) text = re.toTString();
 lastSave = GetCurTime();
 SetText(text);
@@ -443,7 +446,7 @@ return tsnprintf(512, msg("Li %d, Col %d.\t%d%%, %d lines"), 1+sline, 1+scolumn,
 
 void Page::UpdateStatusBar (HWND hStatus) {
 tstring text = StatusBarUpdate(zone, hStatus);
-var re ;//= dispatchEvent("status", var(), text);
+var re = onstatus(shared_from_this(), text);
 if (re.getType()==T_STR) text=re.toTString();
 //re = ::listeners.dispatch("status", var(), text);
 if (re.getType()==T_STR) text=re.toTString();
@@ -659,7 +662,7 @@ int pos=0, nLine=0, addIndent=0;
 SendMessage(hEdit, EM_GETSEL, &pos, 0);
 nLine = SendMessage(hEdit, EM_LINEFROMCHAR, pos, 0);
 tstring addString, line = EditGetLine(hEdit, nLine, pos);
-var re ;//= page->dispatchEvent("enter", var(), line, nLine);
+var re = page->onenter(page->shared_from_this(), line, nLine);
 switch(re.getType()) {
 case T_NULL: break;
 case T_BOOL: if (!re) return false; break;
@@ -767,7 +770,8 @@ return curPage->indentationMode>0;
 static LRESULT CALLBACK EditProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, Page* curPage) {
 switch(msg){
 case WM_CHAR: {
-var re ;//= curPage->dispatchEvent("keyPressed", var(), (int)LOWORD(wp) );
+TCHAR cc = LOWORD(wp);
+var re = curPage->onkeyPress(curPage->shared_from_this(), tstring(&cc,1));
 switch(re.getType()) {
 case T_NULL: break;
 case T_BOOL: if (!re) return true; break;
@@ -778,7 +782,7 @@ SendMessage(hwnd, EM_REPLACESEL, 0, str.c_str() );
 EZTextInserted(curPage, hwnd, str); 
 return true;
 }}
-switch(LOWORD(wp)) {
+switch(cc) {
 case VK_RETURN: 
 return EZHandleEnter(curPage, hwnd);
 case VK_TAB: 
@@ -792,13 +796,14 @@ default:
 EZTextInserted(curPage, hwnd, tstring(1,LOWORD(wp)) ); 
 break;
 }}break;//WM_CHAR
-case WM_KEYUP: case WM_SYSKEYUP:
-//if (!curPage->dispatchEvent<bool, true>("keyUp", (int)(LOWORD(wp) | GetCurrentModifiers()) )) return true;
+case WM_KEYUP: case WM_SYSKEYUP: {
+int kc = LOWORD(wp) | GetCurrentModifiers();
+if (!curPage->onkeyUp(curPage->shared_from_this(), kc)) return true;
 curPage->UpdateStatusBar(sp.status);
-break;//WM_KEYUP
+}break;//WM_KEYUP
 case WM_KEYDOWN :  case WM_SYSKEYDOWN:  {
 int kc = LOWORD(wp) | GetCurrentModifiers();
-//if (!curPage->dispatchEvent<bool, true>("keyDown", kc )) return true;
+if (!curPage->onkeyDown(curPage->shared_from_this(), kc)) return true;
 switch(kc){
 case VK_DOWN | VKM_CTRL | VKM_SHIFT : return EZHandleSelectDown(hwnd, EZGetNextParagPos);
 case VK_DOWN | VKM_CTRL: return EZHandleMoveDown(hwnd, EZGetNextParagPos);
@@ -816,7 +821,7 @@ case VK_RIGHT | VKM_ALT: return EZHandleMoveDown(hwnd, EZGetEndIndentedBlockPos,
 //case VK_TAB | VKM_CTRL | VKM_SHIFT: return PageGoToNext(-1);
 case VK_HOME: return EZHandleHome(hwnd, false);
 case VK_HOME | VKM_ALT: return EZHandleHome(hwnd, true);
-case VK_DELETE: return EZHandleDel(curPage, hwnd);
+case VK_DELETE:  EZHandleDel(curPage, hwnd); break;
 }}break;//WM_KEYDOWN/WM_SYSKEYDOWN
 case WM_PASTE : {
 int start, end;
@@ -855,7 +860,7 @@ SendMessage(hwnd, EM_SETSEL, lindex, lindex+llen);
 else curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(spos, epos, EditGetSubstring(hwnd, spos, epos), true) ));
 }break;//WM_CUT
 case WM_CONTEXTMENU:
-if (true) { //curPage->dispatchEvent<bool, true>("contextmenu", IsShiftDown(), IsCtrlDown() )) {
+if (curPage->oncontextMenu(curPage->shared_from_this(), GetCurrentModifiers() )) {
 POINT p;
 GetCursorPos(&p);
 HMENU menu = GetSubMenu(GetMenu(sp.win), 1);
@@ -1008,4 +1013,13 @@ SendMessage(p.zone, EM_SETSEL, pos, pos+newText.size());
 SendMessage(p.zone, EM_REPLACESEL, 0, oldText.c_str() );
 if (select) SendMessage(p.zone, EM_SETSEL, pos, pos+oldText.size());
 if (IsWindowVisible(p.zone)) SendMessage(p.zone, EM_SCROLLCARET, 0, 0);
+}
+
+void Page::AddEvent (const string& type, const PySafeObject& cb) {
+#define E(n) if (type==#n) on##n .connect(cb.asFunction<typename decltype(on##n)::signature_type>());
+E(keyDown) E(keyUp) E(keyPress)
+E(save) E(beforeSave) E(load)
+E(status) E(contextMenu) E(enter)
+E(nameChange) E(encodingChange) E(lineEndingChange) E(indentationModeChange) E(autoLineBreakChange)
+#undef E
 }

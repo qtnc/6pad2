@@ -5,7 +5,6 @@ using namespace std;
 using boost::shared_array;
 
 inline tstring msg (const char* name) { 
-printf("sp.msg=%p, %s\r\n",msg, name);
 return sp.msg(name); 
 }
 

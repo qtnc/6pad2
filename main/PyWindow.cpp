@@ -23,8 +23,8 @@ extern vector<shared_ptr<Page>> pages;
 extern vector<tstring> argv;
 
 tstring msg (const char* name);
-void AppAddEvent (const string&, const PyCallback&);
-void AppRemoveEvent (const string&, const PyCallback&);
+void AppAddEvent (const string&, const PySafeObject&);
+//void AppRemoveEvent (const string&, const PySafeObject&);
 int AddUserCommand (std::function<void(void)> f, int cmd=0);
 int SetTimeout (const std::function<void(void)>& f, int time, bool repeat);
 void ClearTimeout (int id);
@@ -36,11 +36,11 @@ shared_ptr<Page> PageAddEmpty (bool focus, const string& type);
 PyObject* PyMenuItem_GetMenuBar (void);
 PyObject* PyMenuItem_CreatePopupMenu (void);
 
-static int PyAddAccelerator (const tstring& kn, PyCallback cb) {
+static int PyAddAccelerator (const tstring& kn, PySafeObject cb) {
 int k=0, kf=0;
 KeyNameToCode(kn, kf, k);
 if (k<=0) return 0;
-function<void(void)> f = [=]()mutable{  cb(); };
+function<void()> f = cb.asFunction<void()>();
 int cmd = AddUserCommand(f);
 if (cmd<=0) return 0;
 if (AddAccelerator(kf, k, cmd)) return cmd;
@@ -114,12 +114,12 @@ static void PySetWinTitle (const tstring& title) {
 SetWindowText(win, title);
 }
 
-static int PySetTimer1 (const PyCallback& cb, int time) {
-return SetTimeout([=](){  cb(); }, time, false);
+static int PySetTimer1 (const PySafeObject& cb, int time) {
+return SetTimeout(cb.asFunction<void()>(), time, false);
 }
 
-static int PySetTimer2 (const PyCallback& cb, int time) {
-return SetTimeout([=](){ cb(); }, time, true);
+static int PySetTimer2 (const PySafeObject& cb, int time) {
+return SetTimeout(cb.asFunction<void()>(), time, true);
 }
 
 static int PyPlaySound (const tstring& filename) {
@@ -182,7 +182,7 @@ PyDecl("createPopupMenu", PyMenuItem_CreatePopupMenu),
 
 // Global events management
 PyDecl("addEvent", AppAddEvent),
-PyDecl("removeEvent", AppRemoveEvent),
+//PyDecl("removeEvent", AppRemoveEvent),
 PyDecl("setTimeout", PySetTimer1),
 PyDecl("setInterval", PySetTimer2),
 PyDecl("clearTimeout", ClearTimeout),
