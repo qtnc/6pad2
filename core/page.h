@@ -4,7 +4,6 @@
 #include "python34.h"
 #include "eventlist.h"
 #include<functional>
-//#include<boost/enable_shared_from_this.hpp>
 
 #define PF_CLOSED 1
 #define PF_READONLY 2
@@ -47,6 +46,10 @@ std::vector<shared_ptr<UndoState>> undoStates;
 
 virtual ~Page() {}
 virtual void SetName (const tstring& name) ;
+virtual void SetEncoding (int e);
+virtual void SetLineEnding (int e);
+virtual void SetIndentationMode (int e);
+virtual void SetAutoLineBreak (bool b);
 virtual bool IsEmpty () ;
 virtual bool IsModified () ;
 virtual void SetModified (bool);
@@ -59,7 +62,7 @@ virtual void ShowZone (const RECT&);
 virtual void FocusZone ();
 virtual void EnsureFocus ();
 virtual void SetFont (HFONT);
-virtual void Close () ;
+virtual bool Close () ;
 virtual bool LoadFile (const tstring& fn = TEXT(""), bool guessFormat=true ) ;
 virtual bool LoadData (const string& data, bool guessFormat=true);
 virtual bool SaveFile (const tstring& fn = TEXT(""));
@@ -114,10 +117,9 @@ inline void GoToMark () { SetCurrentPosition(markedPosition); }
 template<class R, R initial, class... A> inline R dispatchEvent (const string& type, A... args) {  return listeners.dispatch<R,initial>(type, *pyData, args...);  }
 template<class... A> inline var dispatchEvent (const string& type, const var& def, A... args) { return listeners.dispatch(type, def, *pyData, args...); }
 template<class... A> inline void dispatchEvent (const string& type, A... args) { listeners.dispatch(type, *pyData, args...); }
+
 inline void addEvent (const std::string& type, const PyCallback& cb) { listeners.add(type,cb); }
 inline void removeEvent (const std::string& type, const PyCallback& cb) { listeners.remove(type,cb); }
-
-static void RegisterPageFactory (const std::string& name, const std::function<Page*()>& factory);
 };
 
 #endif

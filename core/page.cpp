@@ -2,6 +2,7 @@
 #include "page.h"
 #include "file.h"
 #include "inifile.h"
+#include "sixpad.h"
 #include<boost/regex.hpp>
 using namespace std;
 
@@ -62,24 +63,47 @@ tregex newRegex (bool);
 static list<FindData> finds;
 
 extern HINSTANCE hinstance;
-extern HWND win, status;
 extern HFONT gfont;
-extern IniFile config, msgs;
+extern IniFile config;
 extern tstring configFileName;
 extern eventlist listeners;
-extern unordered_map<string,function<Page*()>> pageFactories;
 
 tstring msg (const char* name) ;
 void SetClipboardText (const tstring&);
 tstring GetClipboardText (void);
 void PrepareSmartPaste (tstring& text, const tstring& indent);
 bool PageGoToNext (int);
-void PageSetName (shared_ptr<Page> p, const tstring& name);
-bool PageDelete (shared_ptr<Page>, int idx=-1);
 void PageEnsureFocus (shared_ptr<Page>);
 
-void Page::SetName (const tstring& name) { PageSetName(shared_from_this(),name); }
-void Page::Close () { PageDelete(shared_from_this()); }
+void Page::SetName (const tstring& n) { 
+name = n;
+dispatchEvent("nameChanged", name);
+}
+
+void Page::SetEncoding (int e) {
+encoding = e;
+dispatchEvent("encodingChanged", e);
+}
+
+void Page::SetLineEnding (int e) {
+lineEnding = e;
+dispatchEvent("lineEndingChanged", e);
+}
+
+void Page::SetIndentationMode (int e) {
+indentationMode = e;
+dispatchEvent("indentationModeChanged", e);
+}
+
+void Page::SetAutoLineBreak (bool b) {
+//todo
+dispatchEvent("autoLineBreakChanged", b);
+}
+
+bool Page::Close () { 
+//todo
+return false; 
+}
 
 void Page::SetCurrentPosition (int pos) {
 if (!zone) return;
@@ -320,7 +344,7 @@ if (pos==tstring::npos) pos = -1;
 return file.substr(1+pos);
 }
 
-void ParseLineCol (tstring& file, int& line, int& col) {
+void export ParseLineCol (tstring& file, int& line, int& col) {
 using namespace boost;
 tregex r1(TEXT(":(\\d+):(\\d+)$"), regex_constants::perl | regex_constants::mod_s | regex_constants::collate);
 tcmatch m;
@@ -383,10 +407,10 @@ return LoadData(fd.readFully(), guessFormat);
 bool Page::LoadData (const string& str, bool guessFormat) {
 tstring text = TEXT("");
 if (guessFormat) { encoding=-1; lineEnding=-1; indentationMode=-1; }
-if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), str.size(), config.get("defaultEncoding", (int)GetACP() ));
+if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), str.size(), sp.configGetInt("defaultEncoding",GetACP()) );
 text = ConvertFromEncoding(str, encoding);
-if (lineEnding<0) lineEnding = guessLineEnding(text.data(), text.size(), config.get("defaultLineEnding", LE_DOS));
-if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), config.get("defaultIndentationMode", 0));
+if (lineEnding<0) lineEnding = guessLineEnding(text.data(), text.size(), sp.configGetInt("defaultLineEnding", LE_DOS)  );
+if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), sp.configGetInt("defaultIndentationMode", 0)  );
 normalizeLineEndings(text);
 var re = dispatchEvent("load", var(), text);
 if (re.getType()==T_STR) text = re.toTString();
@@ -421,7 +445,7 @@ void Page::UpdateStatusBar (HWND hStatus) {
 tstring text = StatusBarUpdate(zone, hStatus);
 var re = dispatchEvent("status", var(), text);
 if (re.getType()==T_STR) text=re.toTString();
-re = ::listeners.dispatch("status", var(), text);
+//re = ::listeners.dispatch("status", var(), text);
 if (re.getType()==T_STR) text=re.toTString();
 SetWindowText(hStatus, text);
 }
@@ -460,7 +484,7 @@ return FALSE;
 }
 
 void Page::GoToDialog () {
-DialogBoxParam(IDD_GOTOLINE, win, GoToLineDlgProc, this);
+DialogBoxParam(dllHinstance, IDD_GOTOLINE, sp.win, GoToLineDlgProc, this);
 }
 
 static INT_PTR CALLBACK FindReplaceDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
@@ -515,7 +539,7 @@ return FALSE;
 static inline void FindReplaceDlg2 (Page& tp, bool replace) {
 DWORD val = (DWORD)&tp;
 if (replace) val++;
-DialogBoxParam(IDD_SEARCHREPLACE, win, FindReplaceDlgProc, val);
+DialogBoxParam(dllHinstance, IDD_SEARCHREPLACE, sp.win, FindReplaceDlgProc, val);
 }
 
 void Page::FindDialog () {
@@ -770,7 +794,7 @@ break;
 }}break;//WM_CHAR
 case WM_KEYUP: case WM_SYSKEYUP:
 if (!curPage->dispatchEvent<bool, true>("keyUp", (int)(LOWORD(wp) | GetCurrentModifiers()) )) return true;
-curPage->UpdateStatusBar(status);
+curPage->UpdateStatusBar(sp.status);
 break;//WM_KEYUP
 case WM_KEYDOWN :  case WM_SYSKEYDOWN:  {
 int kc = LOWORD(wp) | GetCurrentModifiers();
@@ -788,8 +812,8 @@ case VK_LEFT | VKM_ALT | VKM_SHIFT: return EZHandleSelectUp(hwnd, EZGetStartInde
 case VK_LEFT | VKM_ALT: return EZHandleMoveUp(hwnd, EZGetStartIndentedBlockPos);
 case VK_RIGHT | VKM_ALT | VKM_SHIFT: return EZHandleSelectDown(hwnd, EZGetEndIndentedBlockPos);
 case VK_RIGHT | VKM_ALT: return EZHandleMoveDown(hwnd, EZGetEndIndentedBlockPos, false);
-case VK_TAB | VKM_CTRL: return PageGoToNext(1);
-case VK_TAB | VKM_CTRL | VKM_SHIFT: return PageGoToNext(-1);
+//case VK_TAB | VKM_CTRL: return PageGoToNext(1);
+//case VK_TAB | VKM_CTRL | VKM_SHIFT: return PageGoToNext(-1);
 case VK_HOME: return EZHandleHome(hwnd, false);
 case VK_HOME | VKM_ALT: return EZHandleHome(hwnd, true);
 case VK_DELETE: return EZHandleDel(curPage, hwnd);
@@ -834,7 +858,7 @@ case WM_CONTEXTMENU:
 if (curPage->dispatchEvent<bool, true>("contextmenu", IsShiftDown(), IsCtrlDown() )) {
 POINT p;
 GetCursorPos(&p);
-HMENU menu = GetSubMenu(GetMenu(win), 1);
+HMENU menu = GetSubMenu(GetMenu(sp.win), 1);
 TrackPopupMenu(menu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_LEFTBUTTON, p.x, p.y, 0, hwnd, NULL);
 }
 return true;
@@ -855,9 +879,9 @@ DestroyWindow(zone);
 HWND hEdit  = CreateWindowEx(0, TEXT("EDIT"), TEXT(""),
 WS_CHILD | WS_TABSTOP | WS_VSCROLL | WS_BORDER | ES_MULTILINE | ES_NOHIDESEL | ES_AUTOVSCROLL | ((flags&PF_AUTOLINEBREAK)? 0:ES_AUTOHSCROLL|WS_HSCROLL),
 10, 10, 400, 400,
-parent, (HMENU)(IDC_EDITAREA + count++), hinstance, NULL);
+parent, (HMENU)(IDC_EDITAREA + count++), sp.hinstance, NULL);
 SendMessage(hEdit, EM_SETLIMITTEXT, 1073741823, 0);
-SendMessage(hEdit, WM_SETFONT, gfont, TRUE);
+SendMessage(hEdit, WM_SETFONT, sp.font, TRUE);
 { int x=16; SendMessage(hEdit, EM_SETTABSTOPS, 1, &x); }
 SetWindowText(hEdit, text.c_str());
 SendMessage(hEdit, EM_SETSEL, ss, se);
@@ -880,7 +904,7 @@ SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
 void Page::EnsureFocus () {
-PageEnsureFocus(shared_from_this());
+//PageEnsureFocus(shared_from_this());
 }
 
 void Page::FocusZone () {
@@ -917,10 +941,6 @@ MessageBeep(MB_OK);
 return;
 }
 undoStates[curUndoState++]->Redo(*this);
-}
-
-void Page::RegisterPageFactory (const string& name, const function<Page*()>& f) {
-pageFactories[name] = f;
 }
 
 void TextDeleted::Redo (Page& p) {

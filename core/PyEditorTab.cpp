@@ -6,11 +6,6 @@
 //#include<boost/weak_ptr.hpp>
 using namespace std;
 
-void PageSetLineEnding (shared_ptr<Page> p, int le);
-void PageSetEncoding (shared_ptr<Page> p, int enc);
-void PageSetIndentationMode (shared_ptr<Page> p, int im);
-void PageSetAutoLineBreak (shared_ptr<Page> p, bool alb);
-
 extern vector<shared_ptr<Page>> pages;
 
 struct PyProxyUndoState: UndoState  {
@@ -50,10 +45,10 @@ int getEncoding () { return page()->encoding; }
 int getIndentationMode () { return page()->indentationMode; }
 tstring getIndentString () { shared_ptr<Page> p = page(); return tstring(max(p->indentationMode,1), p->indentationMode>0?' ':'\t'); }
 int getAutoLineBreak () { return 0!=(page()->flags&PF_AUTOLINEBREAK); }
-void setLineEnding (int le) { RunSync([&]()mutable{ PageSetLineEnding(page(),le); }); }
-void setEncoding (int e) { RunSync([&]()mutable{ PageSetEncoding(page(),e); }); }
-void setIndentationMode (int i) { RunSync([&]()mutable{ PageSetIndentationMode(page(),i); }); }
-void setAutoLineBreak (int b) { RunSync([&]()mutable{ PageSetAutoLineBreak(page(),b); }); }
+void setLineEnding (int le) { RunSync([&]()mutable{ page()->SetLineEnding(le); }); }
+void setEncoding (int e) { RunSync([&]()mutable{ page()->SetEncoding(e); }); }
+void setIndentationMode (int i) { RunSync([&]()mutable{ page()->SetIndentationMode(i); }); }
+void setAutoLineBreak (int b) { RunSync([&]()mutable{ page()->SetAutoLineBreak(b); }); }
 void addEvent (const string& type, const PyCallback& cb) {  page()->addEvent(type,cb); }
 void removeEvent (const string& type, const PyCallback& cb) { page()->removeEvent(type,cb); }
 void focus () { page()->EnsureFocus(); }
@@ -294,14 +289,14 @@ PyObject* arg = p.GetPyData();
 PyObject_CallMethod(*obj, "redo", "(O)", arg);
 }
 
-PyObject* CreatePyEditorTabObject (shared_ptr<Page> p) {
+PyObject* export CreatePyEditorTabObject (shared_ptr<Page> p) {
 GIL_PROTECT
 PyEditorTab* it = PyEditorTabNew(&PyEditorTabType, NULL, NULL);
 it->wpPage = p;
 return (PyObject*)it;
 }
 
-bool PyRegister_EditorTab (PyObject* m) {
+bool export PyRegister_EditorTab (PyObject* m) {
 //PyEditorTabType.tp_new = (decltype(PyEditorTabType.tp_new))PyEditorTabNew;
 if (PyType_Ready(&PyEditorTabType) < 0)          return false;
 Py_INCREF(&PyEditorTabType); 

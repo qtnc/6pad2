@@ -1,12 +1,13 @@
 #include "global.h"
+#include "sixpad.h"
 #include<boost/shared_array.hpp>
 using namespace std;
 using boost::shared_array;
 
-extern HINSTANCE hinstance;
-extern HWND win;
-
-tstring msg (const char* name);
+inline tstring msg (const char* name) { 
+printf("sp.msg=%p, %s\r\n",msg, name);
+return sp.msg(name); 
+}
 
 static void TranslateNulls (LPTSTR path) {
 for (TCHAR* p=path; *p||p[1]; p++) if(!*p&&p[1]) *p='|';
@@ -20,7 +21,7 @@ s.append(4,0);
 return s;
 }
 
-tstring FileDialog (HWND parent, int flags, const tstring& file, const tstring& title, tstring filters, int* nFilterSelected) {
+tstring export FileDialog (HWND parent, int flags, const tstring& file, const tstring& title, tstring filters, int* nFilterSelected) {
 int pathlen = ((flags&3)==3? 32768: 512);
 shared_array<TCHAR> path( new TCHAR[pathlen] );
 OPENFILENAME ofn;
@@ -47,7 +48,7 @@ return &path[0];
 else return TEXT("");
 }
 
-bool FontDialog (HWND parent, LOGFONT& lf) {
+bool export FontDialog (HWND parent, LOGFONT& lf) {
 CHOOSEFONT cf;
 ZeroMemory(&cf, sizeof(cf));
 cf.lStructSize = sizeof(cf);
@@ -57,7 +58,7 @@ cf.Flags = CF_FORCEFONTEXIST | CF_INITTOLOGFONTSTRUCT;
 return ChooseFont(&cf);
 }
 
-COLORREF ColorDialog (HWND parent, COLORREF initial) {
+COLORREF export ColorDialog (HWND parent, COLORREF initial) {
 COLORREF custColors[16] = {0};
 CHOOSECOLOR cc;
 ZeroMemory(&cc, sizeof(cc));
@@ -133,8 +134,8 @@ return true;
 return FALSE;
 }
 
-int ChoiceDialog (HWND parent, const tstring& title, const tstring& prompt, const vector<tstring>& choices, int defaultSelection) {
+int export ChoiceDialog (HWND parent, const tstring& title, const tstring& prompt, const vector<tstring>& choices, int defaultSelection) {
 ChoiceDlgData cdd(choices, title, prompt, defaultSelection);
-DialogBoxParam(IDD_CHOICE, win, ChoiceDlgProc, &cdd);
+DialogBoxParam(dllHinstance, IDD_CHOICE, parent, ChoiceDlgProc, &cdd);
 return cdd.selection;
 }

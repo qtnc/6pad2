@@ -6,7 +6,7 @@
 using std::map;
 using std::multimap;
 
-struct IniFile: private std::multimap<string,string>  {
+struct export IniFile: private std::multimap<string,string>  {
 typedef std::multimap<string,string> super;
 using super::find;
 using super::erase;

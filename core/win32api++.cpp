@@ -49,7 +49,7 @@ LocalUnlock(hLoc);
 return str;
 }
 
-unsigned long long GetCurTime () {
+unsigned long long export GetCurTime () {
 unsigned long long l=0;
 FILETIME ft;
 GetSystemTimeAsFileTime(&ft);
