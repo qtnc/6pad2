@@ -3,7 +3,7 @@
 #include "global.h"
 #include<boost/shared_array.hpp>
 
-struct Resource {
+struct export Resource {
 HRSRC hf;
 HANDLE hr;
 

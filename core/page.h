@@ -28,7 +28,7 @@
 
 struct export Page;
 
-struct UndoState {
+struct export UndoState {
 virtual void Undo (Page&) = 0;
 virtual void Redo (Page&) = 0;
 virtual bool Join (UndoState& s) { return false; }

@@ -5,8 +5,9 @@
 #define _WIN32_WINNT 0x501
 #include<windows.h>
 #include<commctrl.h>
+
 #ifndef __WINDRES
-//#include<boost/shared_ptr.hpp>
+#define export __declspec(dllexport)
 #include<cstdio>
 #include<string>
 #include<vector>
@@ -41,9 +42,7 @@ typedef std::string tstring;
 #define DEBUG 0
 #endif
 
-#define export __declspec(dllexport)
-
-#define SIXPAD_VERSION "Alpha 2"
+#define SIXPAD_VERSION "Alpha 3"
 
 #define LE_DOS 0
 #define LE_UNIX 1

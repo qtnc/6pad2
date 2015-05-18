@@ -7,7 +7,7 @@ enum {
 T_NULL, T_BOOL, T_INT, T_STR
 };
 
-struct var: boost::variant<nullptr_t, bool, int, tstring> {
+struct export var: boost::variant<nullptr_t, bool, int, tstring> {
 var(): variant(nullptr) {}
 template<class T> var(const T& val): variant(val) {}
 int getType () ;
