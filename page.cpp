@@ -622,11 +622,12 @@ if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDelet
 else if (selStart>0) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart -1, selStart, EditGetSubstring(hwnd, selStart -1, selStart), false) ));
 }
 
-static void EZHandleDel (Page* curPage, HWND hwnd) {
+static bool EZHandleDel (Page* curPage, HWND hwnd) {
 int selStart, selEnd;
 SendMessage(hwnd, EM_GETSEL, &selStart, &selEnd);
 if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selEnd, EditGetSubstring(hwnd, selStart, selEnd), true) ));
 else if (selStart<GetWindowTextLength(hwnd)) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selStart+1, EditGetSubstring(hwnd, selStart, selStart+1), 2) ));
+return true;
 }
 
 static LRESULT EZHandleEnter (Page* page, HWND hEdit) {
@@ -767,57 +768,32 @@ default:
 EZTextInserted(curPage, hwnd, tstring(1,LOWORD(wp)) ); 
 break;
 }}break;//WM_CHAR
-case WM_KEYDOWN : {
-if (!curPage->dispatchEvent<bool, true>("keyDown", (int)LOWORD(wp) )) return true;
-switch(LOWORD(wp)) {
-case VK_DOWN:
-if (IsCtrlDown()) {
-if (IsShiftDown()) return EZHandleSelectDown(hwnd, EZGetNextParagPos);
-else return EZHandleMoveDown(hwnd, EZGetNextParagPos);
-}
-break;
-case VK_UP:
-if (IsCtrlDown()) {
-if (IsShiftDown()) return EZHandleSelectUp(hwnd, EZGetPrevParagPos);
-else return EZHandleMoveUp(hwnd, EZGetPrevParagPos);
-}
-break;
-case VK_TAB:
-if (IsCtrlDown()) return PageGoToNext(IsShiftDown()? -1 : 1);
-break;
-case VK_HOME:
-if (!IsCtrlDown() && !IsShiftDown()) return EZHandleHome(hwnd, IsAltDown());
-break;
-case VK_DELETE:
-if (!IsShiftDown()&&!IsCtrlDown()&&!IsAltDown()) EZHandleDel(curPage, hwnd);
-break;
-}}break;//WM_KEYDOWN
-case WM_KEYUP:
-if (!curPage->dispatchEvent<bool, true>("keyUp", (int)LOWORD(wp) )) return true;
+case WM_KEYUP: case WM_SYSKEYUP:
+if (!curPage->dispatchEvent<bool, true>("keyUp", (int)(LOWORD(wp) | GetCurrentModifiers()) )) return true;
 curPage->UpdateStatusBar(status);
 break;//WM_KEYUP
-case WM_SYSKEYDOWN: {
-switch(LOWORD(wp)) {
-case VK_UP: 
-if (IsShiftDown()) return EZHandleSelectUp(hwnd, EZGetPrevBracketPos);
-else return EZHandleMoveUp(hwnd, EZGetPrevBracketPos, false);
-break;
-case VK_DOWN: 
-if (IsShiftDown()) return EZHandleSelectDown(hwnd, EZGetNextBracketPos);
-else return EZHandleMoveDown(hwnd, EZGetNextBracketPos, false);
-break;
-case VK_LEFT:  
-if (IsShiftDown()) return EZHandleSelectUp(hwnd, EZGetStartIndentedBlockPos);
-else return EZHandleMoveUp(hwnd, EZGetStartIndentedBlockPos);
-break;
-case VK_RIGHT: 
-if (IsShiftDown()) return EZHandleSelectDown(hwnd, EZGetEndIndentedBlockPos);
-else return EZHandleMoveDown(hwnd, EZGetEndIndentedBlockPos, false);
-break;
-case VK_HOME:
-if (!IsCtrlDown() && !IsShiftDown()) return EZHandleHome(hwnd, IsAltDown());
-break;
-}}break;//WM_SYSKEYDOWN
+case WM_KEYDOWN :  case WM_SYSKEYDOWN:  {
+int kc = LOWORD(wp) | GetCurrentModifiers();
+if (!curPage->dispatchEvent<bool, true>("keyDown", kc )) return true;
+switch(kc){
+case VK_DOWN | VKM_CTRL | VKM_SHIFT : return EZHandleSelectDown(hwnd, EZGetNextParagPos);
+case VK_DOWN | VKM_CTRL: return EZHandleMoveDown(hwnd, EZGetNextParagPos);
+case VK_DOWN | VKM_ALT | VKM_SHIFT: return EZHandleSelectDown(hwnd, EZGetNextBracketPos);
+case VK_DOWN | VKM_ALT: return EZHandleMoveDown(hwnd, EZGetNextBracketPos, false);
+case VK_UP | VKM_SHIFT | VKM_CTRL: return EZHandleSelectUp(hwnd, EZGetPrevParagPos);
+case VK_UP | VKM_CTRL: return EZHandleMoveUp(hwnd, EZGetPrevParagPos);
+case VK_UP | VKM_ALT | VKM_SHIFT: return EZHandleSelectUp(hwnd, EZGetPrevBracketPos);
+case VK_UP | VKM_ALT: return EZHandleMoveUp(hwnd, EZGetPrevBracketPos, false);
+case VK_LEFT | VKM_ALT | VKM_SHIFT: return EZHandleSelectUp(hwnd, EZGetStartIndentedBlockPos);
+case VK_LEFT | VKM_ALT: return EZHandleMoveUp(hwnd, EZGetStartIndentedBlockPos);
+case VK_RIGHT | VKM_ALT | VKM_SHIFT: return EZHandleSelectDown(hwnd, EZGetEndIndentedBlockPos);
+case VK_RIGHT | VKM_ALT: return EZHandleMoveDown(hwnd, EZGetEndIndentedBlockPos, false);
+case VK_TAB | VKM_CTRL: return PageGoToNext(1);
+case VK_TAB | VKM_CTRL | VKM_SHIFT: return PageGoToNext(-1);
+case VK_HOME: return EZHandleHome(hwnd, false);
+case VK_HOME | VKM_ALT: return EZHandleHome(hwnd, true);
+case VK_DELETE: return EZHandleDel(curPage, hwnd);
+}}break;//WM_KEYDOWN/WM_SYSKEYDOWN
 case WM_PASTE : {
 int start, end;
 SendMessage(hwnd, EM_GETSEL, &start, &end);

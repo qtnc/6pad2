@@ -37,10 +37,10 @@ vector<HWND> modlessWindows;
 unordered_map<int, function<void(void)>> userCommands, timers;
 unordered_map<string,function<Page*()>> pageFactories = { {"text", [](){return new Page();}} };
 
-TCHAR export CLASSNAME[32] = {0};
-bool export firstInstance = false, headless=false, isDebug = false;
-HINSTANCE export hinstance = 0;
-HWND export win=0, tabctl=0, status=0, consoleWin=0;
+TCHAR CLASSNAME[32] = {0};
+bool firstInstance = false, headless=false, isDebug = false;
+HINSTANCE hinstance = 0;
+HWND win=0, tabctl=0, status=0, consoleWin=0;
 HFONT gfont = NULL;
 HMENU menu = 0, menuFormat=0, menuEncoding=0, menuLineEnding=0, menuIndentation=0, menuRecentFiles = 0;
 HACCEL hAccel = 0, hGlobAccel=0;
@@ -186,7 +186,7 @@ if (p==curPage) CheckMenuRadioItem(menuLineEnding, 0, 2, p->lineEnding, MF_BYPOS
 
 void PageSetEncoding (shared_ptr<Page> p, int enc) {
 if (!p) return;
-if (enc>100) {
+if (enc>32) {
 int idx = std::find(encodings.begin(), encodings.end(), enc) - encodings.begin();
 if (idx>=0&&idx<encodings.size()) enc=idx;
 else enc = EncodingAdd(enc);

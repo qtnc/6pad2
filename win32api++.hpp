@@ -22,6 +22,10 @@
 #define LAST_ACCESSED_TIME 1
 #define LAST_MODIFIED_TIME 2
 
+#define VKM_CTRL 512
+#define VKM_SHIFT 1024
+#define VKM_ALT 2048
+
 inline void SetWindowText (HWND hwnd, const tstring& ts) { SetWindowText(hwnd, ts.c_str()); }
 inline void SetDlgItemText (HWND hwnd, int i, const tstring& ts) { SetDlgItemText(hwnd, i, ts.c_str()); }
 inline int GetDlgItemTextLength (HWND hwnd, int id) { return SendDlgItemMessage(hwnd, id, WM_GETTEXTLENGTH, 0, 0); }
@@ -29,19 +33,25 @@ inline void EnableDlgItem (HWND hwnd, int id, BOOL enable) { EnableWindow(GetDlg
 inline BOOL IsDlgItemEnabled (HWND hwnd, int id) { return IsWindowEnabled(GetDlgItem(hwnd,id)); }
 inline void SetDlgItemFocus (HWND hwnd, int id) { SetFocus(GetDlgItem(hwnd, id)); }
 
-tstring GetWindowText (HWND);
-tstring GetDlgItemText (HWND, int);
+tstring export GetWindowText (HWND);
+tstring export GetDlgItemText (HWND, int);
 
-tstring EditGetLine (HWND hEdit) ;
-tstring EditGetLine (HWND hEdit, int line, int lineindex=-1);
-tstring EditGetSelectedText (HWND hEdit);
-tstring EditGetSubstring (HWND, int, int);
+tstring export EditGetLine (HWND hEdit) ;
+tstring export EditGetLine (HWND hEdit, int line, int lineindex=-1);
+tstring export EditGetSelectedText (HWND hEdit);
+tstring export EditGetSubstring (HWND, int, int);
 
 inline bool IsCtrlDown () { return GetKeyState(VK_CONTROL)<0; }
 inline bool IsShiftDown () { return GetKeyState(VK_SHIFT)<0; }
 inline bool IsAltDown () { return GetKeyState(VK_MENU)<0; }
+inline int GetCurrentModifiers () { 
+return (IsCtrlDown()? VKM_CTRL:0)
+| (IsShiftDown()? VKM_SHIFT:0)
+| (IsAltDown()? VKM_ALT:0);
+}
 
-unsigned long long GetFileTime (LPCTSTR, int);
+
+unsigned long long export GetFileTime (LPCTSTR, int);
 unsigned long long GetCurTime ();
 
 #endif
