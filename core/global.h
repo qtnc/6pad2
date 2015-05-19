@@ -11,9 +11,9 @@
 #include<cstdio>
 #include<string>
 #include<vector>
-#include "windows2.h"
 
 #ifdef UNICODE
+#define Py_TString_Decl "u"
 typedef std::wstring tstring;
 #define toTString toWString
 #define tstrlen wcslen
@@ -21,6 +21,7 @@ typedef std::wstring tstring;
 #define tstrrchr wcsrchr
 #define tsnprintf snwprintf
 #else
+#define Py_TString_Decl "s"
 typedef std::string tstring;
 #define toTString toString
 #define tstrlen strlen

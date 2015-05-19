@@ -21,12 +21,12 @@ void init (Proc*);
 
 template<class F> inline void RunSync (const F& cf, bool del = false) {
 Proc f(cf);
-SendMessage(sp.win, WM_RUNPROC, del, &f);
+SendMessage(sp->win, WM_RUNPROC, del, &f);
 }
 
 template<class F> inline void RunAsync (const F& cf, bool del = true) {
 Proc* f = new Proc(cf);
-PostMessage(sp.win, WM_RUNPROC, del, &f);
+PostMessage(sp->win, WM_RUNPROC, del, &f);
 }
 
 struct RAII_CRITICAL_SECTION {

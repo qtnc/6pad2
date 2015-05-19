@@ -5,6 +5,7 @@
 #include<boost/signals2.hpp>
 #include<functional>
 using boost::signals2::signal;
+using boost::signals2::connection;
 
 #define PF_CLOSED 1
 #define PF_READONLY 2
@@ -25,6 +26,13 @@ using boost::signals2::signal;
 #define PF_NOSELECTALL 0x200000
 #define PF_NOSAVE 0x100000
 #define PF_NORELOAD 0x80000
+
+#define PA_NAME 0
+#define PA_ENCODING 1
+#define PA_LINE_ENDING 2
+#define PA_INDENTATION_MODE 3
+#define PA_AUTOLINEBREAK 4
+#define PA_FOCUS 5
 
 struct export Page;
 
@@ -63,10 +71,10 @@ HWND zone=0;
 PySafeObject pyData;
 std::vector<shared_ptr<UndoState>> undoStates;
 
-signal<void(shared_ptr<Page>)> ondeactivated, onactivated, onclosed;
+signal<void(shared_ptr<Page>)> ondeactivated, onactivated, onclosed, onsaved;
+signal<void(shared_ptr<Page>, int,var)> onattrChange;
 signal<bool(shared_ptr<Page>), BoolSignalCombiner> onclose, ondeactivate;
-signal<bool(shared_ptr<Page>,int), BoolSignalCombiner> onkeyDown, onkeyUp, oncontextMenu, onencodingChange, onlineEndingChange, onindentationModeChange, onautoLineBreakChange;
-signal<bool(shared_ptr<Page>,const tstring&), BoolSignalCombiner> onnameChange;
+signal<bool(shared_ptr<Page>,int), BoolSignalCombiner> onkeyDown, onkeyUp, oncontextMenu;
 signal<var(shared_ptr<Page>,const tstring&), VarSignalCombiner> onsave, onbeforeSave, onload, onkeyPress, onstatus;
 signal<var(shared_ptr<Page>, const tstring&, int), VarSignalCombiner> onenter;
 
@@ -87,11 +95,12 @@ virtual void ResizeZone (const RECT&);
 virtual void HideZone ();
 virtual void ShowZone (const RECT&);
 virtual void FocusZone ();
-virtual void EnsureFocus ();
+virtual void Focus ();
 virtual void SetFont (HFONT);
 virtual bool Close () ;
 virtual bool LoadFile (const tstring& fn = TEXT(""), bool guessFormat=true ) ;
 virtual bool LoadData (const string& data, bool guessFormat=true);
+virtual bool Save (bool saveAs=false);
 virtual bool SaveFile (const tstring& fn = TEXT(""));
 virtual string SaveData ();
 virtual bool CheckFileModification ();
@@ -145,8 +154,8 @@ inline void GoToMark () { SetCurrentPosition(markedPosition); }
 //template<class... A> inline var dispatchEvent (const string& type, const var& def, A... args) { return listeners.dispatch(type, def, *pyData, args...); }
 //template<class... A> inline void dispatchEvent (const string& type, A... args) { listeners.dispatch(type, *pyData, args...); }
 
-void AddEvent (const std::string& type, const PySafeObject& cb) ;
-//void RemoveEvent (const std::string& type, const PySafeObject& cb);
+int AddEvent (const std::string& type, const PySafeObject& cb) ;
+bool RemoveEvent (const std::string& type, int id);
 };
 
 template<> struct PyTypeSpec<shared_ptr<Page>> { 
@@ -156,5 +165,8 @@ static constexpr const char c = 'O';
 static inline PyObject* convert2 (const shared_ptr<Page>& p) { return p->GetPyData(); }
 //static inline PySafeObject convert3 (PyObject* o) {  return o;  }
 };
+
+int export AddSignalConnection (const connection& con);
+connection export RemoveSignalConnection (int id);
 
 #endif

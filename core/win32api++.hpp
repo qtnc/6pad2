@@ -8,13 +8,13 @@
 #define DialogBoxParam(h,t,p,f,u) DialogBoxParamW(h, (LPCTSTR)(t), p, (DLGPROC)(f), (LPARAM)(u) )
 #define CreateDialogParam(h,i,p,f,u) CreateDialogParamW(h, (LPCTSTR)i, p, (DLGPROC)f, (LPARAM)u)
 #define CallProc(f) SendMessageW(win, WM_RUNPROC, 0, (LPARAM)( new std::function<void()>(f) ))
-#else
+#else // not UNICODE
 #define SendMessage(h,m,w,l) SendMessageA((HWND)(h), (UINT)(m), (WPARAM)(w), (LPARAM)(l))
 #define SendDlgItemMessage(h,i,m,w,l) SendDlgItemMessageA((HWND)(h), (UINT)(i), (UINT)(m), (WPARAM)(w), (LPARAM)(l))
 #define DialogBoxParam(h,t,p,f,u) DialogBoxParamA(h, (LPCTSTR)(t), p, (DLGPROC)(f), (LPARAM)(u) )
 #define CreateDialogParam(h,i,p,f,u) CreateDialogParamA(h, (LPCTSTR)i, p, (DLGPROC)f, (LPARAM)u)
 #define CallProc(f) SendMessageA(win, WM_RUNPROC, 0, (LPARAM)( new std::function<void()>(f) ))
-#endif
+#endif // UNICODE
 
 #define EnableMenuItem2(m,i,t,e) EnableMenuItem(m, i, (t) | ((e)? MF_ENABLED : MF_GRAYED | MF_DISABLED))
 
@@ -50,8 +50,19 @@ return (IsCtrlDown()? VKM_CTRL:0)
 | (IsAltDown()? VKM_ALT:0);
 }
 
-
 unsigned long long export GetFileTime (LPCTSTR, int);
 unsigned long long export GetCurTime ();
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+typedef LRESULT (CALLBACK *SUBCLASSPROC)(HWND,UINT,WPARAM,LPARAM,UINT_PTR,DWORD_PTR);
+BOOL WINAPI SetWindowSubclass(HWND,SUBCLASSPROC,UINT_PTR,DWORD_PTR);
+BOOL WINAPI GetWindowSubclass(HWND,SUBCLASSPROC,UINT_PTR,DWORD_PTR*);
+BOOL WINAPI RemoveWindowSubclass(HWND,SUBCLASSPROC,UINT_PTR);
+LRESULT WINAPI DefSubclassProc(HWND,UINT,WPARAM,LPARAM);
+#ifdef __cplusplus
+} // extern "C"
+#endif // __cplusplus
 
 #endif

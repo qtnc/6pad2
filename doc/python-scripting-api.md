@@ -60,10 +60,11 @@ int confirm(str text, str title):
 :	Create a new popup menu and return it.
 int addAccelerator(str key, callback function):
 :	Install a callback to be called when the given shortcut key is pressed.
-void addEvent(str eventName, callback function):
+int addEvent(str eventName, callback function):
 :	Install a callback to be called when the given event occurs. See the [list of supported events for window](#windowEvents).
-void removeEvent(str eventName, callback function):
-:	Remove an event previously registered.
+	ON success, return a non-zero integer used to unregister this event.
+int removeEvent(str eventName, int eventId):
+:	Remove an event previously registered. You must pass in the event ID previously returned by addEvent. Returns a non-zero value if the event has successfully been unregistered.
 int setTimeout(callback function, int delay):
 :	Schedule the given callback function to be called asynchronously after the specified delay. Returns a timer identifier, which can be passed to [clearTimeout](#clearTimeout) to cancel this timer.
 int setInterval(callback function, int interval):
@@ -119,10 +120,11 @@ void focus():
 :	Focus the page.
 void close():
 :	Close the page; a confirmation may be asked to the user.
-void addEvent(str eventName, callback function):
+int addEvent(str eventName, callback function):
 :	Install a callback to be called when the given event occurs at this page. See the [list of supported events for pages](#pageEvents).
-void removeEvent(str eventName, callback function):
-:	Remove an event previously registered.
+	ON success, return a non-zero integer used to unregister this event.
+int removeEvent(str eventName, int eventId):
+:	Remove an event previously registered. You must pass in the event ID previously returned by addEvent. Returns a non-zero value if the event has successfully been unregistered.
 void select(int start, int end):
 :	Select a portion of text.
 str line(int lineNumber):

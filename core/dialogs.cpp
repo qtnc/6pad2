@@ -4,10 +4,6 @@
 using namespace std;
 using boost::shared_array;
 
-inline tstring msg (const char* name) { 
-return sp.msg(name); 
-}
-
 static void TranslateNulls (LPTSTR path) {
 for (TCHAR* p=path; *p||p[1]; p++) if(!*p&&p[1]) *p='|';
 }

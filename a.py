@@ -22,3 +22,5 @@ def func2() :
 	window.beep(524,300)
 
 window.menus.edit.add(name='test', label='Item inutile', accelerator='Ctrl+E', action=func)
+
+

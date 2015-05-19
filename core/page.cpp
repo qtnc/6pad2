@@ -2,8 +2,11 @@
 #include "page.h"
 #include "file.h"
 #include "inifile.h"
+#include "dialogs.h"
 #include "sixpad.h"
+#include<unordered_map>
 #include<boost/regex.hpp>
+#include<fcntl.h>
 using namespace std;
 
 #define FF_CASE 1
@@ -62,50 +65,47 @@ tregex newRegex (bool);
 };
 static list<FindData> finds;
 
-extern HINSTANCE hinstance;
-extern HFONT gfont;
-extern IniFile config;
-extern tstring configFileName;
-//extern eventlist listeners;
-
 void SetClipboardText (const tstring&);
 tstring GetClipboardText (void);
 void PrepareSmartPaste (tstring& text, const tstring& indent);
-bool PageGoToNext (int);
-void PageEnsureFocus (shared_ptr<Page>);
-
-inline tstring msg (const char* name) { 
-return sp.msg(name); 
-}
 
 void Page::SetName (const tstring& n) { 
 name = n;
-onnameChange(shared_from_this(), name);
+onattrChange(shared_from_this(), PA_NAME, name);
 }
 
 void Page::SetEncoding (int e) {
 encoding = e;
-onencodingChange(shared_from_this(), e);
+onattrChange(shared_from_this(), PA_ENCODING, e);
 }
 
 void Page::SetLineEnding (int e) {
 lineEnding = e;
-onlineEndingChange(shared_from_this(), e);
+onattrChange(shared_from_this(), PA_LINE_ENDING, e);
 }
 
 void Page::SetIndentationMode (int e) {
 indentationMode = e;
-onindentationModeChange(shared_from_this(), e);
+onattrChange(shared_from_this(), PA_INDENTATION_MODE, e);
 }
 
 void Page::SetAutoLineBreak (bool b) {
 //todo
-onautoLineBreakChange(shared_from_this(), b);
+onattrChange(shared_from_this(), PA_AUTOLINEBREAK, b);
 }
 
 bool Page::Close () { 
-//todo
-return true; 
+if (!onclose(shared_from_this() )) return false;
+if (flags&PF_WRITETOSTDOUT) { 
+setmode(fileno(stdout),O_BINARY);
+printf("%s", SaveData().c_str() );
+fflush(stdout);
+return true;
+}
+if (!IsModified()) return true;
+int re = MessageBox(sp->win, tsnprintf(512, msg("Save changes to %s?"), name.c_str()).c_str(), name.c_str(), MB_ICONEXCLAMATION  | MB_YESNOCANCEL);
+if (re==IDYES) return Save();
+else return re==IDNO;
 }
 
 void Page::SetCurrentPosition (int pos) {
@@ -382,7 +382,7 @@ if (flags&PF_NOSAVE) return false;
 if ((flags&PF_MUSTSAVEAS) && newFile.size()<=0) return false;
 if (newFile.size()>0) {
 file = newFile; 
-name = FileNameToPageName(*this, file);
+SetName(FileNameToPageName(*this, file));
 flags&=~(PF_MUSTSAVEAS|PF_READONLY);
 }
 var re = onbeforeSave(shared_from_this(), file);
@@ -395,6 +395,17 @@ if (!fd) return false;
 fd.writeFully(cstr.data(), cstr.size());
 lastSave = GetCurTime();
 return true; 
+}
+
+bool Page::Save (bool saveAs) {
+if (saveAs || file.size()<=0 || (flags&PF_MUSTSAVEAS)) {
+tstring newFile = FileDialog(sp->win, FD_SAVE, file, msg("Save as") );
+if (newFile.size()<=0) return false;
+if (!SaveFile(newFile)) return false;
+}
+else if (!SaveFile()) return false;
+onsaved(shared_from_this());
+return true;
 }
 
 bool Page::LoadFile (const tstring& filename, bool guessFormat) {
@@ -410,10 +421,10 @@ return LoadData(fd.readFully(), guessFormat);
 bool Page::LoadData (const string& str, bool guessFormat) {
 tstring text = TEXT("");
 if (guessFormat) { encoding=-1; lineEnding=-1; indentationMode=-1; }
-if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), str.size(), sp.configGetInt("defaultEncoding",GetACP()) );
+if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), str.size(), sp->configGetInt("defaultEncoding",GetACP()) );
 text = ConvertFromEncoding(str, encoding);
-if (lineEnding<0) lineEnding = guessLineEnding(text.data(), text.size(), sp.configGetInt("defaultLineEnding", LE_DOS)  );
-if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), sp.configGetInt("defaultIndentationMode", 0)  );
+if (lineEnding<0) lineEnding = guessLineEnding(text.data(), text.size(), sp->configGetInt("defaultLineEnding", LE_DOS)  );
+if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), sp->configGetInt("defaultIndentationMode", 0)  );
 normalizeLineEndings(text);
 var re = onload(shared_from_this(), text);
 if (re.getType()==T_STR) text = re.toTString();
@@ -487,7 +498,7 @@ return FALSE;
 }
 
 void Page::GoToDialog () {
-DialogBoxParam(dllHinstance, IDD_GOTOLINE, sp.win, GoToLineDlgProc, this);
+DialogBoxParam(dllHinstance, IDD_GOTOLINE, sp->win, GoToLineDlgProc, this);
 }
 
 static INT_PTR CALLBACK FindReplaceDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
@@ -542,7 +553,7 @@ return FALSE;
 static inline void FindReplaceDlg2 (Page& tp, bool replace) {
 DWORD val = (DWORD)&tp;
 if (replace) val++;
-DialogBoxParam(dllHinstance, IDD_SEARCHREPLACE, sp.win, FindReplaceDlgProc, val);
+DialogBoxParam(dllHinstance, IDD_SEARCHREPLACE, sp->win, FindReplaceDlgProc, val);
 }
 
 void Page::FindDialog () {
@@ -799,7 +810,7 @@ break;
 case WM_KEYUP: case WM_SYSKEYUP: {
 int kc = LOWORD(wp) | GetCurrentModifiers();
 if (!curPage->onkeyUp(curPage->shared_from_this(), kc)) return true;
-curPage->UpdateStatusBar(sp.status);
+curPage->UpdateStatusBar(sp->status);
 }break;//WM_KEYUP
 case WM_KEYDOWN :  case WM_SYSKEYDOWN:  {
 int kc = LOWORD(wp) | GetCurrentModifiers();
@@ -817,8 +828,6 @@ case VK_LEFT | VKM_ALT | VKM_SHIFT: return EZHandleSelectUp(hwnd, EZGetStartInde
 case VK_LEFT | VKM_ALT: return EZHandleMoveUp(hwnd, EZGetStartIndentedBlockPos);
 case VK_RIGHT | VKM_ALT | VKM_SHIFT: return EZHandleSelectDown(hwnd, EZGetEndIndentedBlockPos);
 case VK_RIGHT | VKM_ALT: return EZHandleMoveDown(hwnd, EZGetEndIndentedBlockPos, false);
-//case VK_TAB | VKM_CTRL: return PageGoToNext(1);
-//case VK_TAB | VKM_CTRL | VKM_SHIFT: return PageGoToNext(-1);
 case VK_HOME: return EZHandleHome(hwnd, false);
 case VK_HOME | VKM_ALT: return EZHandleHome(hwnd, true);
 case VK_DELETE:  EZHandleDel(curPage, hwnd); break;
@@ -863,7 +872,7 @@ case WM_CONTEXTMENU:
 if (curPage->oncontextMenu(curPage->shared_from_this(), GetCurrentModifiers() )) {
 POINT p;
 GetCursorPos(&p);
-HMENU menu = GetSubMenu(GetMenu(sp.win), 1);
+HMENU menu = GetSubMenu(GetMenu(sp->win), 1);
 TrackPopupMenu(menu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_LEFTBUTTON, p.x, p.y, 0, hwnd, NULL);
 }
 return true;
@@ -884,9 +893,9 @@ DestroyWindow(zone);
 HWND hEdit  = CreateWindowEx(0, TEXT("EDIT"), TEXT(""),
 WS_CHILD | WS_TABSTOP | WS_VSCROLL | WS_BORDER | ES_MULTILINE | ES_NOHIDESEL | ES_AUTOVSCROLL | ((flags&PF_AUTOLINEBREAK)? 0:ES_AUTOHSCROLL|WS_HSCROLL),
 10, 10, 400, 400,
-parent, (HMENU)(IDC_EDITAREA + count++), sp.hinstance, NULL);
+parent, (HMENU)(IDC_EDITAREA + count++), sp->hinstance, NULL);
 SendMessage(hEdit, EM_SETLIMITTEXT, 1073741823, 0);
-SendMessage(hEdit, WM_SETFONT, sp.font, TRUE);
+SendMessage(hEdit, WM_SETFONT, sp->font, TRUE);
 { int x=16; SendMessage(hEdit, EM_SETTABSTOPS, 1, &x); }
 SetWindowText(hEdit, text.c_str());
 SendMessage(hEdit, EM_SETSEL, ss, se);
@@ -908,8 +917,8 @@ SWP_NOZORDER | SWP_SHOWWINDOW);
 SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
-void Page::EnsureFocus () {
-//PageEnsureFocus(shared_from_this());
+void Page::Focus () {
+onattrChange(shared_from_this(), PA_FOCUS, nullptr);
 }
 
 void Page::FocusZone () {
@@ -1015,11 +1024,42 @@ if (select) SendMessage(p.zone, EM_SETSEL, pos, pos+oldText.size());
 if (IsWindowVisible(p.zone)) SendMessage(p.zone, EM_SCROLLCARET, 0, 0);
 }
 
-void Page::AddEvent (const string& type, const PySafeObject& cb) {
-#define E(n) if (type==#n) on##n .connect(cb.asFunction<typename decltype(on##n)::signature_type>());
+unordered_map<int,connection> connections;
+
+int AddSignalConnection (const connection& con) {
+for (auto it=connections.begin(); it!=connections.end(); ) {
+if (!it->second.connected()) connections.erase(it++);
+else ++it;
+}
+static int i=100;
+connections[++i] = con;
+return i;
+}
+
+connection RemoveSignalConnection (int id) {
+connection con = connections[id];
+for (auto it=connections.begin(); it!=connections.end(); ) {
+if (!it->second.connected()) connections.erase(it++);
+else ++it;
+}
+return con;
+}
+
+int Page::AddEvent (const string& type, const PySafeObject& cb) {
+connection con;
+if(false){}
+#define E(n) else if (type==#n) con = on##n .connect(cb.asFunction<typename decltype(on##n)::signature_type>());
 E(keyDown) E(keyUp) E(keyPress)
 E(save) E(beforeSave) E(load)
-E(status) E(contextMenu) E(enter)
-E(nameChange) E(encodingChange) E(lineEndingChange) E(indentationModeChange) E(autoLineBreakChange)
+E(attrChange) E(status) E(contextMenu) E(enter)
 #undef E
+if (con.connected()) return AddSignalConnection(con);
+else return 0;
+}
+
+bool Page::RemoveEvent (const string& type, int id) {
+connection con = RemoveSignalConnection(id);
+bool re = con.connected();
+con.disconnect();
+return re;
 }

@@ -49,10 +49,10 @@ void setLineEnding (int le) { RunSync([&]()mutable{ page()->SetLineEnding(le); }
 void setEncoding (int e) { RunSync([&]()mutable{ page()->SetEncoding(e); }); }
 void setIndentationMode (int i) { RunSync([&]()mutable{ page()->SetIndentationMode(i); }); }
 void setAutoLineBreak (int b) { RunSync([&]()mutable{ page()->SetAutoLineBreak(b); }); }
-void addEvent (const string& type, const PySafeObject& cb) {  page()->AddEvent(type,cb); }
-//void removeEvent (const string& type, const PyCallback& cb) { page()->removeEvent(type,cb); }
-void focus () { page()->EnsureFocus(); }
-void close () { page()->EnsureFocus(); page()->Close(); }
+int addEvent (const string& type, const PySafeObject& cb) {  return page()->AddEvent(type,cb); }
+int removeEvent (const string& type, int id) { return page()->RemoveEvent(type, id); }
+void focus () { page()->Focus(); }
+void close () { page()->Focus(); page()->Close(); }
 void undo () { RunSync([&]()mutable{ page()->Undo(); }); }
 void redo () { RunSync([&]()mutable{ page()->Redo(); }); }
 void save () { RunSync([&]()mutable{ page()->SaveFile(); }); }
@@ -121,12 +121,12 @@ if (PyLong_Check(k)) {
 int i = PyLong_AsLong(k);
 if (!t.seqAsLines) {
 if (i<0) i += t.getTextLength();
-return Py_BuildValue("u", t.getTextSubstring(i, i+1).c_str() );
+return Py_BuildValue(Py_TString_Decl, t.getTextSubstring(i, i+1).c_str() );
 }
 else {
 if (i<0) i+=t.getLineCount();
 int s = t.getLineStartIndex(i), e = t.getLineLength(i);
-return Py_BuildValue("u", t.getTextSubstring(s, s+e).c_str() );
+return Py_BuildValue(Py_TString_Decl, t.getTextSubstring(s, s+e).c_str() );
 }}
 else if (PySlice_Check(k)) {
 int start, end, step, slicelen, len = (t.seqAsLines? t.getLineCount() : t.getTextLength() );
@@ -134,7 +134,7 @@ if (PySlice_GetIndicesEx(k, len, &start, &end, &step, &slicelen)) return NULL;
 if (step!=1) { PyErr_SetString(PyExc_ValueError, "step!=1 isn't supported."); return NULL; }
 if (start>end) { int i=start; start=end; end=i; }
 if (t.seqAsLines) { start = t.getLineStartIndex(start); end = t.getLineEndIndex(end -1); }
-return Py_BuildValue("u", t.getTextSubstring(start, end).c_str() );
+return Py_BuildValue(Py_TString_Decl, t.getTextSubstring(start, end).c_str() );
 }
 PyErr_SetString(PyExc_TypeError, "int or slice expected"); 
 return NULL;
@@ -181,7 +181,7 @@ PyMapSet, // set
 
 static PyMethodDef PyEditorTabMethods[] = {
 PyDecl("addEvent", &PyEditorTab::addEvent),
-//PyDecl("removeEvent", &PyEditorTab::removeEvent),
+PyDecl("removeEvent", &PyEditorTab::removeEvent),
 PyDecl("select", &PyEditorTab::setSelection),
 PyDecl("line", &PyEditorTab::getLine),
 PyDecl("lineLength", &PyEditorTab::getLineLength),
@@ -280,13 +280,13 @@ replaceTextRange(s, e, str);
 void PyProxyUndoState::Undo (Page& p) {
 GIL_PROTECT
 PyObject* arg = p.GetPyData();
-PyObject_CallMethod(*obj, "undo", "(O)", arg);
+CallMethod<void>(*obj, "undo", arg);
 }
 
 void PyProxyUndoState::Redo (Page& p) {
 GIL_PROTECT
 PyObject* arg = p.GetPyData();
-PyObject_CallMethod(*obj, "redo", "(O)", arg);
+CallMethod<void>(*obj, "redo", arg);
 }
 
 PyObject* export CreatePyEditorTabObject (shared_ptr<Page> p) {

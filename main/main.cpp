@@ -52,7 +52,6 @@ HACCEL hAccel = 0, hGlobAccel=0;
 HANDLE consoleInputEvent=0;
 CRITICAL_SECTION csConsoleInput;
 
-void SaveCurFile (bool saveas = false);
 shared_ptr<Page> OpenFile (const tstring& file, int flags=0);
 void OpenConsoleWindow (void);
 void UpdateRecentFilesMenu (void);
@@ -72,7 +71,7 @@ else return toTString(string(x));
 
 int configGetInt (const string& name, int def) { return config.get(name,def); }
 
-SixpadData sp;
+SixpadData* sp = new SixpadData();
 
 void UpdateWindowTitle () {
 tstring title = curPage->name + TEXT(" - ") + appName;
@@ -124,36 +123,6 @@ EnableMenuItem2(menuFormat, 2, MF_BYPOSITION, !(p->flags&PF_NOINDENTATION));
 EnableMenuItem2(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND, !(p->flags&PF_NOAUTOLINEBREAK));
 curPage->onactivated(curPage);
 }
-
-bool PageClosing (shared_ptr<Page> p) {
-if (!p) return true;
-if (!p->onclose(p)) return false;
-if (p->flags&PF_WRITETOSTDOUT) { 
-setmode(fileno(stdout),O_BINARY);
-printf("%s", p->SaveData().c_str() );
-fflush(stdout);
-return true;
-}
-if (!p->IsModified()) return true;
-int re = MessageBox(win, tsnprintf(512, msg("Save changes to %s?"), p->name.c_str()).c_str(), p->name.c_str(), MB_ICONEXCLAMATION  | MB_YESNOCANCEL);
-if (re==IDYES) { 
-shared_ptr<Page> cp = curPage;
-curPage=p;
-SaveCurFile();
-curPage = cp;
-return true;
-}
-else return re==IDNO;
-}
-
-void PageClosed (shared_ptr<Page> p) { 
-p->onclosed(p);
-}
-
-void PageOpened (shared_ptr<Page> p) { 
-onpageOpened(p);
-}
-
 static tstring GetDefaultWindowTitle (void) {
 return appName  + TEXT(" ") + tstring(TEXT(SIXPAD_VERSION));
 }
@@ -190,56 +159,23 @@ EnableMenuItem2(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND, false);
 SetWindowText(win, GetDefaultWindowTitle() );
 }
 
-void PageSetLineEnding (shared_ptr<Page> p, int le) {
-if (!p) return;
-p->lineEnding = le;
+inline void PageSetLineEnding (shared_ptr<Page> p, int le) {
 if (p==curPage) CheckMenuRadioItem(menuLineEnding, 0, 2, p->lineEnding, MF_BYPOSITION);
 }
 
-void PageSetEncoding (shared_ptr<Page> p, int enc) {
-if (!p) return;
-if (enc>32) {
+inline void PageSetEncoding (shared_ptr<Page> p, int enc) {
 int idx = std::find(encodings.begin(), encodings.end(), enc) - encodings.begin();
 if (idx>=0&&idx<encodings.size()) enc=idx;
 else enc = EncodingAdd(enc);
-}
 if (enc<0 || enc>=encodings.size()) return;
-p->encoding = encodings[enc];
 if (p==curPage) CheckMenuRadioItem(menuEncoding, 0, encodings.size(), enc, MF_BYPOSITION);
 }
 
-void PageSetIndentationMode (shared_ptr<Page> p, int im) {
-if (!p) return;
-p->indentationMode = im;
+inline void PageSetIndentationMode (shared_ptr<Page> p, int im) {
 if (p==curPage) CheckMenuRadioItem(menuIndentation, 0, 8, p->indentationMode, MF_BYPOSITION);
 }
 
-void PageSetAutoLineBreak (shared_ptr<Page> p, bool alb) {
-if (!p) return;
-if (alb) p->flags |= PF_AUTOLINEBREAK;
-else p->flags &=~PF_AUTOLINEBREAK;
-if (p==curPage) CheckMenuItem(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND | (p->flags&PF_AUTOLINEBREAK? MF_CHECKED : MF_UNCHECKED));
-p->CreateZone(tabctl);
-if (p==curPage) PageActivated(p);
-}
-
-void PageActivate (int i) {
-SendMessage(tabctl, TCM_SETCURFOCUS, i, 0);
-}
-
-void PageEnsureFocus (shared_ptr<Page> p) {
-if (!p) return;
-if (GetForegroundWindow()!=win) SetForegroundWindow(win);
-if (curPage!=p) {
-int i = std::find(pages.begin(), pages.end(), p) -pages.begin();
-if (i>=0&&i<pages.size()) PageActivate(i);
-}
-p->FocusZone();
-}
-
-void PageSetName (shared_ptr<Page> p, const tstring& name) {
-if (!p) return;
-p->name = name;
+inline void PageSetName (shared_ptr<Page> p, const tstring& name) {
 int pos = std::find(pages.begin(), pages.end(), p) -pages.begin();
 if (pos<0 || pos>=pages.size()) return;
 TCITEM it;
@@ -249,9 +185,63 @@ SendMessage(tabctl, TCM_SETITEM, pos, &it);
 if (curPage==p) UpdateWindowTitle();
 }
 
+inline void PageSetAutoLineBreak (shared_ptr<Page> p, bool alb) {
+/*if (!p) return;
+if (alb) p->flags |= PF_AUTOLINEBREAK;
+else p->flags &=~PF_AUTOLINEBREAK;
+if (p==curPage) CheckMenuItem(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND | (p->flags&PF_AUTOLINEBREAK? MF_CHECKED : MF_UNCHECKED));
+p->CreateZone(tabctl);
+if (p==curPage) PageActivated(p);*/
+}
+
+void PageActivate (int i) {
+SendMessage(tabctl, TCM_SETCURFOCUS, i, 0);
+}
+
+inline void PageEnsureFocus (shared_ptr<Page> p) {
+if (GetForegroundWindow()!=win) SetForegroundWindow(win);
+if (curPage!=p) {
+int i = std::find(pages.begin(), pages.end(), p) -pages.begin();
+if (i>=0&&i<pages.size()) PageActivate(i);
+}
+p->FocusZone();
+}
+
+void PageAttrChanged (shared_ptr<Page> p, int attr, var val) {
+switch(attr){
+case PA_NAME: PageSetName(p, val.toTString()); break;
+case PA_ENCODING: PageSetEncoding(p, val.toInt()); break;
+case PA_LINE_ENDING: PageSetLineEnding(p, val.toInt()); break;
+case PA_INDENTATION_MODE: PageSetIndentationMode(p, val.toInt()); break;
+case PA_AUTOLINEBREAK: PageSetAutoLineBreak(p, val.toBool()); break;
+case PA_FOCUS: PageEnsureFocus(p); break;
+}}
+
 shared_ptr<Page> PageCreate (const string& type) {
 function<Page*()> f = pageFactories[type];
 return shared_ptr<Page>( f? f() : 0);
+}
+
+void PageSaved (shared_ptr<Page> p) {
+if (curPage==p) UpdateWindowTitle();
+if (p->file==configFileName) { config.clear(); config.load(configFileName); }
+}
+
+void PageClosed (shared_ptr<Page> p) {
+if (curPage==p) { PageDeactivated(p); curPage=0; }
+int idx = std::find(pages.begin(), pages.end(), p) -pages.begin();
+pages.erase(pages.begin()+idx);
+SendMessage(tabctl, TCM_DELETEITEM, idx, 0);
+if (pages.size()>idx) PageActivate(idx);
+else if (pages.size()>0) PageActivate(idx -1);
+else if (pages.size()==0) PageNoneActive();
+}
+
+void PageOpened (shared_ptr<Page> p) { 
+onpageOpened(p);
+p->onsaved.connect(PageSaved);
+p->onclosed.connect( 2147483647, PageClosed);
+p->onattrChange.connect(PageAttrChanged);
 }
 
 void PageAdd (shared_ptr<Page> p, bool focus = true) {
@@ -281,20 +271,6 @@ PageAdd(p, focus);
 return p;
 }
 
-bool PageDelete (shared_ptr<Page> p, int idx = -1) {
-if (!p) return false;
-if (!PageClosing(p)) return false;
-if (curPage==p) { PageDeactivated(p); curPage=0; }
-PageClosed(p);
-if (idx<0) idx = std::find(pages.begin(), pages.end(), p) -pages.begin();
-pages.erase(pages.begin()+idx);
-SendMessage(tabctl, TCM_DELETEITEM, idx, 0);
-if (pages.size()>idx) PageActivate(idx);
-else if (pages.size()>0) PageActivate(idx -1);
-else if (pages.size()==0) PageNoneActive();
-return true;
-}
-
 void PageReopen (shared_ptr<Page> p) {
 if (!p) return;
 p->LoadFile(TEXT(""), false);
@@ -318,7 +294,7 @@ config.set("lastFile" + toString(j), p->file);
 config.set("lastFilePos" + toString(j), pos);
 config.erase("lastFile" + toString(++j));
 }
-for (int i=pages.size() -1; i>=0; i--) if (!PageDelete(pages[i],i)) return false;
+for (int i=pages.size() -1; i>=0; i--) if (!pages[i]->Close()) return false;
 return true;
 }
 
@@ -357,15 +333,24 @@ curPage->ResizeZone(r);
 onresized();
 }
 
-void AppAddEvent (const string& type, const PySafeObject& cb) { 
-#define E(n) if (type==#n) on##n .connect(cb.asFunction<typename decltype(on##n)::signature_type>());
+int AppAddEvent (const string& type, const PySafeObject& cb) {
+connection con; 
+if(false){}
+#define E(n) else if (type==#n) con = on##n .connect(cb.asFunction<typename decltype(on##n)::signature_type>());
 E(pageBeforeOpen) E(pageOpened)
 E(close) E(resized) E(activated) E(deactivated)
 E(title)
 #undef E
+if (con.connected()) return AddSignalConnection(con);
+else return 0;
 }
 
-//void AppRemoveEvent (const string& type, const PyCallback& cb) { listeners.remove(type, cb); }
+int AppRemoveEvent (const string& type, int id) {
+connection con = RemoveSignalConnection(id);
+bool re = con.connected();
+con.disconnect();
+return re;
+}
 
 static void EncodingShowAll () {
 map<tstring, int, nat_less<TCHAR>> encmap;
@@ -383,7 +368,7 @@ encstrs.push_back(it.first);
 encvals.push_back(it.second);
 }
 curenc = ChoiceDialog(win, msg("Choose encoding"), msg("Choose an encoding in the list below") + TEXT(":"), encstrs, curenc);
-if (curPage && curenc>=0 && curenc<=encvals.size()) PageSetEncoding(curPage, encvals[curenc]);
+if (curPage && curenc>=0 && curenc<=encvals.size()) curPage->SetEncoding(encvals[curenc]);
 }
 
 static void DoPaste (void) {
@@ -433,19 +418,6 @@ if (say) speechSay(s2.c_str(), false);
 if (consoleWin) SendMessage(consoleWin, WM_COMMAND, 999, &s);
 }
 
-void SaveCurFile (bool saveas) {
-if (!curPage) return;
-if (saveas || curPage->file.size()<=0 || (curPage->flags&PF_MUSTSAVEAS)) {
-tstring file = FileDialog(win, FD_SAVE, curPage->file, msg("Save as") );
-if (file.size()<=0) return;
-curPage->file = file;
-curPage->SaveFile(file);
-UpdateWindowTitle();
-}
-else curPage->SaveFile();
-if (curPage->file==configFileName) { config.clear(); config.load(configFileName); }
-}
-
 bool OpenFile3 (const tstring& file) {
 for (int i=0; i<pages.size(); i++) {
 auto page = pages[i];
@@ -493,7 +465,7 @@ if (!p) return p;
 p->file = file;
 PageAdd(p);
 if (line>0&&col>0) p->SetCurrentPositionLC(line -1, col -1);
-if (cp&&cp->IsEmpty()) PageDelete(cp);
+if (cp&&cp->IsEmpty()) cp->Close();
 auto itrf = std::find(recentFiles.begin(), recentFiles.end(), file);
 if (itrf!=recentFiles.end()) recentFiles.erase(itrf);
 recentFiles.push_front(file);
@@ -571,13 +543,16 @@ std::terminate();
 
 extern "C" int WINAPI WinMain (HINSTANCE hThisInstance,                      HINSTANCE hPrevInstance,                      LPSTR lpszArgument,                      int nWindowStile) {
 long long time = GetTickCount();
-sp.hinstance = hinstance = hThisInstance;
+sp->hinstance = hinstance = hThisInstance;
 if (!(isDebug = IsDebuggerPresent())) {
 set_terminate(termHandler);
 set_unexpected(termHandler);
 CSignal(sigsegv);
 }
 SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+SixpadDLLInit(sp);
+sp->msg = &msg;
+sp->configGetInt = &configGetInt;
 
 {//Getting paths and such global parameters
 TCHAR fn[512]={0};
@@ -593,7 +568,7 @@ int i = appLocale.find('_');
 if (i>=0&&i<appLocale.size()) appLocale = appLocale.substr(0,i);
 to_lower(appLocale);
 appName = fnBs+1;
-appDir = fn;
+sp->appDir = appDir = fn;
 configFileName = appDir + TEXT("\\") + appName + TEXT(".ini");
 config.load(configFileName);
 if (!msgs.load(appDir + TEXT("\\") + appName + TEXT("-") + appLocale + TEXT(".lng") )) msgs.load(appDir + TEXT("\\") + appName + TEXT("-english.lng") );
@@ -647,23 +622,19 @@ if (!InitCommonControlsEx(&ccex)) return 1;
 }
 
 {//Create window block
-printf("msg= %p, %p\r\n",msg, &msg);
-sp.msg = &msg;
-sp.configGetInt = &configGetInt;
-SixpadDLLInit(&sp);
-sp.win = win = CreateWindowEx(
+sp->win = win = CreateWindowEx(
 WS_EX_CONTROLPARENT | WS_EX_ACCEPTFILES,
 CLASSNAME, GetDefaultWindowTitle().c_str(), 
 WS_VISIBLE | WS_OVERLAPPEDWINDOW,
 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 
 HWND_DESKTOP, NULL, hinstance, NULL);
 RECT r; GetClientRect(win, &r);
-tabctl = CreateWindowEx(
+sp->tabctl = tabctl = CreateWindowEx(
 0, WC_TABCONTROL, NULL, 
 WS_VISIBLE | WS_CHILD | TCS_SINGLELINE | TCS_FOCUSNEVER | (config.get("tabsAtBottom", false)? TCS_BOTTOM:0),
 5, 5, r.right -10, r.bottom -49, 
 win, (HMENU)IDC_TABCTL, hinstance, NULL);
-sp.status = status = CreateWindowEx(
+sp->status = status = CreateWindowEx(
 0, L"STATIC", TEXT("Status"), 
 WS_VISIBLE | WS_CHILD | WS_BORDER | SS_NOPREFIX | SS_LEFT, 
 5, r.bottom -32, r.right -10, 27, 
@@ -680,16 +651,14 @@ for (int i=0; i<encodings.size(); i++) InsertMenu(menuEncoding, i, MF_STRING | M
 for (int i=1; i<=8; i++) InsertMenu(menuIndentation, i, MF_STRING | MF_BYPOSITION, IDM_INDENTATION_SPACES -1 +i, tsnprintf(32, msg("%d spaces"), i).c_str() );
 I18NMenus(menu);
 SetMenuNamesFromResource(menu);
-SixpadDLLInit(&sp);
 }
 
 {//TExt font
+LOGFONT lf = { -13, 0, 0, 0, 400, 0, 0, 0, 0, 3, 2, 1, 0x31, TEXT("Lucida Console") };
 File fdFont(appDir + TEXT("\\") + appName + TEXT(".fnt"));
-if (fdFont) {
-LOGFONT lf = {0};
-fdFont.read(&lf, sizeof(lf));
-sp.font = gfont = CreateFontIndirect(&lf);
-}}
+if (fdFont)  fdFont.read(&lf, sizeof(lf));
+sp->font = gfont = CreateFontIndirect(&lf);
+}
 
 {//Recent files
 for (int i=0; config.contains("recentFile"+toString(i)); i++) {
@@ -725,7 +694,7 @@ if (writeToStdout || readFromStdin) {
 shared_ptr<Page> p = PageAddEmpty(false);
 if (writeToStdout) p->flags |= PF_WRITETOSTDOUT | PF_NOSAVE | PF_NORELOAD;
 p->LoadData(dataFromStdin);
-PageSetName(p, msg("Standard input/output"));
+p->SetName(msg("Standard input/output"));
 }
 if (pages.size()<=0) PageAddEmpty(false);
 
@@ -804,10 +773,10 @@ if (1==config.get("instanceMode",0)) OpenFileDialog(OF_REUSEOPENEDTABS);
 else OpenFileDialog(OF_NEWINSTANCE); 
 return true;
 case IDM_REOPEN: PageReopen(curPage); return true;
-case IDM_SAVE: SaveCurFile(); return true;
-case IDM_SAVE_AS: SaveCurFile(true); return true;
+case IDM_SAVE: if (curPage) curPage->Save(); return true;
+case IDM_SAVE_AS: if (curPage) curPage->Save(true);  return true;
 case IDM_NEW: PageAddEmpty(true); return true;
-case IDM_CLOSE: PageDelete(curPage); return true;
+case IDM_CLOSE: if (curPage) curPage->Close(); return true;
 case IDM_SELECTALL: if (curPage) curPage->SelectAll(); return true;
 case IDM_COPY: if (curPage) curPage->Copy();  return true;
 case IDM_CUT: if (curPage) curPage->Cut();  return true;
@@ -822,8 +791,8 @@ case IDM_FIND: if (curPage) curPage->FindDialog(); return true;
 case IDM_REPLACE: if (curPage) curPage->FindReplaceDialog(); return true;
 case IDM_FINDNEXT: if (curPage) curPage->FindNext(); return true;
 case IDM_FINDPREV: if (curPage) curPage->FindPrev(); return true;
-case IDM_LE_DOS: case IDM_LE_UNIX: case IDM_LE_MAC: PageSetLineEnding(curPage, cmd-IDM_LE_DOS); return true;
-case IDM_AUTOLINEBREAK: PageSetAutoLineBreak(curPage, curPage&&!(curPage->flags&PF_AUTOLINEBREAK)); return true;
+case IDM_LE_DOS: case IDM_LE_UNIX: case IDM_LE_MAC: if (curPage) curPage->SetLineEnding(cmd-IDM_LE_DOS); return true;
+case IDM_AUTOLINEBREAK: if (curPage) curPage->SetAutoLineBreak(!(curPage->flags&PF_AUTOLINEBREAK)); return true;
 case IDM_OPEN_CONSOLE: OpenConsoleWindow(); return true;
 case IDM_OTHER_ENCODINGS: EncodingShowAll(); return true;
 case IDM_NEXTPAGE: PageGoToNext(1); break;
@@ -837,12 +806,12 @@ case IDM_CRASH:
 break;
 //{ int* p=0; *p=0; } return true; // Force crash
 }
-if (cmd>=IDM_ENCODING && cmd<IDM_ENCODING+encodings.size() ) {
-PageSetEncoding(curPage, cmd-IDM_ENCODING);
+if (cmd>=IDM_ENCODING && cmd<IDM_ENCODING+encodings.size() && curPage) {
+curPage->SetEncoding(encodings[cmd-IDM_ENCODING]);
 return true;
 }
-if (cmd>=IDM_INDENTATION_TABS && cmd<=IDM_INDENTATION_SPACES+8) {
-PageSetIndentationMode(curPage, cmd-IDM_INDENTATION_TABS);
+if (cmd>=IDM_INDENTATION_TABS && cmd<=IDM_INDENTATION_SPACES+8 && curPage) {
+curPage->SetIndentationMode(cmd-IDM_INDENTATION_TABS);
 return true;
 }
 if (cmd>=IDM_RECENT_FILE && cmd<IDM_RECENT_FILE+100 && cmd<IDM_RECENT_FILE+recentFiles.size()) {
@@ -951,7 +920,7 @@ return FALSE;
 }
 
 void OpenConsoleWindow () {
-if (!consoleWin) consoleWin = CreateDialogParam(sp.hinstance, IDD_CONSOLE, sp.win, consoleDlgProc, NULL);
+if (!consoleWin) consoleWin = CreateDialogParam(hinstance, IDD_CONSOLE, win, consoleDlgProc, NULL);
 if (consoleWin) {
 ShowWindow(consoleWin, SW_SHOW);
 SetForegroundWindow(consoleWin);

@@ -23,8 +23,8 @@ extern vector<shared_ptr<Page>> pages;
 extern vector<tstring> argv;
 
 tstring msg (const char* name);
-void AppAddEvent (const string&, const PySafeObject&);
-//void AppRemoveEvent (const string&, const PySafeObject&);
+int AppAddEvent (const string&, const PySafeObject&);
+int AppRemoveEvent (const string&, int id);
 int AddUserCommand (std::function<void(void)> f, int cmd=0);
 int SetTimeout (const std::function<void(void)>& f, int time, bool repeat);
 void ClearTimeout (int id);
