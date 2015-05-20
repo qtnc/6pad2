@@ -44,6 +44,7 @@ typedef std::string tstring;
 #endif
 
 #define SIXPAD_VERSION "Alpha 3"
+#define SIXPAD_VERSION_ID 0x00000003
 
 #define LE_DOS 0
 #define LE_UNIX 1
@@ -65,9 +66,9 @@ typedef std::string tstring;
 
 #define WM_RUNPROC WM_USER + 1563
 
-#define IDC_EDITAREA 1
-#define IDC_TABCTL 2
-#define IDC_STATUSBAR 3
+#define IDC_TABCTL 1
+#define IDC_STATUSBAR 2
+#define IDC_EDITAREA 5
 
 #define IDD_CONSOLE 900
 #define IDD_GOTOLINE 901
@@ -82,7 +83,10 @@ typedef std::string tstring;
 #define IDM_EXIT 1005
 #define IDM_OPEN_NI 1006
 #define IDM_REOPEN 1007
-#define IDM_ABOUT 1899
+#define IDM_NEXT_MODLESS 1896
+#define IDM_PREV_MODLESS 1897
+#define IDM_ABOUT 1898
+#define IDM_CRASH 1899
 #define IDM_RECENT_FILE 1900
 #define IDM_COPY 2000
 #define IDM_CUT 2001
@@ -109,11 +113,8 @@ typedef std::string tstring;
 #define IDM_GOTOMARK 2235
 #define IDM_SELECTFONT 2236
 #define IDM_OTHER_ENCODINGS 2237
-#define IDM_OPEN_CONSOLE 2400
-#define IDM_USER_COMMAND 4000
-#define IDM_NEXT_MODLESS 19997
-#define IDM_PREV_MODLESS 19998
-#define IDM_CRASH 19999
+#define IDM_OPEN_CONSOLE 2300
+#define IDM_USER_COMMAND 3000
 
 #ifndef __WINDRES
 using namespace std;

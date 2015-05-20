@@ -53,6 +53,9 @@ int addEvent (const string& type, const PySafeObject& cb) {  return page()->AddE
 int removeEvent (const string& type, int id) { return page()->RemoveEvent(type, id); }
 void focus () { page()->Focus(); }
 void close () { page()->Focus(); page()->Close(); }
+void find (const tstring& term, bool scase, bool regex, bool up) { RunSync([&]()mutable{ page()->Find(term, scase, regex, up); }); }
+void findNext () { RunSync([&]()mutable{ page()->FindNext(); }); }
+void findPrev () { RunSync([&]()mutable{ page()->FindPrev(); }); }
 void undo () { RunSync([&]()mutable{ page()->Undo(); }); }
 void redo () { RunSync([&]()mutable{ page()->Redo(); }); }
 void save () { RunSync([&]()mutable{ page()->SaveFile(); }); }
@@ -202,6 +205,9 @@ PyDecl("undo", &PyEditorTab::undo),
 PyDecl("redo", &PyEditorTab::redo),
 PyDecl("save", &PyEditorTab::save),
 PyDecl("reload", &PyEditorTab::reload),
+PyDecl("find", &PyEditorTab::find),
+PyDecl("findNext", &PyEditorTab::findNext),
+PyDecl("findPrevious", &PyEditorTab::findPrev),
 PyDeclEnd
 };
 

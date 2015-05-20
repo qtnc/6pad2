@@ -4,6 +4,7 @@
 #include "inifile.h"
 #include "file.h"
 #include "dialogs.h"
+#include "accelerators.h"
 #include "Thread.h"
 #include "Resource.h"
 #include "UniversalSpeech.h"
@@ -39,6 +40,7 @@ unordered_map<string,function<Page*()>> pageFactories = { {"text", [](){return n
 
 signal<void()> onactivated, ondeactivated, onclosed, onresized;
 signal<bool(), BoolSignalCombiner> onclose;
+signal<bool(const tstring&, int, int), BoolSignalCombiner> onfileDropped;
 signal<var(const tstring&)> onpageBeforeOpen, ontitle;
 signal<void(shared_ptr<Page>)> onpageOpened;
 
@@ -55,23 +57,16 @@ CRITICAL_SECTION csConsoleInput;
 shared_ptr<Page> OpenFile (const tstring& file, int flags=0);
 void OpenConsoleWindow (void);
 void UpdateRecentFilesMenu (void);
-bool FindAccelerator (int cmd, int& flags, int& key);
-tstring KeyCodeToName (int flags, int vk, bool i18n);
 void ParseLineCol (tstring& file, int& line, int& col);
 void ClearTimeout (int id);
 void CSignal ( void(*)(int) );
 LRESULT WINAPI AppWinProc (HWND, UINT, WPARAM, LPARAM);
-
 
 tstring msg (const char* x) {
 auto it = msgs.find(string(x));
 if (it!=msgs.end()) return toTString(it->second);
 else return toTString(string(x));
 }
-
-int configGetInt (const string& name, int def) { return config.get(name,def); }
-
-SixpadData* sp = new SixpadData();
 
 void UpdateWindowTitle () {
 tstring title = curPage->name + TEXT(" - ") + appName;
@@ -284,6 +279,10 @@ else return false;
 return true;
 }
 
+void RegisterPageFactory (const string& name, const function<Page*()>& f) {
+pageFactories[name] = f;
+}
+
 bool AppWindowClosing () {
 if (!onclose()) return false;
 for (int i=0, j=0; i<pages.size(); i++) {
@@ -339,7 +338,7 @@ if(false){}
 #define E(n) else if (type==#n) con = on##n .connect(cb.asFunction<typename decltype(on##n)::signature_type>());
 E(pageBeforeOpen) E(pageOpened)
 E(close) E(resized) E(activated) E(deactivated)
-E(title)
+E(title) E(fileDropped)
 #undef E
 if (con.connected()) return AddSignalConnection(con);
 else return 0;
@@ -391,8 +390,8 @@ for (int i=0; i<nFiles; i++) {
 TCHAR buf[300] = {0};
 if (!DragQueryFile(hDrop, i, buf, 299)) break;
 tstring file = buf;
-//if (curPage && !curPage->dispatchEvent<bool, true>("fileDropped", file, (int)pt.x, (int)pt.y)) continue;
-//else if (!listeners.dispatch<bool, true>("fileDropped", file, (int)pt.x, (int)pt.y)) continue;
+if (curPage && !curPage->onfileDropped(curPage, file, pt.x, pt.y)) continue;
+else if (!onfileDropped(file, pt.x, pt.y)) continue;
 if (2==config.get("instanceMode",0)) OpenFile(file, OF_NEWINSTANCE); 
 else OpenFile(file, OF_REUSEOPENEDTABS);
 }}
@@ -446,7 +445,7 @@ HWND hWin = NULL;
 while (hWin=FindWindowEx(NULL, hWin, CLASSNAME, NULL)) {
 if (SendMessage(hWin, WM_COPYDATA, win, &cp)) {
 SetForegroundWindow(hWin);
-if (flags&OF_EXITONDOUBLEOPEN) exit(0);
+//if (flags&OF_EXITONDOUBLEOPEN) exit(0);
 return true;
 }}}
 return false;
@@ -543,16 +542,14 @@ std::terminate();
 
 extern "C" int WINAPI WinMain (HINSTANCE hThisInstance,                      HINSTANCE hPrevInstance,                      LPSTR lpszArgument,                      int nWindowStile) {
 long long time = GetTickCount();
-sp->hinstance = hinstance = hThisInstance;
+sp.hinstance = hinstance = hThisInstance;
 if (!(isDebug = IsDebuggerPresent())) {
 set_terminate(termHandler);
 set_unexpected(termHandler);
 CSignal(sigsegv);
 }
 SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
-SixpadDLLInit(sp);
-sp->msg = &msg;
-sp->configGetInt = &configGetInt;
+SixpadDLLInit(&sp);
 
 {//Getting paths and such global parameters
 TCHAR fn[512]={0};
@@ -568,7 +565,7 @@ int i = appLocale.find('_');
 if (i>=0&&i<appLocale.size()) appLocale = appLocale.substr(0,i);
 to_lower(appLocale);
 appName = fnBs+1;
-sp->appDir = appDir = fn;
+appDir = fn;
 configFileName = appDir + TEXT("\\") + appName + TEXT(".ini");
 config.load(configFileName);
 if (!msgs.load(appDir + TEXT("\\") + appName + TEXT("-") + appLocale + TEXT(".lng") )) msgs.load(appDir + TEXT("\\") + appName + TEXT("-english.lng") );
@@ -589,9 +586,8 @@ arg[0]='/';
 if (arg==TEXT("/headless")) headless=true;
 continue; 
 } 
-if (OpenFile2(arg, OF_REUSEOPENEDTABS)) {
-return 0;
-}}
+if (OpenFile2(arg, OF_REUSEOPENEDTABS)) return 0;
+}
 bool writeToStdout = (1&GetFileType(GetStdHandle(STD_OUTPUT_HANDLE))), 
 readFromStdin = (1&GetFileType(GetStdHandle(STD_INPUT_HANDLE)));
 string dataFromStdin;
@@ -622,19 +618,19 @@ if (!InitCommonControlsEx(&ccex)) return 1;
 }
 
 {//Create window block
-sp->win = win = CreateWindowEx(
+sp.win = win = CreateWindowEx(
 WS_EX_CONTROLPARENT | WS_EX_ACCEPTFILES,
 CLASSNAME, GetDefaultWindowTitle().c_str(), 
 WS_VISIBLE | WS_OVERLAPPEDWINDOW,
 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 
 HWND_DESKTOP, NULL, hinstance, NULL);
 RECT r; GetClientRect(win, &r);
-sp->tabctl = tabctl = CreateWindowEx(
+sp.tabctl = tabctl = CreateWindowEx(
 0, WC_TABCONTROL, NULL, 
 WS_VISIBLE | WS_CHILD | TCS_SINGLELINE | TCS_FOCUSNEVER | (config.get("tabsAtBottom", false)? TCS_BOTTOM:0),
 5, 5, r.right -10, r.bottom -49, 
 win, (HMENU)IDC_TABCTL, hinstance, NULL);
-sp->status = status = CreateWindowEx(
+sp.status = status = CreateWindowEx(
 0, L"STATIC", TEXT("Status"), 
 WS_VISIBLE | WS_CHILD | WS_BORDER | SS_NOPREFIX | SS_LEFT, 
 5, r.bottom -32, r.right -10, 27, 
@@ -657,7 +653,7 @@ SetMenuNamesFromResource(menu);
 LOGFONT lf = { -13, 0, 0, 0, 400, 0, 0, 0, 0, 3, 2, 1, 0x31, TEXT("Lucida Console") };
 File fdFont(appDir + TEXT("\\") + appName + TEXT(".fnt"));
 if (fdFont)  fdFont.read(&lf, sizeof(lf));
-sp->font = gfont = CreateFontIndirect(&lf);
+sp.font = gfont = CreateFontIndirect(&lf);
 }
 
 {//Recent files
@@ -829,6 +825,46 @@ return true;
 return false;
 }
 
+static LRESULT CALLBACK QuickSearchSubclassProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, DWORD_PTR unused) {
+switch(msg){
+case WM_CHAR:
+switch(LOWORD(wp)){
+case VK_TAB:
+MessageBeep(MB_OK);
+return true;
+case VK_RETURN:
+MessageBeep(MB_OK);
+case VK_ESCAPE: 
+if (curPage) curPage->FocusZone();
+return true;
+}break;
+case WM_KILLFOCUS:
+ShowWindow(hwnd, SW_HIDE);
+break;
+}
+return DefSubclassProc(hwnd, msg, wp, lp);
+}
+
+static bool ShowQuickSearch () {
+static HWND hLbl=0, hEdit = 0;
+if (!hLbl) hLbl = CreateWindowEx(0, TEXT("STATIC"), (msg("Quick search") + TEXT(":")).c_str(),
+WS_CHILD,
+1, 1, 1, 1,
+sp.win, (HMENU)(0), sp.hinstance, NULL);
+if (!hEdit) {
+hEdit = CreateWindowEx(0, TEXT("EDIT"), TEXT(""),
+WS_CHILD | WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL,
+1, 1, 1, 1, 
+sp.win, (HMENU)(4), sp.hinstance, NULL);
+SetWindowSubclass(hEdit, (SUBCLASSPROC)QuickSearchSubclassProc, 0, 0);
+}
+RECT r; GetClientRect(win,&r);
+MoveWindow(hEdit, r.right -125, r.bottom -32, 120, 30, TRUE);
+SetWindowText(hEdit, NULL);
+ShowWindow(hEdit, SW_SHOW);
+SetFocus(hEdit);
+}
+
 static LRESULT CALLBACK ConsoleDlgInputSubclassProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, DWORD_PTR unused) {
 static vector<tstring> history;
 static int historyPtr=0;
@@ -931,6 +967,9 @@ switch(msg){
 case WM_COMMAND:
 if (ActionCommand(hwnd, LOWORD(wp))) return TRUE;
 break;
+case WM_SYSCOMMAND :
+if (LOWORD(wp)==SC_KEYMENU && lp==0) return ShowQuickSearch();
+break;
 case WM_NOTIFY : switch (((LPNMHDR)lp)->code) {
 case TCN_SELCHANGING : 
 if (!PageDeactivated(curPage)) return TRUE;
@@ -984,3 +1023,12 @@ break;
 return DefWindowProc(hwnd, msg, wp, lp);
 }
 
+SixpadData sp = {
+&msg, &RegisterPageFactory,
+&AddUserCommand, &RemoveUserCommand,
+&AddAccelerator, &RemoveAccelerator,
+&KeyCodeToName,  &KeyNameToCode,
+&SetTimeout, &ClearTimeout,
+&msgs, &config, 
+CLASSNAME, SIXPAD_VERSION_ID, 0
+};

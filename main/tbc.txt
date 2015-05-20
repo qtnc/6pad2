@@ -1,3 +1,0 @@
-void Page::RegisterPageFactory (const string& name, const function<Page*()>& f) {
-pageFactories[name] = f;
-}

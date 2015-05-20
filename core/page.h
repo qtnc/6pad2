@@ -75,6 +75,7 @@ signal<void(shared_ptr<Page>)> ondeactivated, onactivated, onclosed, onsaved;
 signal<void(shared_ptr<Page>, int,var)> onattrChange;
 signal<bool(shared_ptr<Page>), BoolSignalCombiner> onclose, ondeactivate;
 signal<bool(shared_ptr<Page>,int), BoolSignalCombiner> onkeyDown, onkeyUp, oncontextMenu;
+signal<bool(shared_ptr<Page>, const tstring&, int, int), BoolSignalCombiner> onfileDropped;
 signal<var(shared_ptr<Page>,const tstring&), VarSignalCombiner> onsave, onbeforeSave, onload, onkeyPress, onstatus;
 signal<var(shared_ptr<Page>, const tstring&, int), VarSignalCombiner> onenter;
 

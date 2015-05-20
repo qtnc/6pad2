@@ -4,7 +4,7 @@
 HINSTANCE dllHinstance=0;
 SixpadData* sp = 0;
 
-BOOL extern SixpadDLLInit (SixpadData* d) {
+extern "C" BOOL SixpadDLLInit (SixpadData* d) {
 sp = d;
 sp->dllHinstance = dllHinstance;
 return true;

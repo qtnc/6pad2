@@ -63,3 +63,38 @@ PerformScript CloseListBox();
 EndIf
 EndScript
 
+Script UpCell  ()
+if GetObjectTypeCode() == WT_EDIT then
+TypeCurrentScriptKey()
+SayLine();
+Else
+PerformScript UpCell();
+EndIf
+EndScript
+
+Script DownCell  ()
+if GetObjectTypeCode() == WT_EDIT then
+TypeCurrentScriptKey()
+SayLine();
+Else
+PerformScript DownCell();
+EndIf
+EndScript
+
+Script NextCell  ()
+if GetObjectTypeCode() == WT_EDIT then
+TypeCurrentScriptKey()
+SayLine();
+Else
+PerformScript NextCell();
+EndIf
+EndScript
+
+Script PriorCell  ()
+if GetObjectTypeCode() == WT_EDIT then
+TypeCurrentScriptKey()
+SayLine();
+Else
+PerformScript PriorCell();
+EndIf
+EndScript

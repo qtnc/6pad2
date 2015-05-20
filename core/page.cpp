@@ -421,10 +421,10 @@ return LoadData(fd.readFully(), guessFormat);
 bool Page::LoadData (const string& str, bool guessFormat) {
 tstring text = TEXT("");
 if (guessFormat) { encoding=-1; lineEnding=-1; indentationMode=-1; }
-if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), str.size(), sp->configGetInt("defaultEncoding",GetACP()) );
+if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), str.size(), sp->config->get("defaultEncoding", (int)GetACP()) );
 text = ConvertFromEncoding(str, encoding);
-if (lineEnding<0) lineEnding = guessLineEnding(text.data(), text.size(), sp->configGetInt("defaultLineEnding", LE_DOS)  );
-if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), sp->configGetInt("defaultIndentationMode", 0)  );
+if (lineEnding<0) lineEnding = guessLineEnding(text.data(), text.size(), sp->config->get("defaultLineEnding", LE_DOS)  );
+if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), sp->config->get("defaultIndentationMode", 0)  );
 normalizeLineEndings(text);
 var re = onload(shared_from_this(), text);
 if (re.getType()==T_STR) text = re.toTString();
@@ -458,8 +458,6 @@ return tsnprintf(512, msg("Li %d, Col %d.\t%d%%, %d lines"), 1+sline, 1+scolumn,
 void Page::UpdateStatusBar (HWND hStatus) {
 tstring text = StatusBarUpdate(zone, hStatus);
 var re = onstatus(shared_from_this(), text);
-if (re.getType()==T_STR) text=re.toTString();
-//re = ::listeners.dispatch("status", var(), text);
 if (re.getType()==T_STR) text=re.toTString();
 SetWindowText(hStatus, text);
 }
@@ -876,6 +874,12 @@ HMENU menu = GetSubMenu(GetMenu(sp->win), 1);
 TrackPopupMenu(menu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_LEFTBUTTON, p.x, p.y, 0, hwnd, NULL);
 }
 return true;
+case WM_MOUSEWHEEL: {
+int delta = -GET_WHEEL_DELTA_WPARAM(wp);
+SendMessage(hwnd, EM_SCROLL, delta>0? SB_LINEDOWN : SB_LINEUP, 0);
+}return true;
+case EM_CANUNDO: return curPage->undoStates.size()>0;
+case EM_EMPTYUNDOBUFFER: curPage->undoStates.erase(curPage->undoStates.begin(), curPage->undoStates.end()); return true;
 case WM_UNDO: case EM_UNDO: curPage->Undo(); return true;
 }//switch(msg)
 return DefSubclassProc(hwnd, msg, wp, lp);
@@ -1051,7 +1055,7 @@ if(false){}
 #define E(n) else if (type==#n) con = on##n .connect(cb.asFunction<typename decltype(on##n)::signature_type>());
 E(keyDown) E(keyUp) E(keyPress)
 E(save) E(beforeSave) E(load)
-E(attrChange) E(status) E(contextMenu) E(enter)
+E(attrChange) E(status) E(fileDropped) E(contextMenu) E(enter)
 #undef E
 if (con.connected()) return AddSignalConnection(con);
 else return 0;

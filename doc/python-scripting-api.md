@@ -149,6 +149,12 @@ void delete(int start, int end):
 :	Delete a range of characters.
 void insert(int position, str text):
 :	Insert a string of text at the given position.
+void find(str text, bool scase, bool regex, bool up):
+:	Make a search in the text, as if the user issued a search using the Find dialog. SEt scase to True for a sensible case search, regex to True for a regular expression search, and up to True for a search backward instead of forward.
+void findNext():
+:	Find the next occurence of the text previously searched for, as if the user pressed F3 or chose the Find next item in the Edit menu.
+void findPrevious():
+:	Find the previous occurence of the text most recently searched for, as if the user pressed Shift+F3 or chose the Find previous item in the Edit menu.
 void save():
 :	Save the file, as if file>save had been chosen.
 void reload():
