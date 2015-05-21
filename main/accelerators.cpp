@@ -148,12 +148,16 @@ hAccel = hNew;
 return true;
 }
 
-bool FindAccelerator (int cmd, int& flags, int& key) {
+bool FindAccelerator (int& cmd, int& flags, int& key) {
 LoadAccelTable();
 for (int i=0, n=accell.size(); i<n; i++) {
-if (accell[i].cmd==cmd) {
+if (cmd>0 && accell[i].cmd==cmd) {
 flags = accell[i].fVirt;
 key = accell[i].key;
+return true;
+}
+else if (cmd<=0 && accell[i].key==key && accell[i].fVirt==flags) {
+cmd = accell[i].cmd;
 return true;
 }}
 return false;

@@ -2,6 +2,7 @@
 #include "strings.hpp"
 #include "Thread.h"
 #include "python34.h"
+#include "accelerators.h"
 #include<cstring>
 using namespace std;
 
@@ -10,11 +11,6 @@ extern HWND win;
 
 int AddUserCommand (std::function<void(void)> f, int cmd = 0);
 bool RemoveUserCommand (int cmd);
-bool AddAccelerator (int flags, int key, int cmd);
-bool FindAccelerator (int cmd, int& flags, int& key);
-BOOL RemoveAccelerator (int cmd);
-tstring KeyCodeToName (int flags, int vk, bool i18n); 
-bool KeyNameToCode (const tstring& kn, int& flags, int& key);
 bool ActionCommand (HWND hwnd, int cmd);
 
 struct PyMenuItem { 

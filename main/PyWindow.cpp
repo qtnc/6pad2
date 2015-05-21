@@ -2,7 +2,7 @@
 #include "strings.hpp"
 #include "page.h"
 #include "python34.h"
-#include "page.h"
+#include "accelerators.h"
 #include "inifile.h"
 #include "Resource.h"
 #include "Thread.h"
@@ -28,8 +28,6 @@ int AppRemoveEvent (const string&, int id);
 int AddUserCommand (std::function<void(void)> f, int cmd=0);
 int SetTimeout (const std::function<void(void)>& f, int time, bool repeat);
 void ClearTimeout (int id);
-bool AddAccelerator (int flags, int key, int cmd);
-bool KeyNameToCode (const tstring& kn, int& flags, int& key);
 shared_ptr<Page> OpenFile (const tstring& filename, int flags);
 shared_ptr<Page> PageAddEmpty (bool focus, const string& type);
 
@@ -45,6 +43,20 @@ int cmd = AddUserCommand(f);
 if (cmd<=0) return 0;
 if (AddAccelerator(kf, k, cmd)) return cmd;
 else return 0;
+}
+
+tstring PyFindAcceleratorByID (int cmd) {
+int k=0, kf=0;
+FindAccelerator(cmd, kf, k);
+if (k<0) return TEXT("");
+else return KeyCodeToName(kf,k,false);
+}
+
+int PyFindAcceleratorByKey (const tstring& kn) {
+int cmd=0, k=0, kf=0;
+KeyNameToCode(kn, kf, k);
+FindAccelerator(cmd, kf, k);
+return cmd;
 }
 
 static PyObject* PyOpenFile (const tstring& filename) {
@@ -178,6 +190,9 @@ PyDecl("confirm", PyConfirm),
 
 // Menus and accelerators management
 PyDecl("addAccelerator", PyAddAccelerator),
+PyDecl("RemoveAccelerator", RemoveAccelerator),
+PyDecl("findAcceleratorByID", PyFindAcceleratorByID),
+PyDecl("findAcceleratorByKey", PyFindAcceleratorByKey),
 PyDecl("createPopupMenu", PyMenuItem_CreatePopupMenu),
 
 // Global events management

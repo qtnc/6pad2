@@ -60,11 +60,18 @@ int confirm(str text, str title):
 :	Create a new popup menu and return it.
 int addAccelerator(str key, callback function):
 :	Install a callback to be called when the given shortcut key is pressed.
+	ON success, return a non-zero identifier used to unregister this accelerator.
+int removeAccelerator(int id):
+:	Remove an accelerator previously installed. You must pass the event ID returned by addAccelerator.
 int addEvent(str eventName, callback function):
 :	Install a callback to be called when the given event occurs. See the [list of supported events for window](#windowEvents).
-	ON success, return a non-zero integer used to unregister this event.
+	ON success, return a non-zero identifier used to unregister this event.
 int removeEvent(str eventName, int eventId):
 :	Remove an event previously registered. You must pass in the event ID previously returned by addEvent. Returns a non-zero value if the event has successfully been unregistered.
+int findAcceleratorByKey(str key):
+:	Look for an event associated to the given shortcut key. If found, its corresponding event ID is returned. IN case nothing is associated with the given shortcut key, 0 is returned.
+str findAcceleratorByID(int id):
+:	Look for a shortcut key associated with the given event ID. If the event ID doesn't exist, or if it isn't associated with a shortcut key, an empty string is returned.
 int setTimeout(callback function, int delay):
 :	Schedule the given callback function to be called asynchronously after the specified delay. Returns a timer identifier, which can be passed to [clearTimeout](#clearTimeout) to cancel this timer.
 int setInterval(callback function, int interval):

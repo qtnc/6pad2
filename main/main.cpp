@@ -40,8 +40,10 @@ unordered_map<string,function<Page*()>> pageFactories = { {"text", [](){return n
 
 signal<void()> onactivated, ondeactivated, onclosed, onresized;
 signal<bool(), BoolSignalCombiner> onclose;
+signal<bool(const tstring&), BoolSignalCombiner> onquickReach;
 signal<bool(const tstring&, int, int), BoolSignalCombiner> onfileDropped;
 signal<var(const tstring&)> onpageBeforeOpen, ontitle;
+signal<var(const tstring&,int)> onquickReachAutocomplete;
 signal<void(shared_ptr<Page>)> onpageOpened;
 
 TCHAR CLASSNAME[32] = {0};
@@ -339,6 +341,7 @@ if(false){}
 E(pageBeforeOpen) E(pageOpened)
 E(close) E(resized) E(activated) E(deactivated)
 E(title) E(fileDropped)
+E(quickReach) E(quickReachAutocomplete)
 #undef E
 if (con.connected()) return AddSignalConnection(con);
 else return 0;
@@ -510,7 +513,7 @@ mii.fMask = MIIM_ID | MIIM_SUBMENU;
 if (!GetMenuItemInfo(menu, i, TRUE, &mii)) continue;
 int accFlags=0, accKey=0;
 int flg2 = MF_BYPOSITION | (mii.hSubMenu? MF_POPUP : MF_STRING);
-if (FindAccelerator(mii.wID, accFlags, accKey)) newLabel += TEXT("\t\t") + KeyCodeToName(accFlags, accKey, true);
+if (FindAccelerator((int&)(mii.wID), accFlags, accKey)) newLabel += TEXT("\t\t") + KeyCodeToName(accFlags, accKey, true);
 ModifyMenu(menu, i, flg2, mii.wID, newLabel.c_str() );
 if (mii.hSubMenu) I18NMenus(mii.hSubMenu);
 }}
@@ -758,6 +761,56 @@ gfont = CreateFontIndirect(&lf);
 for (auto p: pages) p->SetFont(gfont);
 }
 
+static LRESULT CALLBACK QuickSearchSubclassProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, DWORD_PTR unused) {
+switch(msg){
+case WM_CHAR:
+switch(LOWORD(wp)){
+case VK_TAB: {
+int ss, se; tstring text = GetWindowText(hwnd);
+SendMessage(hwnd, EM_GETSEL, &ss, &se);
+var re = onquickReachAutocomplete(text, min(ss,se));
+if (re.getType()==T_STR) {
+tstring newText = re.toTString();
+SetWindowText(hwnd, newText);
+ss = first_mismatch(text, newText);
+se = newText.size();
+SendMessage(hwnd, EM_SETSEL, ss, se);
+}
+else  MessageBeep(MB_OK);
+}return true;
+case VK_RETURN:
+if (onquickReach( GetWindowText(hwnd) )) MessageBeep(MB_OK);
+case VK_ESCAPE: 
+if (curPage) curPage->FocusZone();
+return true;
+}break;
+case WM_KILLFOCUS:
+ShowWindow(hwnd, SW_HIDE);
+break;
+}
+return DefSubclassProc(hwnd, msg, wp, lp);
+}
+
+static bool ShowQuickSearch () {
+static HWND hLbl=0, hEdit = 0;
+if (!hLbl) hLbl = CreateWindowEx(0, TEXT("STATIC"), (msg("Quick reach") + TEXT(":")).c_str(),
+WS_CHILD,
+1, 1, 1, 1,
+sp.win, (HMENU)(0), sp.hinstance, NULL);
+if (!hEdit) {
+hEdit = CreateWindowEx(0, TEXT("EDIT"), TEXT(""),
+WS_CHILD | WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL,
+1, 1, 1, 1, 
+sp.win, (HMENU)(4), sp.hinstance, NULL);
+SetWindowSubclass(hEdit, (SUBCLASSPROC)QuickSearchSubclassProc, 0, 0);
+}
+RECT r; GetClientRect(win,&r);
+MoveWindow(hEdit, r.right -125, r.bottom -32, 120, 30, TRUE);
+SetWindowText(hEdit, NULL);
+ShowWindow(hEdit, SW_SHOW);
+SetFocus(hEdit);
+}
+
 bool ActionCommand (HWND hwnd, int cmd) {
 switch(cmd){
 case IDM_OPEN: 
@@ -789,6 +842,7 @@ case IDM_FINDNEXT: if (curPage) curPage->FindNext(); return true;
 case IDM_FINDPREV: if (curPage) curPage->FindPrev(); return true;
 case IDM_LE_DOS: case IDM_LE_UNIX: case IDM_LE_MAC: if (curPage) curPage->SetLineEnding(cmd-IDM_LE_DOS); return true;
 case IDM_AUTOLINEBREAK: if (curPage) curPage->SetAutoLineBreak(!(curPage->flags&PF_AUTOLINEBREAK)); return true;
+case IDM_QUICKSEARCH: ShowQuickSearch(); return true;
 case IDM_OPEN_CONSOLE: OpenConsoleWindow(); return true;
 case IDM_OTHER_ENCODINGS: EncodingShowAll(); return true;
 case IDM_NEXTPAGE: PageGoToNext(1); break;
@@ -823,46 +877,6 @@ if (it!=userCommands.end()) (it->second)();
 return true;
 }
 return false;
-}
-
-static LRESULT CALLBACK QuickSearchSubclassProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, DWORD_PTR unused) {
-switch(msg){
-case WM_CHAR:
-switch(LOWORD(wp)){
-case VK_TAB:
-MessageBeep(MB_OK);
-return true;
-case VK_RETURN:
-MessageBeep(MB_OK);
-case VK_ESCAPE: 
-if (curPage) curPage->FocusZone();
-return true;
-}break;
-case WM_KILLFOCUS:
-ShowWindow(hwnd, SW_HIDE);
-break;
-}
-return DefSubclassProc(hwnd, msg, wp, lp);
-}
-
-static bool ShowQuickSearch () {
-static HWND hLbl=0, hEdit = 0;
-if (!hLbl) hLbl = CreateWindowEx(0, TEXT("STATIC"), (msg("Quick search") + TEXT(":")).c_str(),
-WS_CHILD,
-1, 1, 1, 1,
-sp.win, (HMENU)(0), sp.hinstance, NULL);
-if (!hEdit) {
-hEdit = CreateWindowEx(0, TEXT("EDIT"), TEXT(""),
-WS_CHILD | WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL,
-1, 1, 1, 1, 
-sp.win, (HMENU)(4), sp.hinstance, NULL);
-SetWindowSubclass(hEdit, (SUBCLASSPROC)QuickSearchSubclassProc, 0, 0);
-}
-RECT r; GetClientRect(win,&r);
-MoveWindow(hEdit, r.right -125, r.bottom -32, 120, 30, TRUE);
-SetWindowText(hEdit, NULL);
-ShowWindow(hEdit, SW_SHOW);
-SetFocus(hEdit);
 }
 
 static LRESULT CALLBACK ConsoleDlgInputSubclassProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, DWORD_PTR unused) {

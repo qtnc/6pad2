@@ -4,6 +4,7 @@
 #include<string>
 #include<cstring>
 #include<cstdlib>
+#include<boost/algorithm/cxx14/mismatch.hpp>
 #include<boost/algorithm/string.hpp>
 using boost::to_lower;
 using boost::to_upper;
@@ -28,6 +29,10 @@ return v;
 
 template<class T> std::vector<std::basic_string<T>> split (const std::basic_string<T>& str, const T* delims) {
 return split(str, std::basic_string<T>(delims));
+}
+
+template<class T> int first_mismatch (const T& a, const T& b) { 
+return boost::algorithm::mismatch(a.begin(), a.end(), b.begin(), b.end()) .first -a.begin(); 
 }
 
 // Sprintf++
