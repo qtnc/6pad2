@@ -46,3 +46,9 @@ CloseClipboard();
 return text;
 }
 
+tstring export GetErrorText (int errorCode) {
+TCHAR buf[512]={0};
+FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buf, 511, NULL);
+return buf;
+}
+

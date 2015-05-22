@@ -10,6 +10,16 @@ using namespace std;
 
 #define DETECTION_MAX_LOOKUP 16384
 
+#ifdef UNICODE
+typedef boost::wregex tregex;
+typedef boost::wcregex_iterator tcregex_iterator;
+typedef boost::wcmatch tcmatch;
+#else
+typedef boost::regex tregex;
+typedef boost::cregex_iterator tcregex_iterator;
+typedef boost::cmatch tcmatch;
+#endif
+
 static unordered_map<int,string> pythonEncodings = {
 { 12000, "utf_32_le" },
 { 12001, "utf_32_be" },
@@ -184,20 +194,52 @@ void normalizeLineEndings (tstring& text) {
 text = preg_replace(text, TEXT("\r\n|\n|\r"), TEXT("\r\n") );
 }
 
-tstring preg_replace (const tstring& str, const tstring& needle, const tstring& repl) {
+pair<int,int> preg_search (const tstring& text, const tstring& needle, int pos, bool icase, bool literal) {
 using namespace boost;
-typedef boost::wregex tregex;
-const int options = regex_constants::perl | regex_constants::mod_s | regex_constants::collate;
-const match_flag_type flags = match_flag_type::match_default | match_flag_type::format_perl;
+int options = 0;
+if (literal) options |= regex_constants::literal;
+else options |= regex_constants::perl | regex_constants::mod_s | regex_constants::collate | regex_constants::nosubs;
+if (icase) options |= regex_constants::icase;
 tregex reg(needle, options);
-return regex_replace(str, reg, repl, flags);
+tcmatch m;
+match_flag_type mtype = match_flag_type::match_default;
+if (pos>0) mtype |= match_flag_type::match_prev_avail;
+if (regex_search(text.data()+pos, text.data()+text.size(), m, reg, mtype)) return pair<int,int>(
+m[0].first - text.data(),
+m[0].second - text.data() );
+else return pair<int,int>(-1,-1);
 }
 
-tstring str_replace (const tstring& str, const tstring& needle, const tstring& repl) {
+pair<int,int> preg_rsearch (const tstring& text, const tstring& needle, int pos, bool icase, bool literal) {
 using namespace boost;
-typedef boost::wregex tregex;
-const int options = regex_constants::literal;
-const match_flag_type flags = match_flag_type::format_literal;
+int lastStart=-1, lastEnd=-1, options = 0;
+if (literal) options |= regex_constants::literal;
+else options |= regex_constants::perl | regex_constants::mod_s | regex_constants::collate | regex_constants::nosubs;
+if (icase) options |= regex_constants::icase;
+tregex reg(needle, options);
+match_flag_type mtype = match_flag_type::match_default;
+if (pos>0) mtype |= match_flag_type::match_prev_avail;
+for (tcregex_iterator _end, it(text.data(), text.data()+text.size(), reg, mtype); it!=_end; ++it) {
+auto m = *it;
+int start = m[0].first - text.data();
+int end = m[0].second - text.data();
+if (start>pos) break;
+lastStart=start;
+lastEnd=end;
+}
+if (lastStart>=0 && lastEnd>=0 && lastStart<=pos && lastEnd<=pos) return pair<int,int>(lastStart, lastEnd);
+else return pair<int,int>(-1,-1);
+}
+
+tstring preg_replace (const tstring& str, const tstring& needle, const tstring& repl, bool icase, bool literal) {
+using namespace boost;
+int options = 0;
+if (literal) options |= regex_constants::literal;
+else options |= regex_constants::perl | regex_constants::mod_s | regex_constants::collate;
+if (icase) options |= regex_constants::icase;
+match_flag_type flags = 
+(literal? flags |= match_flag_type::format_literal :
+(match_flag_type::match_default | match_flag_type::format_perl) );
 tregex reg(needle, options);
 return regex_replace(str, reg, repl, flags);
 }
@@ -207,6 +249,26 @@ tstring re = str;
 for (auto p: pairs) re = str_replace(re, p.first, p.second);
 return re;
 }
+
+void export ParseLineCol (tstring& file, int& line, int& col) {
+using namespace boost;
+tregex r1(TEXT(":(\\d+):(\\d+)$"), regex_constants::perl | regex_constants::mod_s | regex_constants::collate);
+tcmatch m;
+if (regex_search(file.data(), file.data() + file.size(), m, r1, match_flag_type::match_default)) {
+int start = m[0].first - file.data();
+line = toInt(m[1].str());
+col = toInt(m[2].str());
+file = file.substr(0, start);
+return;
+}
+tregex r2(TEXT(":(\\d+)$"), regex_constants::perl | regex_constants::mod_s | regex_constants::collate);
+if (regex_search(file.data(), file.data() + file.size(), m, r2, match_flag_type::match_default)) {
+int start = m[0].first - file.data();
+line = toInt(m[1].str());
+col = 1;
+file = file.substr(0, start);
+return;
+}}
 
 void PrepareSmartPaste (tstring& text, const tstring& indent) {
 using namespace boost;

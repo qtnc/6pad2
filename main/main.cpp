@@ -40,10 +40,10 @@ unordered_map<string,function<Page*()>> pageFactories = { {"text", [](){return n
 
 signal<void()> onactivated, ondeactivated, onclosed, onresized;
 signal<bool(), BoolSignalCombiner> onclose;
-signal<bool(const tstring&), BoolSignalCombiner> onquickReach;
+signal<bool(const tstring&), BoolSignalCombiner> onquickJump;
 signal<bool(const tstring&, int, int), BoolSignalCombiner> onfileDropped;
 signal<var(const tstring&)> onpageBeforeOpen, ontitle;
-signal<var(const tstring&,int)> onquickReachAutocomplete;
+signal<var(const tstring&,int)> onquickJumpAutocomplete;
 signal<void(shared_ptr<Page>)> onpageOpened;
 
 TCHAR CLASSNAME[32] = {0};
@@ -60,7 +60,7 @@ shared_ptr<Page> OpenFile (const tstring& file, int flags=0);
 void OpenConsoleWindow (void);
 void UpdateRecentFilesMenu (void);
 void ParseLineCol (tstring& file, int& line, int& col);
-void ClearTimeout (int id);
+tstring GetErrorText (int errorCode);
 void CSignal ( void(*)(int) );
 LRESULT WINAPI AppWinProc (HWND, UINT, WPARAM, LPARAM);
 
@@ -182,16 +182,7 @@ SendMessage(tabctl, TCM_SETITEM, pos, &it);
 if (curPage==p) UpdateWindowTitle();
 }
 
-inline void PageSetAutoLineBreak (shared_ptr<Page> p, bool alb) {
-/*if (!p) return;
-if (alb) p->flags |= PF_AUTOLINEBREAK;
-else p->flags &=~PF_AUTOLINEBREAK;
-if (p==curPage) CheckMenuItem(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND | (p->flags&PF_AUTOLINEBREAK? MF_CHECKED : MF_UNCHECKED));
-p->CreateZone(tabctl);
-if (p==curPage) PageActivated(p);*/
-}
-
-void PageActivate (int i) {
+inline void PageActivate (int i) {
 SendMessage(tabctl, TCM_SETCURFOCUS, i, 0);
 }
 
@@ -203,6 +194,12 @@ if (i>=0&&i<pages.size()) PageActivate(i);
 }
 p->FocusZone();
 }
+
+inline void PageSetAutoLineBreak (shared_ptr<Page> p, bool b) {
+if (p==curPage) {
+CheckMenuItem(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND | (p->flags&PF_AUTOLINEBREAK? MF_CHECKED : MF_UNCHECKED));
+PageActivated(p);
+}}
 
 void PageAttrChanged (shared_ptr<Page> p, int attr, var val) {
 switch(attr){
@@ -241,9 +238,13 @@ p->onclosed.connect( 2147483647, PageClosed);
 p->onattrChange.connect(PageAttrChanged);
 }
 
-void PageAdd (shared_ptr<Page> p, bool focus = true) {
+bool PageAdd (shared_ptr<Page> p, bool focus = true) {
 p->CreateZone(tabctl);
-p->LoadFile();
+int re = p->LoadFile();
+if (re<0 && re!=-2) {
+MessageBox(win, GetErrorText(-re).c_str(), msg("Error").c_str(), MB_OK | MB_ICONERROR);
+return false;
+}
 pages.push_back(p);
 TCITEM it;
 it.mask = TCIF_TEXT;
@@ -254,6 +255,7 @@ int oldpos = SendMessage(tabctl, TCM_GETCURSEL, 0, 0);
 PageOpened(p);
 if (focus) PageActivate(pages.size() -1);
 if (focus&&pages.size()==1) PageActivated(p);
+return true;
 }
 
 shared_ptr<Page> PageAddEmpty (bool focus = true, const string& type = "text") {
@@ -341,7 +343,7 @@ if(false){}
 E(pageBeforeOpen) E(pageOpened)
 E(close) E(resized) E(activated) E(deactivated)
 E(title) E(fileDropped)
-E(quickReach) E(quickReachAutocomplete)
+E(quickJump) E(quickJumpAutocomplete)
 #undef E
 if (con.connected()) return AddSignalConnection(con);
 else return 0;
@@ -465,7 +467,7 @@ shared_ptr<Page> cp = curPage;
 shared_ptr<Page> p = PageCreate(type);
 if (!p) return p;
 p->file = file;
-PageAdd(p);
+if (!PageAdd(p)) return NULL;
 if (line>0&&col>0) p->SetCurrentPositionLC(line -1, col -1);
 if (cp&&cp->IsEmpty()) cp->Close();
 auto itrf = std::find(recentFiles.begin(), recentFiles.end(), file);
@@ -761,14 +763,14 @@ gfont = CreateFontIndirect(&lf);
 for (auto p: pages) p->SetFont(gfont);
 }
 
-static LRESULT CALLBACK QuickSearchSubclassProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, DWORD_PTR unused) {
+static LRESULT CALLBACK QuickJumpSubclassProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, DWORD_PTR unused) {
 switch(msg){
 case WM_CHAR:
 switch(LOWORD(wp)){
 case VK_TAB: {
 int ss, se; tstring text = GetWindowText(hwnd);
 SendMessage(hwnd, EM_GETSEL, &ss, &se);
-var re = onquickReachAutocomplete(text, min(ss,se));
+var re = onquickJumpAutocomplete(text, min(ss,se));
 if (re.getType()==T_STR) {
 tstring newText = re.toTString();
 SetWindowText(hwnd, newText);
@@ -779,7 +781,7 @@ SendMessage(hwnd, EM_SETSEL, ss, se);
 else  MessageBeep(MB_OK);
 }return true;
 case VK_RETURN:
-if (onquickReach( GetWindowText(hwnd) )) MessageBeep(MB_OK);
+if (onquickJump( GetWindowText(hwnd) )) MessageBeep(MB_OK);
 case VK_ESCAPE: 
 if (curPage) curPage->FocusZone();
 return true;
@@ -791,9 +793,10 @@ break;
 return DefSubclassProc(hwnd, msg, wp, lp);
 }
 
-static bool ShowQuickSearch () {
+static bool ShowQuickJump () {
+if (onquickJump.empty()) { MessageBeep(MB_OK); return false; }
 static HWND hLbl=0, hEdit = 0;
-if (!hLbl) hLbl = CreateWindowEx(0, TEXT("STATIC"), (msg("Quick reach") + TEXT(":")).c_str(),
+if (!hLbl) hLbl = CreateWindowEx(0, TEXT("STATIC"), (msg("Quick jump") + TEXT(":")).c_str(),
 WS_CHILD,
 1, 1, 1, 1,
 sp.win, (HMENU)(0), sp.hinstance, NULL);
@@ -802,13 +805,14 @@ hEdit = CreateWindowEx(0, TEXT("EDIT"), TEXT(""),
 WS_CHILD | WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL,
 1, 1, 1, 1, 
 sp.win, (HMENU)(4), sp.hinstance, NULL);
-SetWindowSubclass(hEdit, (SUBCLASSPROC)QuickSearchSubclassProc, 0, 0);
+SetWindowSubclass(hEdit, (SUBCLASSPROC)QuickJumpSubclassProc, 0, 0);
 }
 RECT r; GetClientRect(win,&r);
 MoveWindow(hEdit, r.right -125, r.bottom -32, 120, 30, TRUE);
 SetWindowText(hEdit, NULL);
 ShowWindow(hEdit, SW_SHOW);
 SetFocus(hEdit);
+return true;
 }
 
 bool ActionCommand (HWND hwnd, int cmd) {
@@ -842,7 +846,7 @@ case IDM_FINDNEXT: if (curPage) curPage->FindNext(); return true;
 case IDM_FINDPREV: if (curPage) curPage->FindPrev(); return true;
 case IDM_LE_DOS: case IDM_LE_UNIX: case IDM_LE_MAC: if (curPage) curPage->SetLineEnding(cmd-IDM_LE_DOS); return true;
 case IDM_AUTOLINEBREAK: if (curPage) curPage->SetAutoLineBreak(!(curPage->flags&PF_AUTOLINEBREAK)); return true;
-case IDM_QUICKSEARCH: ShowQuickSearch(); return true;
+case IDM_QUICKJUMP: ShowQuickJump(); return true;
 case IDM_OPEN_CONSOLE: OpenConsoleWindow(); return true;
 case IDM_OTHER_ENCODINGS: EncodingShowAll(); return true;
 case IDM_NEXTPAGE: PageGoToNext(1); break;
@@ -982,7 +986,7 @@ case WM_COMMAND:
 if (ActionCommand(hwnd, LOWORD(wp))) return TRUE;
 break;
 case WM_SYSCOMMAND :
-if (LOWORD(wp)==SC_KEYMENU && lp==0) return ShowQuickSearch();
+if (LOWORD(wp)==SC_KEYMENU && lp==0 && config.get("altQuickJump", false)) return ActionCommand(hwnd, IDM_QUICKJUMP);
 break;
 case WM_NOTIFY : switch (((LPNMHDR)lp)->code) {
 case TCN_SELCHANGING : 

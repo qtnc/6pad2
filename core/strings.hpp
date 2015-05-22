@@ -16,10 +16,14 @@ using boost::is_any_of;
 
 #define export __declspec(dllexport)
 
-tstring export str_replace (const tstring& str, const tstring& needle, const tstring& repl);
-tstring export preg_replace (const tstring& str, const tstring& needle, const tstring& repl);
-tstring export str_replace (const tstring& str, const std::vector<std::pair<tstring,tstring>>& pairs);
+tstring export preg_replace (const tstring& str, const tstring& needle, const tstring& repl, bool icase=false, bool literal=false);
+std::pair<int,int> export preg_search (const tstring& str, const tstring& needle, int initialPosition=0, bool icase=false, bool literal=false);
+export std::pair<int,int> export preg_rsearch (const tstring& str, const tstring& needle, int initialPosition=-1, bool icase=false, bool literal=false);
+
 void export normalizeLineEndings (tstring& text) ;
+void export ParseLineCol (tstring& file, int& line, int& col);
+tstring export str_replace (const tstring& str, const std::vector<std::pair<tstring,tstring>>& pairs);
+inline tstring str_replace (const tstring& str, const tstring& needle, const tstring& repl, bool icase = false) { return preg_replace(str, needle, repl, icase, true); }
 
 template<class T> std::vector<std::basic_string<T>> split (const std::basic_string<T>& str, const std::basic_string<T>& delims) {
 std::vector<std::basic_string<T>> v;

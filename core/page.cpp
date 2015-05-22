@@ -5,23 +5,12 @@
 #include "dialogs.h"
 #include "sixpad.h"
 #include<unordered_map>
-#include<boost/regex.hpp>
 #include<fcntl.h>
 using namespace std;
 
 #define FF_CASE 1
 #define FF_REGEX 2
 #define FF_UPWARDS 4
-
-#ifdef UNICODE
-typedef boost::wregex tregex;
-typedef boost::wcregex_iterator tcregex_iterator;
-typedef boost::wcmatch tcmatch;
-#else
-typedef boost::regex tregex;
-typedef boost::cregex_iterator tcregex_iterator;
-typedef boost::cmatch tcmatch;
-#endif
 
 struct TextDeleted: UndoState {
 int start, end;
@@ -61,7 +50,6 @@ int flags;
 inline FindData (const tstring& s=TEXT(""), const tstring& r=TEXT(""), int f=0) : findText(s), replaceText(r), flags(f) {}
 inline bool operator== (const FindData& f) { return f.findText==findText && f.replaceText==replaceText && f.flags==flags; }
 inline bool operator!= (const FindData& f) { return !(*this==f); }
-tregex newRegex (bool);
 };
 static list<FindData> finds;
 
@@ -90,7 +78,10 @@ onattrChange(shared_from_this(), PA_INDENTATION_MODE, e);
 }
 
 void Page::SetAutoLineBreak (bool b) {
-//todo
+if (!!b == !!(flags&PF_AUTOLINEBREAK) ) return; // no change, no op
+if (b) flags |= PF_AUTOLINEBREAK;
+else flags &=~PF_AUTOLINEBREAK;
+CreateZone(sp->tabctl);
 onattrChange(shared_from_this(), PA_AUTOLINEBREAK, b);
 }
 
@@ -249,56 +240,30 @@ if (!pyData) pyData = CreatePyEditorTabObject(shared_from_this());
 return *pyData;
 }
 
-tregex FindData::newRegex (bool findOnly) {
-using namespace boost;
-int options =
-(flags&FF_REGEX? regex_constants::perl | regex_constants::mod_s | regex_constants::collate | (findOnly?regex_constants::nosubs:0)  : regex_constants::literal)
-| (flags&FF_CASE? 0 : regex_constants::icase);
-return tregex(findText, options);
-}
-
 void Page::FindNext () {
-using namespace boost;
-HWND& edit = zone;
 if (finds.size()<=0) { FindDialog(); return; }
 FindData& fd = finds.front();
 int pos;
-SendMessage(edit, EM_GETSEL, 0, &pos);
-tstring text = GetWindowText(edit);
-tregex reg = fd.newRegex(false);
-tcmatch m;
-match_flag_type mtype = match_flag_type::match_default;
-if (pos>0) mtype |= match_flag_type::match_prev_avail;
-if (regex_search(text.data()+pos, text.data()+text.size(), m, reg, mtype)) {
-int start = m[0].first - text.data();
-int end = m[0].second - text.data();
-SendMessage(edit, EM_SETSEL, start, end);
-SendMessage(edit, EM_SCROLLCARET, 0, 0);
+SendMessage(zone, EM_GETSEL, 0, &pos);
+tstring text = GetWindowText(zone);
+auto p = preg_search(text, fd.findText, pos, !(fd.flags&FF_CASE), !(fd.flags&FF_REGEX));
+if (p.first>=0 && p.second>=0) {
+SendMessage(zone, EM_SETSEL, p.first, p.second);
+SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 else MessageBeep(MB_ICONASTERISK);
 }
 
 void Page::FindPrev () {
-using namespace boost;
 HWND& edit = zone;
 if (finds.size()<=0) { FindDialog(); return; }
 FindData& fd = finds.front();
-int pos, lastStart=-1, lastEnd=-1;
+int pos;
 SendMessage(edit, EM_GETSEL, &pos, 0);
 tstring text = GetWindowText(edit);
-tregex reg = fd.newRegex(false);
-match_flag_type mtype = match_flag_type::match_default;
-if (pos>0) mtype |= match_flag_type::match_prev_avail;
-for (tcregex_iterator _end, it(text.data(), text.data()+text.size(), reg, mtype); it!=_end; ++it) {
-auto m = *it;
-int start = m[0].first - text.data();
-int end = m[0].second - text.data();
-if (start>pos) break;
-lastStart=start;
-lastEnd=end;
-}
-if (lastStart>=0 && lastEnd>=0 && lastStart<=pos && lastEnd<=pos) {
-SendMessage(edit, EM_SETSEL, lastStart, lastEnd);
+auto p = preg_rsearch(text, fd.findText, pos, !(fd.flags&FF_CASE), !(fd.flags&FF_REGEX));
+if (p.first>=0 && p.second>=0) {
+SendMessage(edit, EM_SETSEL, p.first, p.second);
 SendMessage(edit, EM_SCROLLCARET, 0, 0);
 }
 else MessageBeep(MB_ICONASTERISK);
@@ -314,30 +279,25 @@ else FindNext();
 }
 
 void Page::FindReplace (const tstring& searchText, const tstring& replaceText, bool scase, bool regex) {
-using namespace boost;
 FindData fd(searchText, replaceText, (scase?FF_CASE:0) | (regex?FF_REGEX:0) );
 auto it = find(finds.begin(), finds.end(), fd);
 if (it!=finds.end()) finds.erase(it);
 finds.push_front(fd);
 int start, end;
-HWND& edit = zone;
-SendMessage(edit, EM_GETSEL, &start, &end);
-tstring oldText = GetWindowText(edit);
+SendMessage(zone, EM_GETSEL, &start, &end);
+tstring oldText = GetWindowText(zone);
 if (start!=end) oldText = tstring(oldText.begin()+start, oldText.begin()+end);
-tregex reg = fd.newRegex(true);
-match_flag_type flags = (fd.flags&FF_REGEX? match_flag_type::match_default | match_flag_type::format_perl : match_flag_type::format_literal);
-tstring newText = oldText;
-newText = regex_replace(newText, reg, fd.replaceText, flags);
+tstring newText = preg_replace(oldText, fd.findText, fd.replaceText, !(fd.flags&FF_CASE), !(fd.flags&FF_REGEX));
 if (start!=end) {
-SendMessage(edit, EM_REPLACESEL, 0, newText.c_str() );
-SendMessage(edit, EM_SETSEL, start, start+newText.size());
+SendMessage(zone, EM_REPLACESEL, 0, newText.c_str() );
+SendMessage(zone, EM_SETSEL, start, start+newText.size());
 }
 else {
-SetWindowText(edit, newText);
-SendMessage(edit, EM_SETSEL, start, end);
+SetWindowText(zone, newText);
+SendMessage(zone, EM_SETSEL, start, end);
 }
-if (IsWindowVisible(edit)) SendMessage(edit, EM_SCROLLCARET, 0, 0);
-SendMessage(edit, EM_SETMODIFY, true, 0);
+if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
+SendMessage(zone, EM_SETMODIFY, true, 0);
 PushUndoState(std::shared_ptr<UndoState>(new TextReplaced( start!=end? start : 0, oldText, newText, start!=end)));
 }
 
@@ -346,26 +306,6 @@ int pos = file.find_last_of(TEXT("\\/"));
 if (pos==tstring::npos) pos = -1;
 return file.substr(1+pos);
 }
-
-void export ParseLineCol (tstring& file, int& line, int& col) {
-using namespace boost;
-tregex r1(TEXT(":(\\d+):(\\d+)$"), regex_constants::perl | regex_constants::mod_s | regex_constants::collate);
-tcmatch m;
-if (regex_search(file.data(), file.data() + file.size(), m, r1, match_flag_type::match_default)) {
-int start = m[0].first - file.data();
-line = toInt(m[1].str());
-col = toInt(m[2].str());
-file = file.substr(0, start);
-return;
-}
-tregex r2(TEXT(":(\\d+)$"), regex_constants::perl | regex_constants::mod_s | regex_constants::collate);
-if (regex_search(file.data(), file.data() + file.size(), m, r2, match_flag_type::match_default)) {
-int start = m[0].first - file.data();
-line = toInt(m[1].str());
-col = 1;
-file = file.substr(0, start);
-return;
-}}
 
 string Page::SaveData () {
 tstring str = GetText();
@@ -408,13 +348,13 @@ onsaved(shared_from_this());
 return true;
 }
 
-bool Page::LoadFile (const tstring& filename, bool guessFormat) {
-if (filename.size()<=0 && (flags&PF_NORELOAD)) return false;
+int Page::LoadFile (const tstring& filename, bool guessFormat) {
+if (filename.size()<=0 && (flags&PF_NORELOAD)) return 0;
 if (filename.size()>0) file = filename;
-if (file.size()<=0) return false;
+if (file.size()<=0) return 0;
 name = FileNameToPageName(*this, file);
 File fd(file);
-if (!fd) return false;
+if (!fd) return -GetLastError();
 return LoadData(fd.readFully(), guessFormat);
 }
 
@@ -885,12 +825,12 @@ case WM_UNDO: case EM_UNDO: curPage->Undo(); return true;
 return DefSubclassProc(hwnd, msg, wp, lp);
 }
 
-void Page::CreateZone (HWND parent) {
+void Page::CreateZone (HWND parent, bool subclass) {
 static int count = 0;
 tstring text;
 int ss=0, se=0;
 if (zone) {
-SendMessage(zone, EM_GETSEL, (WPARAM)&ss, (LPARAM)&se);
+SendMessage(zone, EM_GETSEL, &ss, &se);
 text = GetWindowText(zone);
 DestroyWindow(zone);
 }
@@ -904,7 +844,7 @@ SendMessage(hEdit, WM_SETFONT, sp->font, TRUE);
 SetWindowText(hEdit, text.c_str());
 SendMessage(hEdit, EM_SETSEL, ss, se);
 SendMessage(hEdit, EM_SCROLLCARET, 0, 0);
-SetWindowSubclass(hEdit, (SUBCLASSPROC)EditProc, 0, (DWORD_PTR)this);
+if (subclass) SetWindowSubclass(hEdit, (SUBCLASSPROC)EditProc, 0, (DWORD_PTR)this);
 zone=hEdit;
 }
 
@@ -930,7 +870,7 @@ SetFocus(zone);
 }
 
 void Page::ResizeZone (const RECT& r) {
-MoveWindow(zone, r.left+3, r.top+3, r.right-r.left -6, r.bottom-r.top -6, TRUE);
+MoveWindow(zone, r.left+3, r.top+3, r.right-r.left -6, r.bottom-r.top -6, true);
 }
 
 void Page::SetFont (HFONT font) {

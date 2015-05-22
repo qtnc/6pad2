@@ -29,7 +29,7 @@ bool IsClosed () { return !fd || fd==INVALID_HANDLE_VALUE; }
 static StdFile* Open (const tstring& path, bool write, bool append) {
 HANDLE fd = NULL;
 if (write) fd = CreateFile(path.c_str(), GENERIC_WRITE, FILE_SHARE_READ, NULL, append? OPEN_ALWAYS : CREATE_ALWAYS, 0, NULL);
-else fd = CreateFile(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+else fd = CreateFile(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 if (fd) return new StdFile(fd);
 else return NULL;
 }
