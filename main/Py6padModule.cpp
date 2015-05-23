@@ -5,6 +5,7 @@
 #include "python34.h"
 #include "Resource.h"
 #include "Thread.h"
+#include "sixpad.h"
 #include "UniversalSpeech.h"
 using namespace std;
 
@@ -67,9 +68,21 @@ PyList_SetItem(list, i++, Py_BuildValue("s", it->second.c_str()) );
 return list;
 }
 
+static bool LoadDLLExtension (const string& name) {
+HINSTANCE dll = LoadLibrary(toTString(name).c_str());
+if (!dll) return false;
+SixpadDLLInitFunc func = (SixpadDLLInitFunc)GetProcAddress(dll, "SixpadDLLInit");
+if (!func) {
+FreeLibrary(dll);
+return false;
+}
+RunSync([&]()mutable{ func(&sp); });
+return true;
+}
+
 static void PyLoadExtension (const string& name) {
 if (ends_with(name, ".py")) PyInclude(name);
-else if (ends_with(name, ".dll")) {}//C++ extension, not yet supported
+else if (ends_with(name, ".dll")) LoadDLLExtension(name);
 else PyImport_ImportModule(name.c_str());
 }
 
@@ -106,7 +119,6 @@ PyDecl("getClipboardText", GetClipboardText),
 PyDecl("stopSpeech", speechStop),
 {"say", PySayStr, METH_VARARGS, NULL},
 PyDecl("braille", PyBraille),
-
 
 // Extension, includes and other general functions
 PyDecl("include", PyInclude),
@@ -164,12 +176,6 @@ PyLoadExtension(name);
 string pyfn = toString(appDir + TEXT("\\") + appName + TEXT(".py") , CP_ACP);
 PyInclude(pyfn);
 // Ohter initialization stuff goes here
-
-// From now on, make this thread sleep forever
-// For a yet unknown reason, if we don't do this, the python console window hangs
-// Any clue why this is the case is welcome
-//PyRun_SimpleString("from time import sleep");
-//PyRun_SimpleString("while(1): sleep(60000)");
 if (PyRun_SimpleString("import code")) exit(1);
 PyRun_SimpleString("code.interact(banner='')");
 }

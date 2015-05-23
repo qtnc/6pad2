@@ -194,6 +194,16 @@ void normalizeLineEndings (tstring& text) {
 text = preg_replace(text, TEXT("\r\n|\n|\r"), TEXT("\r\n") );
 }
 
+bool preg_check (const tstring& regex, bool rethrow) {
+using namespace boost;
+try {
+tregex reg(regex, regex_constants::perl | regex_constants::mod_s | regex_constants::collate | regex_constants::nosubs);
+return true;
+} catch (const std::exception& e) {
+if (rethrow) throw;
+else return false;
+}}
+
 pair<int,int> preg_search (const tstring& text, const tstring& needle, int pos, bool icase, bool literal) {
 using namespace boost;
 int options = 0;

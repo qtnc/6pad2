@@ -23,6 +23,12 @@ str getConfig (str key, str defaultValue):
 :	Return the value of a key from the configuration file. If the key has multiple values, the first value found is returned. If the key isn't found, defaultValue is returned.
 [str] getConfigAsList(str key):
 :	Return a list containing all the values associated with the given key in the configuration file.
+say(str text, [bool interrupt=False]):
+:	IF a scren reader is active, speak the specified string. IF interrupt is True, the message is spoken immediately, possibly stopping any other speech; if interrupt is False (by default), the message is spoken as soon as possible once all other currently spoken messages are finished.
+stopSpeech():
+:	If a screen reader is currently active, it is requested to stop immediately speaking.
+braille(str text):
+:	If a screen reader is currently active and if a braille display is connected, the given message is displayed on the braille display.
 
 ## Members
 locale:
@@ -56,6 +62,8 @@ void warning(str text, str title):
 :	Show a warning dialog box with an OK button.
 int confirm(str text, str title):
 :	Show a confirmation dialog box where the user can choose between yes and no; return 1 if the user clicked yes, 0 if he clicked no.
+int choice(str prompt, str title, list options, [int initialSelection=0]):
+:	Show a dialog box where the user can choose an option ammong a list. Returns the index of the chosen item, or -1 if the user cancelled the dialog box.
 <span id="wcpm1"></span>Menu createPopupMenu(): 
 :	Create a new popup menu and return it.
 int addAccelerator(str key, callback function):

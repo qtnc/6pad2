@@ -480,7 +480,10 @@ BOOL searchRegex = IsDlgButtonChecked(hwnd, 1004);
 BOOL searchUp = IsDlgButtonChecked(hwnd, 1005);
 tstring searchText = GetDlgItemText(hwnd, 1001);
 tstring replaceText = GetDlgItemText(hwnd, 1002);
-if (sr) page->FindReplace(searchText, replaceText, searchCase, searchRegex);
+if (sr) {
+if (!preg_check(searchText)) { MessageBeep(MB_ICONERROR); return true; }
+page->FindReplace(searchText, replaceText, searchCase, searchRegex);
+}
 else page->Find(searchText, searchCase, searchRegex, searchUp);
 }
 case IDCANCEL : EndDialog(hwnd, wp); return TRUE;

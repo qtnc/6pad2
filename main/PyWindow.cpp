@@ -6,6 +6,7 @@
 #include "inifile.h"
 #include "Resource.h"
 #include "Thread.h"
+#include "dialogs.h"
 #include<functional>
 using namespace std;
 
@@ -110,6 +111,29 @@ Py_END_ALLOW_THREADS
 return re;
 }
 
+static PyObject* PyChoiceDlg (PyObject* unused, PyObject* args, PyObject* dic) {
+int initialSelection = 0;
+PyObject* pOptions = NULL;
+const wchar_t *prompt=0, *title=0;
+static const char* KWLST[] = {"prompt", "text", "options", "initialSelection", NULL};
+if (!PyArg_ParseTupleAndKeywords(args, dic, "uuO|i", (char**)KWLST, &prompt, &title, &pOptions, &initialSelection) || !PySequence_Check(pOptions)) return NULL;
+vector<tstring> options;
+for (int i=0, n=PySequence_Size(pOptions); i<n; i++) {
+PyObject* item = PySequence_GetItem(pOptions,i);
+if (!item || !PyUnicode_Check(item)) return NULL;
+const wchar_t* str = PyUnicode_AsUnicode(item);
+if (!str) return NULL;
+options.push_back(str);
+}
+int re = -1;
+Py_BEGIN_ALLOW_THREADS
+RunSync([&]()mutable{
+re = ChoiceDialog(win, title, prompt, options, initialSelection);
+});//RunSync
+Py_END_ALLOW_THREADS
+return Py_BuildValue("i",re);
+}
+
 static tstring PyGetStatusText () {
 return GetWindowText(status);
 }
@@ -187,6 +211,7 @@ PyDecl("messageBox", PyMsgBox),
 PyDecl("alert", PyAlert),
 PyDecl("warning", PyWarn),
 PyDecl("confirm", PyConfirm),
+{"choice", (PyCFunction)PyChoiceDlg, METH_VARARGS | METH_KEYWORDS, NULL},
 
 // Menus and accelerators management
 PyDecl("addAccelerator", PyAddAccelerator),

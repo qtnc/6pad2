@@ -1044,7 +1044,7 @@ return DefWindowProc(hwnd, msg, wp, lp);
 SixpadData sp = {
 &msg, &RegisterPageFactory,
 &AddUserCommand, &RemoveUserCommand,
-&AddAccelerator, &RemoveAccelerator,
+&AddAccelerator, &RemoveAccelerator, &FindAccelerator,
 &KeyCodeToName,  &KeyNameToCode,
 &SetTimeout, &ClearTimeout,
 &msgs, &config, 

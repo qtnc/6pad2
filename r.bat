@@ -10,5 +10,3 @@ copy a-english.lng "6pad++-english.lng"
 call pycompile.bat
 call d.bat
 zip -9 -u -q -r 6pad++.zip 6pad++.exe python34.zip *.dll 6pad*.lng doc\*.html lib\*.dll lib\*.pyd
-del "6pad++-french.lng"
-del "6pad++-english.lng"
