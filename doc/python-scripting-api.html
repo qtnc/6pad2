@@ -69,6 +69,15 @@
 <dt>[str] getConfigAsList(str key):</dt>
 <dd>Return a list containing all the values associated with the given key in the configuration file.
 </dd>
+<dt>say(str text, [bool interrupt=False]):</dt>
+<dd>IF a scren reader is active, speak the specified string. IF interrupt is True, the message is spoken immediately, possibly stopping any other speech; if interrupt is False (by default), the message is spoken as soon as possible once all other currently spoken messages are finished.
+</dd>
+<dt>stopSpeech():</dt>
+<dd>If a screen reader is currently active, it is requested to stop immediately speaking.
+</dd>
+<dt>braille(str text):</dt>
+<dd>If a screen reader is currently active and if a braille display is connected, the given message is displayed on the braille display.
+</dd>
 </dl>
 <h2 id="members">Members</h2>
 <dl>
@@ -118,17 +127,29 @@
 <dt>int confirm(str text, str title):</dt>
 <dd>Show a confirmation dialog box where the user can choose between yes and no; return 1 if the user clicked yes, 0 if he clicked no.
 </dd>
+<dt>int choice(str prompt, str title, list options, [int initialSelection=0]):</dt>
+<dd>Show a dialog box where the user can choose an option ammong a list. Returns the index of the chosen item, or -1 if the user cancelled the dialog box.
+</dd>
 <dt><span id="wcpm1"></span>Menu createPopupMenu():</dt>
 <dd>Create a new popup menu and return it.
 </dd>
 <dt>int addAccelerator(str key, callback function):</dt>
-<dd>Install a callback to be called when the given shortcut key is pressed.
+<dd>Install a callback to be called when the given shortcut key is pressed. ON success, return a non-zero identifier used to unregister this accelerator.
 </dd>
-<dt>void addEvent(str eventName, callback function):</dt>
-<dd>Install a callback to be called when the given event occurs. See the <a href="#windowEvents">list of supported events for window</a>.
+<dt>int removeAccelerator(int id):</dt>
+<dd>Remove an accelerator previously installed. You must pass the event ID returned by addAccelerator.
 </dd>
-<dt>void removeEvent(str eventName, callback function):</dt>
-<dd>Remove an event previously registered.
+<dt>int addEvent(str eventName, callback function):</dt>
+<dd>Install a callback to be called when the given event occurs. See the <a href="#windowEvents">list of supported events for window</a>. ON success, return a non-zero identifier used to unregister this event.
+</dd>
+<dt>int removeEvent(str eventName, int eventId):</dt>
+<dd>Remove an event previously registered. You must pass in the event ID previously returned by addEvent. Returns a non-zero value if the event has successfully been unregistered.
+</dd>
+<dt>int findAcceleratorByKey(str key):</dt>
+<dd>Look for an event associated to the given shortcut key. If found, its corresponding event ID is returned. IN case nothing is associated with the given shortcut key, 0 is returned.
+</dd>
+<dt>str findAcceleratorByID(int id):</dt>
+<dd>Look for a shortcut key associated with the given event ID. If the event ID doesn’t exist, or if it isn’t associated with a shortcut key, an empty string is returned.
 </dd>
 <dt>int setTimeout(callback function, int delay):</dt>
 <dd>Schedule the given callback function to be called asynchronously after the specified delay. Returns a timer identifier, which can be passed to <a href="#clearTimeout">clearTimeout</a> to cancel this timer.
@@ -204,11 +225,11 @@
 <dt>void close():</dt>
 <dd>Close the page; a confirmation may be asked to the user.
 </dd>
-<dt>void addEvent(str eventName, callback function):</dt>
-<dd>Install a callback to be called when the given event occurs at this page. See the <a href="#pageEvents">list of supported events for pages</a>.
+<dt>int addEvent(str eventName, callback function):</dt>
+<dd>Install a callback to be called when the given event occurs at this page. See the <a href="#pageEvents">list of supported events for pages</a>. ON success, return a non-zero integer used to unregister this event.
 </dd>
-<dt>void removeEvent(str eventName, callback function):</dt>
-<dd>Remove an event previously registered.
+<dt>int removeEvent(str eventName, int eventId):</dt>
+<dd>Remove an event previously registered. You must pass in the event ID previously returned by addEvent. Returns a non-zero value if the event has successfully been unregistered.
 </dd>
 <dt>void select(int start, int end):</dt>
 <dd>Select a portion of text.
@@ -245,6 +266,15 @@
 </dd>
 <dt>void insert(int position, str text):</dt>
 <dd>Insert a string of text at the given position.
+</dd>
+<dt>void find(str text, bool scase, bool regex, bool up):</dt>
+<dd>Make a search in the text, as if the user issued a search using the Find dialog. SEt scase to True for a sensible case search, regex to True for a regular expression search, and up to True for a search backward instead of forward.
+</dd>
+<dt>void findNext():</dt>
+<dd>Find the next occurence of the text previously searched for, as if the user pressed F3 or chose the Find next item in the Edit menu.
+</dd>
+<dt>void findPrevious():</dt>
+<dd>Find the previous occurence of the text most recently searched for, as if the user pressed Shift+F3 or chose the Find previous item in the Edit menu.
 </dd>
 <dt>void save():</dt>
 <dd>Save the file, as if file&gt;save had been chosen.

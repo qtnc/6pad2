@@ -91,12 +91,24 @@ if (flags&PF_WRITETOSTDOUT) {
 setmode(fileno(stdout),O_BINARY);
 printf("%s", SaveData().c_str() );
 fflush(stdout);
+onclosed(shared_from_this());
 return true;
 }
-if (!IsModified()) return true;
+if (!IsModified()) {
+onclosed(shared_from_this());
+return true;
+}
 int re = MessageBox(sp->win, tsnprintf(512, msg("Save changes to %s?"), name.c_str()).c_str(), name.c_str(), MB_ICONEXCLAMATION  | MB_YESNOCANCEL);
-if (re==IDYES) return Save();
-else return re==IDNO;
+if (re==IDYES) {
+bool result = Save();
+if (result) onclosed(shared_from_this());
+return result;
+}
+else if (re==IDNO) {
+onclosed(shared_from_this());
+return true;
+}
+return false;
 }
 
 void Page::SetCurrentPosition (int pos) {
@@ -480,10 +492,14 @@ BOOL searchRegex = IsDlgButtonChecked(hwnd, 1004);
 BOOL searchUp = IsDlgButtonChecked(hwnd, 1005);
 tstring searchText = GetDlgItemText(hwnd, 1001);
 tstring replaceText = GetDlgItemText(hwnd, 1002);
-if (sr) {
-if (!preg_check(searchText)) { MessageBeep(MB_ICONERROR); return true; }
-page->FindReplace(searchText, replaceText, searchCase, searchRegex);
+if (searchRegex) try {
+preg_check(searchText, true);
+} catch (const exception& e) {
+MessageBox(hwnd, toTString(e.what()).c_str(), msg("Error").c_str(), MB_OK | MB_ICONERROR);
+SetDlgItemFocus(hwnd, 1001);
+return true;
 }
+if (sr) page->FindReplace(searchText, replaceText, searchCase, searchRegex);
 else page->Find(searchText, searchCase, searchRegex, searchUp);
 }
 case IDCANCEL : EndDialog(hwnd, wp); return TRUE;

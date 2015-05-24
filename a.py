@@ -15,11 +15,11 @@ def func4 () :
 	window.alert('Result=' + str(re), 'Info')
 
 def func () :
-	window.beep(1047,300)
-	func2()
-
-def func2() :
+	window.beep(785,150)
+	window.beep(785,300)
+	window.beep(1047,150)
 	window.beep(524,300)
+
 
 window.menus.edit.add(name='test', label='Item inutile', accelerator='Ctrl+E', action=func)
 

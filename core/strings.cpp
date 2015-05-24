@@ -205,6 +205,7 @@ else return false;
 }}
 
 pair<int,int> preg_search (const tstring& text, const tstring& needle, int pos, bool icase, bool literal) {
+try {
 using namespace boost;
 int options = 0;
 if (literal) options |= regex_constants::literal;
@@ -217,10 +218,12 @@ if (pos>0) mtype |= match_flag_type::match_prev_avail;
 if (regex_search(text.data()+pos, text.data()+text.size(), m, reg, mtype)) return pair<int,int>(
 m[0].first - text.data(),
 m[0].second - text.data() );
-else return pair<int,int>(-1,-1);
+} catch (const exception& e) {}
+return pair<int,int>(-1,-1);
 }
 
 pair<int,int> preg_rsearch (const tstring& text, const tstring& needle, int pos, bool icase, bool literal) {
+try {
 using namespace boost;
 int lastStart=-1, lastEnd=-1, options = 0;
 if (literal) options |= regex_constants::literal;
@@ -238,10 +241,12 @@ lastStart=start;
 lastEnd=end;
 }
 if (lastStart>=0 && lastEnd>=0 && lastStart<=pos && lastEnd<=pos) return pair<int,int>(lastStart, lastEnd);
-else return pair<int,int>(-1,-1);
+} catch (const exception& e) {}
+return pair<int,int>(-1,-1);
 }
 
 tstring preg_replace (const tstring& str, const tstring& needle, const tstring& repl, bool icase, bool literal) {
+try {
 using namespace boost;
 int options = 0;
 if (literal) options |= regex_constants::literal;
@@ -252,6 +257,7 @@ match_flag_type flags =
 (match_flag_type::match_default | match_flag_type::format_perl) );
 tregex reg(needle, options);
 return regex_replace(str, reg, repl, flags);
+} catch (const exception& e) { return str; }
 }
 
 tstring str_replace (const tstring& str, const std::vector<std::pair<tstring,tstring>>& pairs) {
