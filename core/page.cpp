@@ -81,7 +81,9 @@ void Page::SetAutoLineBreak (bool b) {
 if (!!b == !!(flags&PF_AUTOLINEBREAK) ) return; // no change, no op
 if (b) flags |= PF_AUTOLINEBREAK;
 else flags &=~PF_AUTOLINEBREAK;
+bool modified  = IsModified();
 CreateZone(sp->tabctl);
+SetModified(modified);
 onattrChange(shared_from_this(), PA_AUTOLINEBREAK, b);
 }
 
@@ -367,6 +369,7 @@ if (file.size()<=0) return 0;
 name = FileNameToPageName(*this, file);
 File fd(file);
 if (!fd) return -GetLastError();
+DWORD tc = GetTickCount();
 return LoadData(fd.readFully(), guessFormat);
 }
 
@@ -376,8 +379,9 @@ if (guessFormat) { encoding=-1; lineEnding=-1; indentationMode=-1; }
 if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), str.size(), sp->config->get("defaultEncoding", (int)GetACP()) );
 text = ConvertFromEncoding(str, encoding);
 if (lineEnding<0) lineEnding = guessLineEnding(text.data(), text.size(), sp->config->get("defaultLineEnding", LE_DOS)  );
+if (lineEnding==LE_UNIX) text = str_replace(text, TEXT("\n"), TEXT("\r\n"));
+else if (lineEnding==LE_MAC) text = str_replace(text, TEXT("\r"), TEXT("\r\n"));
 if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), sp->config->get("defaultIndentationMode", 0)  );
-normalizeLineEndings(text);
 var re = onload(shared_from_this(), text);
 if (re.getType()==T_STR) text = re.toTString();
 lastSave = GetCurTime();
@@ -391,7 +395,7 @@ unsigned long long lastMod = GetFileTime(file.c_str(), LAST_MODIFIED_TIME);
 return lastMod>0 && lastSave>0 && lastMod>lastSave;
 }
 
-static tstring StatusBarUpdate (HWND hEdit, HWND status) {
+static tstring StatusBarUpdate (HWND hEdit, HWND status, Page* p) {
 int spos=-1, epos=-1;
 SendMessage(hEdit, EM_GETSEL, &spos, &epos);
 int sline = SendMessage(hEdit, EM_LINEFROMCHAR, spos, 0);
@@ -408,7 +412,7 @@ return tsnprintf(512, msg("Li %d, Col %d.\t%d%%, %d lines"), 1+sline, 1+scolumn,
 }}
 
 void Page::UpdateStatusBar (HWND hStatus) {
-tstring text = StatusBarUpdate(zone, hStatus);
+tstring text = StatusBarUpdate(zone, hStatus, this);
 var re = onstatus(shared_from_this(), text);
 if (re.getType()==T_STR) text=re.toTString();
 SetWindowText(hStatus, text);

@@ -114,18 +114,22 @@ EnableMenuItem2(menu, IDM_FIND, MF_BYCOMMAND, !(p->flags&PF_NOFIND));
 EnableMenuItem2(menu, IDM_FINDNEXT, MF_BYCOMMAND, !(p->flags&PF_NOFIND));
 EnableMenuItem2(menu, IDM_FINDPREV, MF_BYCOMMAND, !(p->flags&PF_NOFIND));
 EnableMenuItem2(menu, IDM_REPLACE, MF_BYCOMMAND, !(p->flags&(PF_NOFIND|PF_NOREPLACE)));
+EnableMenuItem2(menu, IDM_MARKSEL, MF_BYCOMMAND, !(p->flags&PF_NOMARKSEL));
+EnableMenuItem2(menu, IDM_SELTOMARK, MF_BYCOMMAND, !(p->flags&PF_NOMARKSEL));
+EnableMenuItem2(menu, IDM_GOTOMARK, MF_BYCOMMAND, !(p->flags&PF_NOMARKSEL));
+EnableMenuItem2(menu, IDM_CLOSE, MF_BYCOMMAND, true);
 EnableMenuItem2(menuFormat, 0, MF_BYPOSITION, !(p->flags&PF_NOENCODING));
 EnableMenuItem2(menuFormat, 1, MF_BYPOSITION, !(p->flags&PF_NOLINEENDING));
 EnableMenuItem2(menuFormat, 2, MF_BYPOSITION, !(p->flags&PF_NOINDENTATION));
 EnableMenuItem2(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND, !(p->flags&PF_NOAUTOLINEBREAK));
 curPage->onactivated(curPage);
 }
+
 static tstring GetDefaultWindowTitle (void) {
 return appName  + TEXT(" ") + tstring(TEXT(SIXPAD_VERSION));
 }
 
 static int EncodingAdd (int enc) {
-//if (!IsValidCodePage(enc)) return -1;
 auto it = std::find(encodings.begin(), encodings.end(), enc);
 if (it!=encodings.end()) return it - encodings.begin();
 int i = encodings.size();
@@ -149,11 +153,16 @@ EnableMenuItem2(menu, IDM_FIND, MF_BYCOMMAND, false);
 EnableMenuItem2(menu, IDM_FINDNEXT, MF_BYCOMMAND, false);
 EnableMenuItem2(menu, IDM_FINDPREV, MF_BYCOMMAND, false);
 EnableMenuItem2(menu, IDM_REPLACE, MF_BYCOMMAND, false);
+EnableMenuItem2(menu, IDM_MARKSEL, MF_BYCOMMAND, false);
+EnableMenuItem2(menu, IDM_SELTOMARK, MF_BYCOMMAND, false);
+EnableMenuItem2(menu, IDM_GOTOMARK, MF_BYCOMMAND, false);
+EnableMenuItem2(menu, IDM_CLOSE, MF_BYCOMMAND, false);
 EnableMenuItem2(menuFormat, 0, MF_BYPOSITION, false);
 EnableMenuItem2(menuFormat, 1, MF_BYPOSITION, false);
 EnableMenuItem2(menuFormat, 2, MF_BYPOSITION, false);
 EnableMenuItem2(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND, false);
 SetWindowText(win, GetDefaultWindowTitle() );
+SetWindowText(status, NULL);
 }
 
 inline void PageSetLineEnding (shared_ptr<Page> p, int le) {

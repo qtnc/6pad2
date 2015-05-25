@@ -190,9 +190,9 @@ static inline bool isSpace (TCHAR c) {
 return c>=0 && c<=32 && c!=10 && c!=13;
 }
 
-void normalizeLineEndings (tstring& text) {
+/*void normalizeLineEndings (tstring& text) {
 text = preg_replace(text, TEXT("\r\n|\n|\r"), TEXT("\r\n") );
-}
+}*/
 
 bool preg_check (const tstring& regex, bool rethrow) {
 using namespace boost;
@@ -299,7 +299,7 @@ while(i<n && text[i]!='\n') i++;
 }
 tregex reg(TEXT("^") + text.substr(0, commonIndent), options);
 text = regex_replace(text, reg, indent, flags);
-normalizeLineEndings(text);
+text = preg_replace(text, TEXT("\r\n|\n|\r"), TEXT("\r\n"));
 int pos = text.find_first_not_of(TEXT(" \t"));
 if (pos<text.size()) text.erase(text.begin(), text.begin()+pos);
 }

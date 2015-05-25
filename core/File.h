@@ -5,6 +5,7 @@
 struct IO {
 virtual int Read (void*, int) = 0;
 virtual int Write (const void*, int) = 0;
+virtual int size () = 0;
 virtual void Flush () = 0;
 virtual void Close () = 0;
 virtual bool IsClosed () = 0;

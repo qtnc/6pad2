@@ -7,6 +7,12 @@ HANDLE fd;
 
 StdFile (HANDLE h=0): fd(h) {}
 
+int size () {
+DWORD size = GetFileSize(fd, NULL);
+if (size==INVALID_FILE_SIZE) return -1;
+else return (int)size;
+}
+
 int Read (void* buf, int len) {
 if (!fd) return -1;
 DWORD nRead=0;
@@ -69,9 +75,6 @@ if (io) io->Flush();
 }
 
 bool File::open (const tstring& path, bool write, bool append) {
-//if (path==TEXT("STDIN")) { fd = GetStdHandle(STD_INPUT_HANDLE); noclose=true; }
-//else if (path==TEXT("STDOUT")) fd = GetStdHandle(STD_OUTPUT_HANDLE);
-//else if (path==TEXT("STDERR")) fd = GetStdHandle(STD_ERROR_HANDLE);
 int dot = path.find(':');
 if (dot>1 && dot<=5) { // Handling custom protocols
 for (auto handler: protocolHandlers) {
@@ -97,12 +100,13 @@ return write(s.c_str(), s.size());
 
 string File::readFully () {
 if (!io) return "";
-int cap = 4096, pos=0, nRead=0;
+int size = io->size();
 string str;
+int pos=0, nRead=0, cap = (size<0? 32768 : size);
 str.resize(cap);
 while ((nRead = read((char*)(str.data()+pos), cap-pos))>0) {
 pos += nRead;
-if (pos>=cap-32) str.resize(cap = cap*3/2+1);
+if (size<0 && pos>=cap-32) str.resize(cap = cap*3/2+1);
 }
 char* z = (char*)(str.data() +pos); *z=0;
 str.resize(pos);
