@@ -21,7 +21,6 @@ std::pair<int,int> export preg_search (const tstring& str, const tstring& needle
 export std::pair<int,int> export preg_rsearch (const tstring& str, const tstring& needle, int initialPosition=-1, bool icase=false, bool literal=false);
 export bool preg_check (const tstring& regex, bool rethrow=false);
 
-void export normalizeLineEndings (tstring& text) ;
 void export ParseLineCol (tstring& file, int& line, int& col);
 tstring export str_replace (const tstring& str, const std::vector<std::pair<tstring,tstring>>& pairs);
 inline tstring str_replace (const tstring& str, const tstring& needle, const tstring& repl, bool icase = false) { return preg_replace(str, needle, repl, icase, true); }

@@ -68,11 +68,13 @@ onattrChange(shared_from_this(), PA_ENCODING, e);
 }
 
 void Page::SetLineEnding (int e) {
+if (e<0 || e>4) return;
 lineEnding = e;
 onattrChange(shared_from_this(), PA_LINE_ENDING, e);
 }
 
 void Page::SetIndentationMode (int e) {
+if (e<0 || e>8) return;
 indentationMode = e;
 onattrChange(shared_from_this(), PA_INDENTATION_MODE, e);
 }
@@ -327,6 +329,8 @@ var re = onsave(shared_from_this(), str);
 if (re.getType()==T_STR) str = re.toTString();
 if (lineEnding==LE_UNIX) str = str_replace(str, TEXT("\r\n"), TEXT("\n"));
 else if (lineEnding==LE_MAC) str = str_replace(str, TEXT("\r\n"), TEXT("\r"));
+else if (lineEnding==LE_RS) str = str_replace(str, TEXT("\r\n"), TEXT("\x1E"));
+else if (lineEnding==LE_LS) str = str_replace(str, TEXT("\r\n"), TEXT("\x2028"));
 string cstr = ConvertToEncoding(str, encoding);
 return cstr;
 }
@@ -381,6 +385,11 @@ text = ConvertFromEncoding(str, encoding);
 if (lineEnding<0) lineEnding = guessLineEnding(text.data(), text.size(), sp->config->get("defaultLineEnding", LE_DOS)  );
 if (lineEnding==LE_UNIX) text = str_replace(text, TEXT("\n"), TEXT("\r\n"));
 else if (lineEnding==LE_MAC) text = str_replace(text, TEXT("\r"), TEXT("\r\n"));
+else if (lineEnding==LE_RS) text = str_replace(text, TEXT("\x1E"), TEXT("\r\n"));
+else if (lineEnding==LE_LS) {
+text = str_replace(text, TEXT("\x2028"), TEXT("\r\n"));
+text = str_replace(text, TEXT("\x2029"), TEXT("\r\n"));
+}
 if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), sp->config->get("defaultIndentationMode", 0)  );
 var re = onload(shared_from_this(), text);
 if (re.getType()==T_STR) text = re.toTString();

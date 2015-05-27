@@ -49,6 +49,8 @@ typedef std::string tstring;
 #define LE_DOS 0
 #define LE_UNIX 1
 #define LE_MAC 2
+#define LE_RS 3
+#define LE_LS 4
 
 #define CP_UTF16 1200
 #define CP_UTF16_LE 1200
@@ -103,6 +105,8 @@ typedef std::string tstring;
 #define IDM_LE_DOS 2200
 #define IDM_LE_UNIX 2201
 #define IDM_LE_MAC 2202
+#define IDM_LE_RS 2203
+#define IDM_LE_LS 2204
 #define IDM_INDENTATION_TABS 2209
 #define IDM_INDENTATION_SPACES 2210
 #define IDM_AUTOLINEBREAK 2230

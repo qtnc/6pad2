@@ -169,6 +169,8 @@ int count = 0;
 while(*s && count++<DETECTION_MAX_LOOKUP && count<len){
 if (*s=='\n') return LE_UNIX;
 else if (*s=='\r') return *(++s) == '\n'? LE_DOS : LE_MAC;
+else if (*s==0x2028 || *s==0x2029) return LE_LS;
+else if (*s==30) return LE_RS;
 else ++s;
 }
 return def;
@@ -253,7 +255,7 @@ if (literal) options |= regex_constants::literal;
 else options |= regex_constants::perl | regex_constants::mod_s | regex_constants::collate;
 if (icase) options |= regex_constants::icase;
 match_flag_type flags = 
-(literal? flags |= match_flag_type::format_literal :
+(literal? match_flag_type::format_literal :
 (match_flag_type::match_default | match_flag_type::format_perl) );
 tregex reg(needle, options);
 return regex_replace(str, reg, repl, flags);

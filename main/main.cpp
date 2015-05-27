@@ -97,7 +97,7 @@ p->UpdateStatusBar(status);
 UpdateWindowTitle();
 int encidx = -1; for (int i=0; i<encodings.size(); i++) { if (p->encoding==encodings[i]) { encidx=i; break; }}
 CheckMenuRadioItem(menuEncoding, 0, encodings.size(), encidx, MF_BYPOSITION);
-CheckMenuRadioItem(menuLineEnding, 0, 2, p->lineEnding, MF_BYPOSITION);
+CheckMenuRadioItem(menuLineEnding, 0, 4, p->lineEnding, MF_BYPOSITION);
 CheckMenuRadioItem(menuIndentation, 0, 8, p->indentationMode, MF_BYPOSITION);
 CheckMenuItem(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND | (p->flags&PF_AUTOLINEBREAK? MF_CHECKED : MF_UNCHECKED));
 EnableMenuItem2(menu, IDM_SAVE, MF_BYCOMMAND, !(p->flags&PF_NOSAVE));
@@ -166,7 +166,7 @@ SetWindowText(status, NULL);
 }
 
 inline void PageSetLineEnding (shared_ptr<Page> p, int le) {
-if (p==curPage) CheckMenuRadioItem(menuLineEnding, 0, 2, p->lineEnding, MF_BYPOSITION);
+if (p==curPage) CheckMenuRadioItem(menuLineEnding, 0, 4, p->lineEnding, MF_BYPOSITION);
 }
 
 inline void PageSetEncoding (shared_ptr<Page> p, int enc) {
@@ -853,7 +853,7 @@ case IDM_FIND: if (curPage) curPage->FindDialog(); return true;
 case IDM_REPLACE: if (curPage) curPage->FindReplaceDialog(); return true;
 case IDM_FINDNEXT: if (curPage) curPage->FindNext(); return true;
 case IDM_FINDPREV: if (curPage) curPage->FindPrev(); return true;
-case IDM_LE_DOS: case IDM_LE_UNIX: case IDM_LE_MAC: if (curPage) curPage->SetLineEnding(cmd-IDM_LE_DOS); return true;
+case IDM_LE_DOS: case IDM_LE_UNIX: case IDM_LE_MAC: case IDM_LE_RS: case IDM_LE_LS: if (curPage) curPage->SetLineEnding(cmd-IDM_LE_DOS); return true;
 case IDM_AUTOLINEBREAK: if (curPage) curPage->SetAutoLineBreak(!(curPage->flags&PF_AUTOLINEBREAK)); return true;
 case IDM_QUICKJUMP: ShowQuickJump(); return true;
 case IDM_OPEN_CONSOLE: OpenConsoleWindow(); return true;
