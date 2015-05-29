@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>6pad++ command-line options</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header>
+<h1 class="title">6pad++ command-line options</h1>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#specifying-files-to-open">Specifying files to open</a></li>
+<li><a href="#command-line-options">Command-line options</a><ul>
+<li><a href="#extensionname">/extension=name</a></li>
+<li><a href="#runscript.py">/run=script.py</a></li>
+<li><a href="#headless">/headless</a></li>
+</ul></li>
+</ul>
+</nav>
+<p>This document explains what you can specifiy on the command-line, and present is a list of options, which you can use to change the behavior of 6pad++.</p>
+<h1 id="specifying-files-to-open">Specifying files to open</h1>
+<p>Simply by indicating file names, you can open multiple files at once, e.g. <code>6pad++ file1.txt file2.txt file3.txt</code>.</p>
+<p>You can optionally indicate a line and column number where to go to, using colon syntax, e.g. <code>file:line</code> and <code>file:line:column</code>. The cursor will be placed at the position specified immediately upon file opening. If a line number is specified but no column, by default it will be column 1, i.e. the beginning of the line.</p>
+<p>Example: <code>6pad++ file1.txt:123 file2.txt:123:45</code>.</p>
+<h1 id="command-line-options">Command-line options</h1>
+<h2 id="extensionname">/extension=name</h2>
+<p>Load the extension specified, as if the corresponding directive was present in the configuration file (6pad++.ini).</p>
+<h2 id="runscript.py">/run=script.py</h2>
+<p>Run the specified script, immediately after the load of all extensions and the implicit initialization script (6pad++.py).</p>
+<h2 id="headless">/headless</h2>
+<p>Run 6pad++ in headless mode, i.e. no window is displayed on screen. This can be useful to batch process many files with a script, or perform other operations that can be run rather quickly and without needing any user interaction.</p>
+</body>
+</html>

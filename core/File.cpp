@@ -42,9 +42,10 @@ else return NULL;
 
 };//StdFile
 
-struct StdFileNoClose: StdFile {
+struct StdFilePipe: StdFile {
 using StdFile::StdFile;
 void Close () {}
+int size () { return -1; }
 };
 
 IO* FileURIProtocolHandler (const tstring& uri, bool write) {
@@ -57,9 +58,9 @@ return StdFile::Open(path, write, false);
 }
 
 IO* StdstreamsProtocolHandler (const tstring& uri, bool write) {
-if (starts_with(uri, TEXT("&in:")) && !write) return new StdFileNoClose(GetStdHandle(STD_INPUT_HANDLE));
-else if (starts_with(uri, TEXT("&out:")) && write) return new StdFileNoClose(GetStdHandle(STD_OUTPUT_HANDLE));
-else if (starts_with(uri, TEXT("&err:")) && write) return new StdFileNoClose(GetStdHandle(STD_ERROR_HANDLE));
+if (starts_with(uri, TEXT("&in:")) && !write) return new StdFilePipe(GetStdHandle(STD_INPUT_HANDLE));
+else if (starts_with(uri, TEXT("&out:")) && write) return new StdFilePipe(GetStdHandle(STD_OUTPUT_HANDLE));
+else if (starts_with(uri, TEXT("&err:")) && write) return new StdFilePipe(GetStdHandle(STD_ERROR_HANDLE));
 else return NULL;
 }
 

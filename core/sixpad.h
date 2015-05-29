@@ -25,6 +25,7 @@ LPVOID reserved;
 HWND win, status, tabctl;
 HINSTANCE hinstance, dllHinstance;
 HFONT font;
+bool headless;
 };
 
 extern "C" BOOL export SixpadDLLInit (SixpadData*);

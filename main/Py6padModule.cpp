@@ -13,8 +13,6 @@ extern IniFile config, msgs;
 extern tstring appPath, appDir, appName, configFileName, appLocale;
 extern vector<tstring> argv;
 
-//extern "C" FILE* msvcfopen (const char* name, const char* ax) ;
-//extern "C" void msvcfclose (FILE*);
 tstring ConsoleRead (void);
 void ConsolePrint (const tstring& str, bool say);
 void SetClipboardText (const tstring&);
@@ -160,6 +158,13 @@ Py_SetPath( modulePath.c_str() );
 Py_SetProgramName(const_cast<wchar_t*>(toWString(argv[0]).c_str()));
 PyImport_AppendInittab("sixpad", PyInit_6padMain);;
 Py_Initialize();
+{
+int argc=0;
+wchar_t** args = CommandLineToArgvW(GetCommandLineW(), &argc);
+args[0][0]=0;
+PySys_SetArgvEx(argc, args, false);
+LocalFree(args);
+}
 PyEval_InitThreads();
 GIL_PROTECT
 {
@@ -175,7 +180,11 @@ PyLoadExtension(name);
 }}
 string pyfn = toString(appDir + TEXT("\\") + appName + TEXT(".py") , CP_ACP);
 PyInclude(pyfn);
+for (auto arg: argv) {
+if (starts_with(arg, TEXT("/extension="))) PyLoadExtension(toString(arg.substr(11)));
+else if (starts_with(arg, TEXT("/run="))) PyInclude(toString(arg.substr(5)));
+}
 // Ohter initialization stuff goes here
-if (PyRun_SimpleString("import code")) exit(1);
-PyRun_SimpleString("code.interact(banner='')");
+if (sp.headless) RunSync([&]()mutable{ PostQuitMessage(0); });
+if (PyRun_SimpleString("import code") || PyRun_SimpleString("code.interact(banner='')") ) exit(1);
 }

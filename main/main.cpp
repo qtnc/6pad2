@@ -424,7 +424,7 @@ if (!RELEASE) {
 fprintf(stderr, "%ls", s.c_str());
 fflush(stderr);
 }
-if (s2!=TEXT(">>> ")) {
+if (!headless && s2!=TEXT(">>> ")) {
 if (!consoleWin ) RunSync(OpenConsoleWindow);
 if (say) speechSay(s2.c_str(), false);
 }
@@ -597,7 +597,7 @@ tstring arg = argv[i];
 if (arg.size()<=0) continue;
 else if (arg[0]=='-' || arg[0]=='/') { // options
 arg[0]='/';
-if (arg==TEXT("/headless")) headless=true;
+if (arg==TEXT("/headless")) sp.headless=headless=true;
 continue; 
 } 
 if (OpenFile2(arg, OF_REUSEOPENEDTABS)) return 0;
@@ -635,7 +635,7 @@ if (!InitCommonControlsEx(&ccex)) return 1;
 sp.win = win = CreateWindowEx(
 WS_EX_CONTROLPARENT | WS_EX_ACCEPTFILES,
 CLASSNAME, GetDefaultWindowTitle().c_str(), 
-WS_VISIBLE | WS_OVERLAPPEDWINDOW,
+WS_OVERLAPPEDWINDOW,
 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 
 HWND_DESKTOP, NULL, hinstance, NULL);
 RECT r; GetClientRect(win, &r);
@@ -679,7 +679,7 @@ UpdateRecentFilesMenu();
 
 consoleInputEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 InitializeCriticalSection(&csConsoleInput);
-Thread::start(PyStart);
+Thread thrPython(PyStart);
 
 for (int i=1; i<argv.size(); i++) {
 const tstring& arg = argv[i];
@@ -711,9 +711,10 @@ if (pages.size()<=0) PageAddEmpty(false);
 time = GetTickCount() -time;
 if (!RELEASE) fprintf(stderr, "Init time = %d ms\r\n", time);
 
-if (headless) PostQuitMessage(0);
-else ShowWindow(win, nWindowStile);
+if (!headless) {
+ShowWindow(win, nWindowStile);
 DragAcceptFiles(win, true);
+}
 PageActivated(pages[0]);
 
 MSG msg;
