@@ -233,12 +233,14 @@ else options |= regex_constants::perl | regex_constants::mod_s | regex_constants
 if (icase) options |= regex_constants::icase;
 tregex reg(needle, options);
 match_flag_type mtype = match_flag_type::match_default;
-if (pos>0) mtype |= match_flag_type::match_prev_avail;
+//if (pos>0) mtype |= match_flag_type::match_prev_avail;
+//printf("Rsearch: text=[%ls], needle=[%ls], pos=%d\r\n", text.c_str(), needle.c_str(), pos);
 for (tcregex_iterator _end, it(text.data(), text.data()+text.size(), reg, mtype); it!=_end; ++it) {
 auto m = *it;
 int start = m[0].first - text.data();
 int end = m[0].second - text.data();
-if (start>pos) break;
+//printf("found=%d, %d; last=%d, %d; pos=%d\r\n", start, end, lastStart, lastEnd, pos);
+if (start>=pos) break;
 lastStart=start;
 lastEnd=end;
 }

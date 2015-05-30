@@ -285,25 +285,29 @@ SendMessage(edit, EM_SCROLLCARET, 0, 0);
 else MessageBeep(MB_ICONASTERISK);
 }
 
-void Page::Find (const tstring& searchText, bool scase, bool regex, bool up) {
+void Page::Find (const tstring& searchText, bool scase, bool regex, bool up, bool stealthty) {
+printf("term=[%ls]\r\n", searchText.c_str());
 FindData fd(searchText, TEXT(""), (scase?FF_CASE:0) | (regex?FF_REGEX:0) | (up?FF_UPWARDS:0) );
 auto it = find(finds.begin(), finds.end(), fd);
-if (it!=finds.end()) finds.erase(it);
+if (it!=finds.end()) { finds.erase(it); stealthty=false; }
 finds.push_front(fd);
 if (up) FindPrev();
 else FindNext();
+if (stealthty) finds.pop_front();
 }
 
-void Page::FindReplace (const tstring& searchText, const tstring& replaceText, bool scase, bool regex) {
+void Page::FindReplace (const tstring& searchText, const tstring& replaceText, bool scase, bool regex, bool stealthty) {
+if (!stealthty) {
 FindData fd(searchText, replaceText, (scase?FF_CASE:0) | (regex?FF_REGEX:0) );
 auto it = find(finds.begin(), finds.end(), fd);
-if (it!=finds.end()) finds.erase(it);
+if (it!=finds.end()) finds.erase(it); 
 finds.push_front(fd);
+}
 int start, end;
 SendMessage(zone, EM_GETSEL, &start, &end);
 tstring oldText = GetWindowText(zone);
 if (start!=end) oldText = tstring(oldText.begin()+start, oldText.begin()+end);
-tstring newText = preg_replace(oldText, fd.findText, fd.replaceText, !(fd.flags&FF_CASE), !(fd.flags&FF_REGEX));
+tstring newText = preg_replace(oldText, searchText, replaceText, !scase, regex);
 if (start!=end) {
 SendMessage(zone, EM_REPLACESEL, 0, newText.c_str() );
 SendMessage(zone, EM_SETSEL, start, start+newText.size());
@@ -512,8 +516,8 @@ MessageBox(hwnd, toTString(e.what()).c_str(), msg("Error").c_str(), MB_OK | MB_I
 SetDlgItemFocus(hwnd, 1001);
 return true;
 }
-if (sr) page->FindReplace(searchText, replaceText, searchCase, searchRegex);
-else page->Find(searchText, searchCase, searchRegex, searchUp);
+if (sr) page->FindReplace(searchText, replaceText, searchCase, searchRegex, false);
+else page->Find(searchText, searchCase, searchRegex, searchUp, false);
 }
 case IDCANCEL : EndDialog(hwnd, wp); return TRUE;
 }}

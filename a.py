@@ -23,4 +23,5 @@ def func () :
 
 window.menus.edit.add(name='test', label='Item inutile', accelerator='Ctrl+E', action=func)
 
+window.curPage.test('Salut, bonjour !')
 

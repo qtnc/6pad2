@@ -164,12 +164,14 @@ void delete(int start, int end):
 :	Delete a range of characters.
 void insert(int position, str text):
 :	Insert a string of text at the given position.
-void find(str text, bool scase, bool regex, bool up):
-:	Make a search in the text, as if the user issued a search using the Find dialog. SEt scase to True for a sensible case search, regex to True for a regular expression search, and up to True for a search backward instead of forward.
+void find(str term, bool scase, bool regex, bool up, bool stealthty):
+:	Make a search in the text, as if the user issued a search using the Find dialog. SEt scase to True for a sensible case search, regex to True for a regular expression search, and up to True for a search backward instead of forward. If stealthty is True, the find term won't be added in the combobox of previously searched terms in the Find dialog box. You can use keywords arguments.
 void findNext():
 :	Find the next occurence of the text previously searched for, as if the user pressed F3 or chose the Find next item in the Edit menu.
 void findPrevious():
 :	Find the previous occurence of the text most recently searched for, as if the user pressed Shift+F3 or chose the Find previous item in the Edit menu.
+void searchReplace(str search, str replacement, bool scase, bool regex, bool stealthty):
+:	Make a search/replace operation in the text, as if the user issued this command from the search/replace dialog box. SEt scase to True for a sensible case search, regex to True for a regular expression search/replace. If stealthty is True, terms won't be added in comboboxes of previously used terms in the dialog box. You can use keyword arguments.
 void save():
 :	Save the file, as if file>save had been chosen.
 void reload():

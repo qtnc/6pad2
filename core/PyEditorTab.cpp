@@ -53,7 +53,8 @@ int addEvent (const string& type, const PySafeObject& cb) {  return page()->AddE
 int removeEvent (const string& type, int id) { return page()->RemoveEvent(type, id); }
 void focus () { page()->Focus(); }
 void close () { page()->Focus(); page()->Close(); }
-void find (const tstring& term, bool scase, bool regex, bool up) { RunSync([&]()mutable{ page()->Find(term, scase, regex, up); }); }
+void find (const tstring& term, bool scase, bool regex, bool up, bool stealthty) {  RunSync([&]()mutable{  page()->Find(term, scase, regex, up, stealthty); });  }
+void searchReplace (const tstring& sText, const tstring& rText, bool scase, bool regex, bool stealthty) {  RunSync([&]()mutable{ page()->FindReplace(sText, rText, scase, regex, stealthty); });  }
 void findNext () { RunSync([&]()mutable{ page()->FindNext(); }); }
 void findPrev () { RunSync([&]()mutable{ page()->FindPrev(); }); }
 void undo () { RunSync([&]()mutable{ page()->Undo(); }); }
@@ -111,6 +112,25 @@ return self;
 static int PyEditorTabInit (PyEditorTab* self, PyObject* args, PyObject* kwds) {
 return 0;
 }
+
+static PyObject* PyPageFind (PyEditorTab* self, PyObject* args, PyObject* dic) {
+const wchar_t *findText=0;
+bool scase=false, regex=false, up=false, stealthty=false;
+static const char* KWLST[] = {"term", "scase", "regex", "up", "stealthty", NULL};
+if (!PyArg_ParseTupleAndKeywords(args, dic, "u|pppp", (char**)KWLST, &findText, &scase, &regex, &up, &stealthty)) return NULL;
+if(self) self->find(findText, scase, regex, up, stealthty);
+Py_RETURN_NONE;
+}
+
+static PyObject* PyPageFindReplace (PyEditorTab* self, PyObject* args, PyObject* dic) {
+const wchar_t *findText=0, *replaceText=0;
+bool scase=false, regex=false, stealthty=false;
+static const char* KWLST[] = {"search", "replacement", "scase", "regex", "stealthty", NULL};
+if (!PyArg_ParseTupleAndKeywords(args, dic, "uu|ppp", (char**)KWLST, &findText, &replaceText, &scase, &regex, &stealthty)) return NULL;
+if(self) self->searchReplace(findText, replaceText, scase, regex, stealthty);
+Py_RETURN_NONE;
+}
+
 
 static int PyMapLen (PyObject* o) {
 PyEditorTab& t = *(PyEditorTab*)o;
@@ -205,9 +225,11 @@ PyDecl("undo", &PyEditorTab::undo),
 PyDecl("redo", &PyEditorTab::redo),
 PyDecl("save", &PyEditorTab::save),
 PyDecl("reload", &PyEditorTab::reload),
-PyDecl("find", &PyEditorTab::find),
+//PyDecl("find", &PyEditorTab::find),
+{"find", (PyCFunction)PyPageFind, METH_VARARGS | METH_KEYWORDS, NULL},
 PyDecl("findNext", &PyEditorTab::findNext),
 PyDecl("findPrevious", &PyEditorTab::findPrev),
+{"searchReplace", (PyCFunction)PyPageFindReplace, METH_VARARGS | METH_KEYWORDS, NULL},
 PyDeclEnd
 };
 

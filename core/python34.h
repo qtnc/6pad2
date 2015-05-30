@@ -122,7 +122,8 @@ return toWString(PyUnicode_AsUnicode(o));
 template<> struct PyTypeSpec<const std::wstring&> { 
 typedef wchar_t* type;
 static constexpr const char c = 'u'; 
-static inline std::wstring convert (const wchar_t* s) { return s; }
+static inline std::wstring convert (const wchar_t* s) { return s; 
+}
 static inline const wchar_t* convert2 (const std::wstring& s) { return s.c_str(); }
 static inline wstring convert3 (PyObject* o) { 
 if (!PyUnicode_Check(o)) { PyErr_SetString(PyExc_TypeError, "str expected"); return L""; }
