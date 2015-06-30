@@ -631,14 +631,27 @@ static void EZHandleBackspace (Page* curPage, HWND hwnd) {
 int selStart, selEnd;
 SendMessage(hwnd, EM_GETSEL, &selStart, &selEnd);
 if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selEnd, EditGetSubstring(hwnd, selStart, selEnd), true) ));
-else if (selStart>0) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart -1, selStart, EditGetSubstring(hwnd, selStart -1, selStart), false) ));
+else if (selStart>0) {
+tstring text = EditGetSubstring(hwnd, selStart -1, selStart);
+if (text==TEXT("\n")) {
+text = EditGetSubstring(hwnd, selStart -2, selStart);
+curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart -2, selStart, text, false) ));
 }
+else curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart -1, selStart, text, false) ));
+}}
 
 static bool EZHandleDel (Page* curPage, HWND hwnd) {
 int selStart, selEnd;
 SendMessage(hwnd, EM_GETSEL, &selStart, &selEnd);
 if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selEnd, EditGetSubstring(hwnd, selStart, selEnd), true) ));
-else if (selStart<GetWindowTextLength(hwnd)) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selStart+1, EditGetSubstring(hwnd, selStart, selStart+1), 2) ));
+else if (selStart<GetWindowTextLength(hwnd)) {
+tstring text = EditGetSubstring(hwnd, selStart, selStart+1);
+if (text==TEXT("\r")) {
+text = EditGetSubstring(hwnd, selStart, selStart+2);
+curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selStart+2, text, 2) ));
+}
+else curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selStart+1, text, 2) ));
+}
 return true;
 }
 
