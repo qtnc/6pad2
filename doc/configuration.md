@@ -28,10 +28,10 @@ The default line ending convention to use when creating a new empty file. Defaul
 :	CR/Mac
 
 ## defaultEncoding {#ce}
-The default encoding to use when creating a new empty file. Default to 0.
+The default encoding to use when creating a new empty file. Default to 1250-1258 depending on the current locale.
 
-0:
-:	ANSI
+1252:
+:	ANSI Windows 1252 aka. Latin1 Western Europe
 65001:
 :	UTF-8
 65002:
@@ -76,6 +76,19 @@ Define whether to reload files opened when leaving at last session, and when to 
 :	Reload files which were open at last session, but only if no other file to load is specified on the command line.
 2:
 :	Always reload all files opened at last session, even if other files given on the command line must be loaded.
+
+## editorConfigOverride
+Define how to behave with .editorconfig files, and how the settings defined in these files must override or not default parameters and/or guessed file formats.
+.editorconfig files allow to locally define parameters such as encoding and line endings, so that all users working on a project can use the same format, regardless of specific IDEs configuration and/or project specific data.
+For more information about .editorconfig files, see <http://editorconfig.org/>.
+By default, this parameter is set to 1.
+
+0:
+:	Ignore completely .editorconfig files, never process them
+1:
+:	Use .editorconfig files, but load the file in the format guessed rather than how it is specified in .editorconfig if it appear to be more appropriate. When saving the file, settings defined in .editorconfig are always taken into account.
+2:
+:	Use .editorconfig files and always open the files in the format specified in .editorconfig, even if there are potential encoding and/or line endings conflicts. 
 
 ## maxRecentFiles
 The maximum number of entries present in the recent files menu. Default to 10.

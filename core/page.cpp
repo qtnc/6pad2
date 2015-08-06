@@ -4,6 +4,7 @@
 #include "inifile.h"
 #include "dialogs.h"
 #include "sixpad.h"
+#include<sstream>
 #include<unordered_map>
 #include<fcntl.h>
 using namespace std;
@@ -286,7 +287,6 @@ else MessageBeep(MB_ICONASTERISK);
 }
 
 void Page::Find (const tstring& searchText, bool scase, bool regex, bool up, bool stealthty) {
-printf("term=[%ls]\r\n", searchText.c_str());
 FindData fd(searchText, TEXT(""), (scase?FF_CASE:0) | (regex?FF_REGEX:0) | (up?FF_UPWARDS:0) );
 auto it = find(finds.begin(), finds.end(), fd);
 if (it!=finds.end()) { finds.erase(it); stealthty=false; }
@@ -327,6 +327,61 @@ if (pos==tstring::npos) pos = -1;
 return file.substr(1+pos);
 }
 
+static bool GlobMatches (const tstring& file, const tstring& iniglob) {
+wostringstream out;
+tstring glob = str_replace(iniglob, TEXT("**"), TEXT("\x1F"));
+bool ignore=false;
+for (int i=0, n=glob.size(); i<n; i++) {
+wchar_t ch = glob[i];
+if (ignore) { ignore=false, out<<ch; continue; }
+switch(ch){
+case '\\': ignore=true; out << '\\'; break;
+case '\x1F': out << TEXT(".*"); break;
+case '*': out << TEXT("[^/\\\\]*"); break;
+case '?': out < TEXT("[^/\\\\]"); break;
+case '.': out << TEXT("\\."); break;
+case '!': if (i>0&&glob[i -1]=='[') out << (wchar_t)'^'; else out << (wchar_t)'!'; break;
+case '{': {
+int j = glob.find('}', i+1);
+tstring lst = glob.substr(i+1, j-i-1);
+i = j;
+out << TEXT("(?:") << str_replace(lst, TEXT(","), TEXT("|")) << TEXT(")");
+}break;
+case '#': case '|': case '&': case '<': case '>': break; // forbidden characters in file names
+case '(': case ')': case '+': case '$': case '^': out << '\\' << ch; break;
+default: out << ch; break;
+}}
+tstring pattern = out.str();
+auto re = preg_search(file, pattern, 0, true);
+return re.first>=0 && re.second>=0 && re.first<=file.size() && re.second<=file.size();
+}
+
+static void ReadDotEditorconfigs (const tstring& file, IniFile& ini) {
+list<IniFile> iniFiles = { IniFile() };
+tstring file2 = file;
+while(true){
+int pos = file2.find_last_of(TEXT("\\/"));
+bool cont = pos>=2&&pos<file2.size();
+if (cont) file2 = file2.substr(0, pos+1) + TEXT(".editorconfig");
+else break;
+IniFile& ini = iniFiles.back();
+if (ini.load(file2)) {
+if (ini.get("root", false)) break;
+else iniFiles.push_back(IniFile());
+}
+if (!cont) break;
+file2 = file2.substr(0,pos);
+}
+while(iniFiles.size()>1) {
+IniFile &first = iniFiles.front(), &second = *(++iniFiles.begin());
+second.fusion(first);
+iniFiles.pop_front();
+}
+for (auto sect: iniFiles.back().sections) {
+if (!GlobMatches(file, toTString(sect.first))) continue;
+ini.fusion(*sect.second);
+}}
+
 string Page::SaveData () {
 tstring str = GetText();
 var re = onsave(shared_from_this(), str);
@@ -346,7 +401,20 @@ if (newFile.size()>0) {
 file = newFile; 
 SetName(FileNameToPageName(*this, file));
 flags&=~(PF_MUSTSAVEAS|PF_READONLY);
-}
+int editorConfigOverride = sp->config->get("editorConfigOverride", 1);
+if (editorConfigOverride>0) {
+IniFile ini;
+ReadDotEditorconfigs(file, ini);
+int le = elt(to_upper_copy(ini.get("end_of_line",string("0"))), lineEnding, {"CRLF", "LF", "CR", "RS", "LS"});
+int enc = eltm(to_lower_copy(ini.get("charset",string("0"))), encoding, {{"latin1", 1252}, {"latin-1", 1252}, {"utf-8", 65001}, {"utf8", 65001}, {"utf-16le", 1200}, {"utf-16be", 1201}, {"utf-8-bom", 65002}});
+int im = elt(to_lower_copy(ini.get("indent_style",string("0"))), indentationMode, {"tab", "space"});
+bool trimEol = ini.get("trim_trailing_whitespace", false); //todo: flag and apply this setting
+bool eofNewline = ini.get("insert_final_newline", false); //todo: flag and apply this setting
+if (im) im = ini.get("indent_size", 4);
+if (le!=lineEnding) SetLineEnding(le);
+if (enc!=encoding) SetEncoding(enc);
+if (im!=indentationMode) SetIndentationMode(im);
+}}
 var re = onbeforeSave(shared_from_this(), file);
 if (re.getType()==T_STR) file = re.toTString();
 if (file.size()<=0) return false;
@@ -377,8 +445,27 @@ if (file.size()<=0) return 0;
 name = FileNameToPageName(*this, file);
 File fd(file);
 if (!fd) return -GetLastError();
-DWORD tc = GetTickCount();
-return LoadData(fd.readFully(), guessFormat);
+int editorConfigOverride = (!guessFormat?0: sp->config->get("editorConfigOverride", 1));
+if (!guessFormat || editorConfigOverride<=0) return LoadData(fd.readFully(), guessFormat);
+IniFile ini;
+ReadDotEditorconfigs(file, ini);
+if (editorConfigOverride==2) {
+lineEnding = elt(to_upper_copy(ini.get("end_of_line",string("0"))), sp->config->get("defaultLineEnding", LE_DOS), {"CRLF", "LF", "CR", "RS", "LS"});
+encoding = eltm(to_lower_copy(ini.get("charset",string("0"))), sp->config->get("defaultEncoding", (int)GetACP()), {{"latin1", 1252}, {"latin-1", 1252}, {"utf-8", 65001}, {"utf8", 65001}, {"utf-16le", 1200}, {"utf-16be", 1201}, {"utf-8-bom", 65002}});
+indentationMode = elt(to_lower_copy(ini.get("indent_style",string("0"))), sp->config->get("defaultIndentationMode", 0), {"tab", "space"});
+if (indentationMode) indentationMode = ini.get("indent_size", indentationMode);
+guessFormat=false;
+}
+auto result = LoadData(fd.readFully(), guessFormat);
+if (editorConfigOverride==1) {
+lineEnding = elt(to_upper_copy(ini.get("end_of_line",string("0"))), lineEnding, {"CRLF", "LF", "CR", "RS", "LS"});
+encoding = eltm(to_lower_copy(ini.get("charset",string("0"))), encoding, {{"latin1", 1252}, {"latin-1", 1252}, {"utf-8", 65001}, {"utf8", 65001}, {"utf-16le", 1200}, {"utf-16be", 1201}, {"utf-8-bom", 65002}});
+indentationMode = elt(to_lower_copy(ini.get("indent_style",string("0"))), indentationMode, {"tab", "space"});
+if (indentationMode) indentationMode = ini.get("indent_size", indentationMode);
+}
+bool trimEol = ini.get("trim_trailing_whitespace", false); //todo: flag this setting
+bool eofNewline = ini.get("insert_final_newline", false); //todo: flag this setting
+return result;
 }
 
 bool Page::LoadData (const string& str, bool guessFormat) {

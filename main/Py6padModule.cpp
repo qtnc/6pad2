@@ -53,7 +53,7 @@ const char *key=NULL, *value=NULL;
 bool allowMulti = false;
 static const char* KWLST[] = {"key", "value", "multiple", NULL};
 if (!PyArg_ParseTupleAndKeywords(args, dic, "ss|p", (char**)KWLST, &key, &value, &allowMulti)) return NULL;
-if (key&&value) config.set(string(key), string(value), allowMulti);
+if (key&&value) config.set2(string(key), string(value), allowMulti);
 Py_RETURN_NONE;
 }
 

@@ -7,7 +7,9 @@
 #include<boost/algorithm/cxx14/mismatch.hpp>
 #include<boost/algorithm/string.hpp>
 using boost::to_lower;
+using boost::to_lower_copy;
 using boost::to_upper;
+using boost::to_upper_copy;
 using boost::ends_with;
 using boost::starts_with;
 using boost::trim;
@@ -18,7 +20,7 @@ using boost::is_any_of;
 
 tstring export preg_replace (const tstring& str, const tstring& needle, const tstring& repl, bool icase=false, bool literal=false);
 std::pair<int,int> export preg_search (const tstring& str, const tstring& needle, int initialPosition=0, bool icase=false, bool literal=false);
-export std::pair<int,int> export preg_rsearch (const tstring& str, const tstring& needle, int initialPosition=-1, bool icase=false, bool literal=false);
+std::pair<int,int> export preg_rsearch (const tstring& str, const tstring& needle, int initialPosition=-1, bool icase=false, bool literal=false);
 export bool preg_check (const tstring& regex, bool rethrow=false);
 
 void export ParseLineCol (tstring& file, int& line, int& col);
@@ -37,6 +39,11 @@ return split(str, std::basic_string<T>(delims));
 
 template<class T> int first_mismatch (const T& a, const T& b) { 
 return boost::algorithm::mismatch(a.begin(), a.end(), b.begin(), b.end()) .first -a.begin(); 
+}
+
+template<class T> inline int elt (const T& str, int def, const std::vector<T>& values) {
+auto it = std::find(values.begin(), values.end(), str);
+return it==values.end()? def : it-values.begin();
 }
 
 // Sprintf++

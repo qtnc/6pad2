@@ -11,7 +11,7 @@ using boost::signals2::connection;
 #define PF_READONLY 2
 #define PF_MUSTSAVEAS 4
 #define PF_AUTOLINEBREAK 8
-#define PF_WRITETOSTDOUT 16
+#define PF_WRITETOSTDOUT 0x10
 
 #define PF_NOMARKSEL 0x100000000ULL
 #define PF_NOFIND 0x80000000ULL

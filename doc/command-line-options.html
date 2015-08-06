@@ -17,6 +17,7 @@
 <nav id="TOC">
 <ul>
 <li><a href="#specifying-files-to-open">Specifying files to open</a></li>
+<li><a href="#using-pipes">Using pipes</a></li>
 <li><a href="#command-line-options">Command-line options</a><ul>
 <li><a href="#extensionname">/extension=name</a></li>
 <li><a href="#runscript.py">/run=script.py</a></li>
@@ -29,6 +30,8 @@
 <p>Simply by indicating file names, you can open multiple files at once, e.g. <code>6pad++ file1.txt file2.txt file3.txt</code>.</p>
 <p>You can optionally indicate a line and column number where to go to, using colon syntax, e.g. <code>file:line</code> and <code>file:line:column</code>. The cursor will be placed at the position specified immediately upon file opening. If a line number is specified but no column, by default it will be column 1, i.e. the beginning of the line.</p>
 <p>Example: <code>6pad++ file1.txt:123 file2.txt:123:45</code>.</p>
+<h1 id="using-pipes">Using pipes</h1>
+<p>You can use pipes to redirect the output of a command to 6pad++, or to send a content typed in 6pad++ to another command. Example: <code>dir | 6pad++</code></p>
 <h1 id="command-line-options">Command-line options</h1>
 <h2 id="extensionname">/extension=name</h2>
 <p>Load the extension specified, as if the corresponding directive was present in the configuration file (6pad++.ini).</p>
