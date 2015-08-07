@@ -23,6 +23,7 @@
 <li><a href="#indent">defaultIndentationMode</a></li>
 <li><a href="#instancemode">instanceMode</a></li>
 <li><a href="#reloadlastfilesmode">reloadLastFilesMode</a></li>
+<li><a href="#editorconfigoverride">editorConfigOverride</a></li>
 <li><a href="#maxrecentfiles">maxRecentFiles</a></li>
 <li><a href="#tabsatbottom">tabsAtBottom</a></li>
 </ul></li>
@@ -53,10 +54,10 @@
 </dd>
 </dl>
 <h2 id="ce">defaultEncoding</h2>
-<p>The default encoding to use when creating a new empty file. Default to 0.</p>
+<p>The default encoding to use when creating a new empty file. Default to 1250-1258 depending on the current locale.</p>
 <dl>
-<dt>0:</dt>
-<dd>ANSI
+<dt>1252:</dt>
+<dd>ANSI Windows 1252 aka. Latin1 Western Europe
 </dd>
 <dt>65001:</dt>
 <dd>UTF-8
@@ -115,6 +116,19 @@
 </dd>
 <dt>2:</dt>
 <dd>Always reload all files opened at last session, even if other files given on the command line must be loaded.
+</dd>
+</dl>
+<h2 id="editorconfigoverride">editorConfigOverride</h2>
+<p>Define how to behave with .editorconfig files, and how the settings defined in these files must override or not default parameters and/or guessed file formats. .editorconfig files allow to locally define parameters such as encoding and line endings, so that all users working on a project can use the same format, regardless of specific IDEs configuration and/or project specific data. For more information about .editorconfig files, see <a href="http://editorconfig.org/" class="uri">http://editorconfig.org/</a>. By default, this parameter is set to 1.</p>
+<dl>
+<dt>0:</dt>
+<dd>Ignore completely .editorconfig files, never process them
+</dd>
+<dt>1:</dt>
+<dd>Use .editorconfig files, but load the file in the format guessed rather than how it is specified in .editorconfig if it appear to be more appropriate. When saving the file, settings defined in .editorconfig are always taken into account.
+</dd>
+<dt>2:</dt>
+<dd>Use .editorconfig files and always open the files in the format specified in .editorconfig, even if there are potential encoding and/or line endings conflicts.
 </dd>
 </dl>
 <h2 id="maxrecentfiles">maxRecentFiles</h2>

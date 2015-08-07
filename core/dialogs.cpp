@@ -1,8 +1,11 @@
 #include "global.h"
 #include "sixpad.h"
+#include<Shlobj.h>
 #include<boost/shared_array.hpp>
 using namespace std;
 using boost::shared_array;
+
+extern "C" LPITEMIDLIST WINAPI __declspec(dllimport) ILCreateFromPath (LPCTSTR);
 
 static void TranslateNulls (LPTSTR path) {
 for (TCHAR* p=path; *p||p[1]; p++) if(!*p&&p[1]) *p='|';
@@ -134,3 +137,42 @@ ChoiceDlgData cdd(choices, title, prompt, defaultSelection);
 DialogBoxParam(dllHinstance, IDD_CHOICE, parent, ChoiceDlgProc, &cdd);
 return cdd.selection;
 }
+
+
+static int CALLBACK FolderDialogCallback (HWND hwnd,UINT uMsg,LPARAM lp, LPARAM pData) {
+	switch(uMsg) 	{
+	case BFFM_INITIALIZED:
+if (pData) 		SendMessage(hwnd, BFFM_SETSELECTION, TRUE, pData);
+		break;
+	case BFFM_SELCHANGED: {
+TCHAR szPath[300] = {0};
+		if (SHGetPathFromIDList((LPITEMIDLIST) lp ,szPath))  					SendMessage(hwnd, BFFM_SETSTATUSTEXT,0,(LPARAM)szPath);	
+		} 		break;
+case BFFM_VALIDATEFAILED:
+MessageBeep(0);
+return 1;
+	}
+	return 0;
+}
+
+tstring export FolderDialog (HWND hwnd, const tstring& folder, const tstring& title, const tstring& root, bool includeFiles) {
+	BROWSEINFO bi;
+	LPITEMIDLIST pidl;
+	BOOL bResult = FALSE;
+	bi.hwndOwner = hwnd;
+	bi.pidlRoot = root.size()>0? ILCreateFromPath(root.c_str()) :NULL;
+	bi.pszDisplayName = NULL;
+	bi.lpszTitle = title.size()>0? title.c_str() :NULL;
+	bi.ulFlags = BIF_STATUSTEXT | BIF_USENEWUI | BIF_EDITBOX | BIF_VALIDATE | (includeFiles?BIF_BROWSEINCLUDEFILES:0);
+	bi.lpfn = FolderDialogCallback;
+	bi.lParam = (LPARAM)( folder.size()>0? folder.c_str() :NULL );
+	pidl = SHBrowseForFolder(&bi);
+if (!pidl) return TEXT("");
+TCHAR buf[300] = {0};
+tstring re = TEXT("");
+if (SHGetPathFromIDList(pidl, buf)) re = buf;
+if (bi.pidlRoot) ILFree((LPITEMIDLIST)bi.pidlRoot);
+if (pidl) ILFree(pidl);
+return re;
+}
+

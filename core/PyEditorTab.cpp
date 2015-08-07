@@ -43,11 +43,13 @@ void setSeqLineFlag (int x) { seqAsLines=!!x; }
 int getLineEnding () { return page()->lineEnding; }
 int getEncoding () { return page()->encoding; }
 int getIndentationMode () { return page()->indentationMode; }
+int getTabWidth () { return page()->tabWidth; }
 tstring getIndentString () { shared_ptr<Page> p = page(); return tstring(max(p->indentationMode,1), p->indentationMode>0?' ':'\t'); }
 int getAutoLineBreak () { return 0!=(page()->flags&PF_AUTOLINEBREAK); }
 void setLineEnding (int le) { RunSync([&]()mutable{ page()->SetLineEnding(le); }); }
 void setEncoding (int e) { RunSync([&]()mutable{ page()->SetEncoding(e); }); }
 void setIndentationMode (int i) { RunSync([&]()mutable{ page()->SetIndentationMode(i); }); }
+void setTabWidth (int i) { RunSync([&]()mutable{ page()->SetTabWidth(i); }); }
 void setAutoLineBreak (int b) { RunSync([&]()mutable{ page()->SetAutoLineBreak(b); }); }
 int addEvent (const string& type, const PySafeObject& cb) {  return page()->AddEvent(type,cb); }
 int removeEvent (const string& type, int id) { return page()->RemoveEvent(type, id); }
@@ -243,6 +245,7 @@ PyAccessor("rangesInLines", &PyEditorTab::getSeqLineFlag, &PyEditorTab::setSeqLi
 PyAccessor("lineEnding", &PyEditorTab::getLineEnding, &PyEditorTab::setLineEnding),
 PyAccessor("encoding", &PyEditorTab::getEncoding, &PyEditorTab::setEncoding),
 PyAccessor("indentation", &PyEditorTab::getIndentationMode, &PyEditorTab::setIndentationMode),
+PyAccessor("tabWidth", &PyEditorTab::getTabWidth, &PyEditorTab::setTabWidth),
 PyAccessor("autoLineBreak", &PyEditorTab::getAutoLineBreak, &PyEditorTab::setAutoLineBreak),
 PyAccessor("selectionStart", &PyEditorTab::getSelectionStart, &PyEditorTab::setSelectionStart),
 PyAccessor("selectionEnd", &PyEditorTab::getSelectionEnd, &PyEditorTab::setSelectionEnd),

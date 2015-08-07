@@ -51,7 +51,7 @@ bool firstInstance = false, headless=false, isDebug = false;
 HINSTANCE hinstance = 0;
 HWND win=0, tabctl=0, status=0, consoleWin=0;
 HFONT gfont = NULL;
-HMENU menu = 0, menuFormat=0, menuEncoding=0, menuLineEnding=0, menuIndentation=0, menuRecentFiles = 0;
+HMENU menu = 0, menuFormat=0, menuEncoding=0, menuLineEnding=0, menuIndentation=0, menuTabWidth=0, menuRecentFiles = 0;
 HACCEL hAccel = 0, hGlobAccel=0;
 HANDLE consoleInputEvent=0;
 CRITICAL_SECTION csConsoleInput;
@@ -99,6 +99,7 @@ int encidx = -1; for (int i=0; i<encodings.size(); i++) { if (p->encoding==encod
 CheckMenuRadioItem(menuEncoding, 0, encodings.size(), encidx, MF_BYPOSITION);
 CheckMenuRadioItem(menuLineEnding, 0, 4, p->lineEnding, MF_BYPOSITION);
 CheckMenuRadioItem(menuIndentation, 0, 8, p->indentationMode, MF_BYPOSITION);
+CheckMenuRadioItem(menuTabWidth, 0, 7, p->tabWidth -1, MF_BYPOSITION);
 CheckMenuItem(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND | (p->flags&PF_AUTOLINEBREAK? MF_CHECKED : MF_UNCHECKED));
 EnableMenuItem2(menu, IDM_SAVE, MF_BYCOMMAND, !(p->flags&PF_NOSAVE));
 EnableMenuItem2(menu, IDM_SAVE_AS, MF_BYCOMMAND, !(p->flags&PF_NOSAVE));
@@ -181,6 +182,10 @@ inline void PageSetIndentationMode (shared_ptr<Page> p, int im) {
 if (p==curPage) CheckMenuRadioItem(menuIndentation, 0, 8, p->indentationMode, MF_BYPOSITION);
 }
 
+inline void PageSetTabWidth (shared_ptr<Page> p, int tw) {
+if (p==curPage) CheckMenuRadioItem(menuTabWidth, 0, 7, p->tabWidth -1, MF_BYPOSITION);
+}
+
 inline void PageSetName (shared_ptr<Page> p, const tstring& name) {
 int pos = std::find(pages.begin(), pages.end(), p) -pages.begin();
 if (pos<0 || pos>=pages.size()) return;
@@ -216,6 +221,7 @@ case PA_NAME: PageSetName(p, val.toTString()); break;
 case PA_ENCODING: PageSetEncoding(p, val.toInt()); break;
 case PA_LINE_ENDING: PageSetLineEnding(p, val.toInt()); break;
 case PA_INDENTATION_MODE: PageSetIndentationMode(p, val.toInt()); break;
+case PA_TAB_WIDTH: PageSetTabWidth(p, val.toInt()); break;
 case PA_AUTOLINEBREAK: PageSetAutoLineBreak(p, val.toBool()); break;
 case PA_FOCUS: PageEnsureFocus(p); break;
 }}
@@ -274,6 +280,7 @@ p->name = msg("Untitled") + TEXT(" ") + toTString(++count);
 p->encoding = config.get("defaultEncoding", (int)GetACP() );
 p->lineEnding = config.get("defaultLineEnding", LE_DOS);
 p->indentationMode = config.get("defaultIndentationMode", 0);
+p->tabWidth = config.get("defaultTabWidth", 4);
 p->flags = config.get("defaultAutoLineBreak", false)? PF_AUTOLINEBREAK : 0;
 PageAdd(p, focus);
 return p;
@@ -656,9 +663,12 @@ menuFormat = GetSubMenu(menu,2);
 menuEncoding = GetSubMenu(menuFormat,0);
 menuLineEnding = GetSubMenu(menuFormat,1);
 menuIndentation = GetSubMenu(menuFormat,2);
+menuTabWidth = GetSubMenu(menuFormat,3);
 menuRecentFiles = GetSubMenu(GetSubMenu(menu, 0), 6);
 for (int i=0; i<encodings.size(); i++) InsertMenu(menuEncoding, i, MF_STRING | MF_BYPOSITION, IDM_ENCODING+i, (TEXT("Encoding")+toTString(encodings[i])).c_str() );
 for (int i=1; i<=8; i++) InsertMenu(menuIndentation, i, MF_STRING | MF_BYPOSITION, IDM_INDENTATION_SPACES -1 +i, tsnprintf(32, msg("%d spaces"), i).c_str() );
+for (int i=1; i<=8; i++) InsertMenu(menuTabWidth, i, MF_STRING | MF_BYPOSITION, IDM_TAB_WIDTH -1  +i, tsnprintf(32, msg("%d spaces"), i).c_str() );
+DeleteMenu(menuTabWidth, 0, MF_BYPOSITION);
 I18NMenus(menu);
 SetMenuNamesFromResource(menu);
 }
@@ -876,6 +886,10 @@ return true;
 }
 if (cmd>=IDM_INDENTATION_TABS && cmd<=IDM_INDENTATION_SPACES+8 && curPage) {
 curPage->SetIndentationMode(cmd-IDM_INDENTATION_TABS);
+return true;
+}
+if (cmd>=IDM_TAB_WIDTH && cmd<=IDM_TAB_WIDTH+7 && curPage) {
+curPage->SetTabWidth(cmd +1 -IDM_TAB_WIDTH);
 return true;
 }
 if (cmd>=IDM_RECENT_FILE && cmd<IDM_RECENT_FILE+100 && cmd<IDM_RECENT_FILE+recentFiles.size()) {

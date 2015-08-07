@@ -34,6 +34,7 @@ using boost::signals2::connection;
 #define PA_INDENTATION_MODE 3
 #define PA_AUTOLINEBREAK 4
 #define PA_FOCUS 5
+#define PA_TAB_WIDTH 6
 
 struct export Page;
 
@@ -66,7 +67,7 @@ return re;
 
 struct export Page: std::enable_shared_from_this<Page>  {
 tstring name=TEXT(""), file=TEXT("");
-int encoding=-1, indentationMode=-1, lineEnding=-1, markedPosition=0, curUndoState=0;
+int encoding=-1, indentationMode=-1, tabWidth=-2, lineEnding=-1, markedPosition=0, curUndoState=0;
 unsigned long long flags = 0, lastSave=0;
 HWND zone=0;
 PySafeObject pyData;
@@ -86,6 +87,7 @@ virtual void SetName (const tstring& name) ;
 virtual void SetEncoding (int e);
 virtual void SetLineEnding (int e);
 virtual void SetIndentationMode (int e);
+virtual void SetTabWidth (int e);
 virtual void SetAutoLineBreak (bool b);
 virtual bool IsEmpty () ;
 virtual bool IsModified () ;

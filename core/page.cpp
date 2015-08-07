@@ -80,6 +80,15 @@ indentationMode = e;
 onattrChange(shared_from_this(), PA_INDENTATION_MODE, e);
 }
 
+void Page::SetTabWidth (int e) {
+if (e<1 || e>8) return;
+tabWidth = e;
+e*=4; // 1 character corresponds to 4 dialog units
+SendMessage(zone, EM_SETTABSTOPS, 1, &e);
+InvalidateRect(zone, NULL, TRUE);
+onattrChange(shared_from_this(), PA_TAB_WIDTH, e);
+}
+
 void Page::SetAutoLineBreak (bool b) {
 if (!!b == !!(flags&PF_AUTOLINEBREAK) ) return; // no change, no op
 if (b) flags |= PF_AUTOLINEBREAK;
@@ -454,6 +463,7 @@ lineEnding = elt(to_upper_copy(ini.get("end_of_line",string("0"))), sp->config->
 encoding = eltm(to_lower_copy(ini.get("charset",string("0"))), sp->config->get("defaultEncoding", (int)GetACP()), {{"latin1", 1252}, {"latin-1", 1252}, {"utf-8", 65001}, {"utf8", 65001}, {"utf-16le", 1200}, {"utf-16be", 1201}, {"utf-8-bom", 65002}});
 indentationMode = elt(to_lower_copy(ini.get("indent_style",string("0"))), sp->config->get("defaultIndentationMode", 0), {"tab", "space"});
 if (indentationMode) indentationMode = ini.get("indent_size", indentationMode);
+tabWidth = ini.get("tab_width", ini.get("indent_size", indentationMode));
 guessFormat=false;
 }
 auto result = LoadData(fd.readFully(), guessFormat);
@@ -462,6 +472,7 @@ lineEnding = elt(to_upper_copy(ini.get("end_of_line",string("0"))), lineEnding, 
 encoding = eltm(to_lower_copy(ini.get("charset",string("0"))), encoding, {{"latin1", 1252}, {"latin-1", 1252}, {"utf-8", 65001}, {"utf8", 65001}, {"utf-16le", 1200}, {"utf-16be", 1201}, {"utf-8-bom", 65002}});
 indentationMode = elt(to_lower_copy(ini.get("indent_style",string("0"))), indentationMode, {"tab", "space"});
 if (indentationMode) indentationMode = ini.get("indent_size", indentationMode);
+tabWidth = ini.get("tab_width", ini.get("indent_size", indentationMode));
 }
 bool trimEol = ini.get("trim_trailing_whitespace", false); //todo: flag this setting
 bool eofNewline = ini.get("insert_final_newline", false); //todo: flag this setting
@@ -470,7 +481,7 @@ return result;
 
 bool Page::LoadData (const string& str, bool guessFormat) {
 tstring text = TEXT("");
-if (guessFormat) { encoding=-1; lineEnding=-1; indentationMode=-1; }
+if (guessFormat) { encoding=-1; lineEnding=-1; indentationMode=-1; tabWidth=-3; }
 if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), str.size(), sp->config->get("defaultEncoding", (int)GetACP()) );
 text = ConvertFromEncoding(str, encoding);
 if (lineEnding<0) lineEnding = guessLineEnding(text.data(), text.size(), sp->config->get("defaultLineEnding", LE_DOS)  );
@@ -479,9 +490,11 @@ else if (lineEnding==LE_MAC) text = str_replace(text, TEXT("\r"), TEXT("\r\n"));
 else if (lineEnding==LE_RS) text = str_replace(text, TEXT("\x1E"), TEXT("\r\n"));
 else if (lineEnding==LE_LS) {
 text = str_replace(text, TEXT("\x2028"), TEXT("\r\n"));
-text = str_replace(text, TEXT("\x2029"), TEXT("\r\n"));
+text = str_replace(text, TEXT("\x2029"), TEXT("\r\n\r\n"));
 }
 if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), sp->config->get("defaultIndentationMode", 0)  );
+if (indentationMode>0) tabWidth = indentationMode;
+else tabWidth = sp->config->get("defaultTabWidth", 4);
 var re = onload(shared_from_this(), text);
 if (re.getType()==T_STR) text = re.toTString();
 lastSave = GetCurTime();
@@ -976,7 +989,7 @@ WS_CHILD | WS_TABSTOP | WS_VSCROLL | WS_BORDER | ES_MULTILINE | ES_NOHIDESEL | E
 parent, (HMENU)(IDC_EDITAREA + count++), sp->hinstance, NULL);
 SendMessage(hEdit, EM_SETLIMITTEXT, 1073741823, 0);
 SendMessage(hEdit, WM_SETFONT, sp->font, TRUE);
-{ int x=16; SendMessage(hEdit, EM_SETTABSTOPS, 1, &x); }
+{ int x=tabWidth>0? tabWidth*4:16; SendMessage(hEdit, EM_SETTABSTOPS, 1, &x); }
 SetWindowText(hEdit, text.c_str());
 SendMessage(hEdit, EM_SETSEL, ss, se);
 SendMessage(hEdit, EM_SCROLLCARET, 0, 0);

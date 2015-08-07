@@ -62,8 +62,23 @@ void warning(str text, str title):
 :	Show a warning dialog box with an OK button.
 int confirm(str text, str title):
 :	Show a confirmation dialog box where the user can choose between yes and no; return 1 if the user clicked yes, 0 if he clicked no.
-int choice(str prompt, str title, list options, [int initialSelection=0]):
+int choice(str prompt, str title, [str] options, [int initialSelection=0]):
 :	Show a dialog box where the user can choose an option ammong a list. Returns the index of the chosen item, or -1 if the user cancelled the dialog box.
+str saveDialog(str file='', str title='', [(str,str)] filters = [], int initialFilter=0)
+:	Show a save dialog box where the user can choose a file to save to. 
+	If specified, the filters list must be a list of 2-tuples where the first item is the filter description e.g. "TExt files", and the second is the pattern e.g. "`*.txt`". 
+	Returns a str indicating the path being selected by the user, or None if he cancelled the dialog box. 
+	If a filters list is specified, returns a tuple where the first item is the selected file and the second is the index of the selected filter. 
+	You can use keywords arguments.
+str openDialog(str file='', str title='', [(str,str)] filters = [], int initialFilter=0, multiple=False)
+:	Show an open dialog box where the user can choose a file to open.
+	If specified, the filters list must be a list of 2-tuples where the first item is the filter description e.g. "TExt files", and the second is the pattern e.g. "`*.txt`".
+	Returns a str indicating the path being selected by the user, or None if he cancelled the dialog box. 
+	If a filters list is specified, returns a tuple where the first item is the selected file and the second is the index of the selected filter.
+	If multiple is set to True, the user can select more than one file to open and a list of str is returned instead of a single str.
+	You can use keywords arguments.
+str chooseFolder(str folder='', str title='', str root='', bool showFiles=False)
+:	Show a dialog box where the user can choose a folder in a tree view. If showFiles is set to True, the user can also select files, otherwise he can only select folders. Returns the item selected by the user, or None if he cancelled the dialog box.
 <span id="wcpm1"></span>Menu createPopupMenu(): 
 :	Create a new popup menu and return it.
 int addAccelerator(str key, callback function):
@@ -198,6 +213,8 @@ int encoding:
 :	The encoding to use when saving the file. See [Character encodings](configuration.html#ce) for a list of possible values.
 int indentation:
 :	The indentation convention to use while editing the file. See [indentation modes](configuration.html#indent) for a list of possible values.
+int tabWidth:
+:	The width, in spaces, visually taken by a tab character, between 1 and 8.
 int autoLineBreak:
 :	Whether or not lines are broken automatically when displaying the text in the edition field.
 int selectionStart:

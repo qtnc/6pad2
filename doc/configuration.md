@@ -50,12 +50,15 @@ The default encoding to use when creating a new empty file. Default to 1250-1258
 See <https://msdn.microsoft.com/en-us/library/windows/desktop/dd317756(v=vs.85).aspx> for other values.
 
 ## defaultIndentationMode {#indent}
-The default indentation convention to use when creating a new empty file. Default to 0.
+The default indentation convention to use when creating a new empty file. Default to 0 = tabs.
 
 0:
 :	Use tabs (`\t`) as indentation.
 1-8:
 :	Use 1 to 8 spaces as indentation
+
+## defaultTabWidth
+The default size, in spaces, visually taken by a tab characters, between 1 and 8. Default to 4.
 
 ## instanceMode
 Define how to manage multiple instances of the program and multiple files opened at once. Default to 0.

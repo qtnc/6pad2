@@ -8,6 +8,7 @@
 #include "Thread.h"
 #include "dialogs.h"
 #include<functional>
+#include<sstream>
 using namespace std;
 
 struct PyWindow { 
@@ -134,6 +135,74 @@ Py_END_ALLOW_THREADS
 return Py_BuildValue("i",re);
 }
 
+static PyObject* PyFileDlg (PyObject* args, PyObject* dic, int flags) {
+bool multiple=false;
+int initialFilter=0;
+const wchar_t *cTitle=0, *cFile=0;
+PyObject* pFilters=0;
+static const char* KWLST[] = {"file", "title", "filters", "initialFilter", "multiple", NULL};
+if (!PyArg_ParseTupleAndKeywords(args, dic, "|uuOip", (char**)KWLST, &cFile, &cTitle, &pFilters, &initialFilter, &multiple)) return NULL;
+wostringstream oFilters;
+if (pFilters && PySequence_Check(pFilters)) for (int i=0, n=PySequence_Size(pFilters); i<n; i++) {
+PyObject* pItem = PySequence_GetItem(pFilters,i);
+if (!pItem || !PySequence_Check(pItem) || PySequence_Size(pItem)!=2) return NULL;
+PyObject *pfText = PySequence_GetItem(pItem,0), *pfGlob = PySequence_GetItem(pItem,1);
+if (!pfGlob || !pfText || !PyUnicode_Check(pfText) || !PyUnicode_Check(pfGlob)) return NULL;
+const wchar_t *cGlob = PyUnicode_AsUnicode(pfGlob), *cText = PyUnicode_AsUnicode(pfText);
+if (!cText || !cGlob) return NULL;
+if (i>0) oFilters << (wchar_t)'|';
+oFilters << cText << (wchar_t)'|' << cGlob;
+}
+if (!(flags&FD_OPEN)) multiple=false;
+if (multiple) flags |= FD_MULTI;
+tstring title = toTString(cTitle?cTitle:TEXT("")), file = toTString(cFile?cFile:TEXT("")), filters = toTString(oFilters.str());
+
+int z=0;
+tstring selection = TEXT("");
+Py_BEGIN_ALLOW_THREADS
+RunSync([&]()mutable{
+selection = FileDialog(win, flags, file, title, filters, &initialFilter);
+});//RunSync
+Py_END_ALLOW_THREADS
+PyObject* re = NULL;
+if (selection.size()<=0) { re = Py_None; Py_INCREF(Py_None); }
+else if (!multiple) re = Py_BuildValue("u", toWString(selection).c_str());
+else if ((z=selection.find('|'))<0 || z>=selection.size()) {
+re = PyList_New(1);
+PyList_SetItem(re, 0, Py_BuildValue("u", selection.c_str()));
+}
+else {
+vector<tstring> files = split(selection, TEXT("|"));
+re = PyList_New(files.size() -1);
+for (int i=1, n=files.size(); i<n; i++) PyList_SetItem(re, i -1, Py_BuildValue("u", toWString(files[0] + TEXT("\\") + files[i]).c_str()));
+}
+if (filters.size()>0) re = Py_BuildValue("(Oi)", re, initialFilter -1);
+return re;
+}
+
+static PyObject* PyOpenFileDlg (PyObject* unused, PyObject* args, PyObject* dic) {
+return PyFileDlg(args, dic, FD_OPEN);
+}
+
+static PyObject* PySaveFileDlg (PyObject* unused, PyObject* args, PyObject* dic) {
+return PyFileDlg(args, dic, FD_SAVE);
+}
+
+static PyObject* PyFolderDlg (PyObject* unused, PyObject* args, PyObject* dic) {
+wchar_t *cFolder=0, *cTitle=0, *cRoot=0;
+bool includeFiles=false;
+static const char* KWLST[] = {"folder", "title", "root", "showFiles", NULL};
+if (!PyArg_ParseTupleAndKeywords(args, dic, "|uuup", (char**)KWLST, &cFolder, &cTitle, &cRoot, &includeFiles)) return NULL;
+tstring re, folder = cFolder?cFolder:TEXT(""), title = cTitle?cTitle:TEXT(""), root = cRoot?cRoot:TEXT("");
+Py_BEGIN_ALLOW_THREADS
+RunSync([&]()mutable{
+re = FolderDialog(win, folder, title, root, includeFiles);
+});//RunSync
+Py_END_ALLOW_THREADS
+if (re.size()>0) return Py_BuildValue("u", re.c_str());
+else { Py_RETURN_NONE; }
+}
+
 static tstring PyGetStatusText () {
 return GetWindowText(status);
 }
@@ -212,6 +281,9 @@ PyDecl("alert", PyAlert),
 PyDecl("warning", PyWarn),
 PyDecl("confirm", PyConfirm),
 {"choice", (PyCFunction)PyChoiceDlg, METH_VARARGS | METH_KEYWORDS, NULL},
+{"openDialog", (PyCFunction)PyOpenFileDlg, METH_VARARGS | METH_KEYWORDS, NULL},
+{"saveDialog", (PyCFunction)PySaveFileDlg, METH_VARARGS | METH_KEYWORDS, NULL},
+{"chooseFolder", (PyCFunction)PyFolderDlg, METH_VARARGS | METH_KEYWORDS, NULL},
 
 // Menus and accelerators management
 PyDecl("addAccelerator", PyAddAccelerator),
