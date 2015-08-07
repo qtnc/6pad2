@@ -1,16 +1,16 @@
-# Developper plugin for 6pad++
+# Developer plugin for 6pad++
 import os, importlib, sixpad as sp
 from sixpad import msg, window as win
 from os import path
 
-pluginpath = sp.appdir + '\\plugins\\developper\\'
+pluginpath = sp.appdir + '\\plugins\\developer\\'
 typeAliases = {
 'config':'ini', 'properties':'ini', 'conf':'ini', 'cfg':'ini', 'cnf':'ini', 'inf':'ini',
 'md':'markdown', 'txt':'md', 'mmd':'md', 
 'h':'cpp', 'hpp':'cpp', 'hxx':'cpp', 'c':'cpp', 'cc':'cpp', 'cxx':'cpp', 'tcc':'cpp', 'tpp':'cpp',
 'res':'winres', 'rc':'winres', 'reg':'winreg',
 'py':'python', 'pyw':'py',
-'htm':'html',
+'htm':'html', 'tpl':'html',
 'opf':'xml', 'xsl':'xml', 'xslt':'xml', 'xsd':'xml', 'rss':'xml', 'rdf':'xml', 'svg':'xml', 'xpf':'xml',
 'vbs':'vbscript', 'js':'javascript',
 'inc':'php',
@@ -40,13 +40,13 @@ def pageDetectType (page):
 	ext = path.splitext(page.file)[1][1:].lower()
 	while ext in typeAliases: ext = typeAliases[ext]
 	if path.isfile(pluginpath + ext + '.py'):
-		mod = importlib.import_module('developper.' + ext)
+		mod = importlib.import_module('developer.' + ext)
 		if hasattr(mod, 'reindent'): page.reindent = mod.reindent
 	dir = path.dirname(path.realpath(page.file))
 	while not hasattr(page, 'project') and len(dir)>3:
 		prj = detectProjectType(dir)
 		if prj and path.isfile(pluginpath + prj + '.py'):
-			mod = importlib.import_module('developper.'+prj)
+			mod = importlib.import_module('developer.'+prj)
 			page.project = mod.Project(dir)
 		dir = path.dirname(dir)
 
