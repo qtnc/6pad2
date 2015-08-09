@@ -48,16 +48,16 @@ void Close () {}
 int size () { return -1; }
 };
 
-IO* FileURIProtocolHandler (const tstring& uri, bool write) {
+IO* FileURIProtocolHandler (const tstring& uri, bool write, bool append) {
 if (!UrlIsFileUrl(uri.c_str())) return NULL;
 DWORD pathlen = 300;
 TCHAR path[300] = {0};
 if (S_OK!=PathCreateFromUrl(uri.c_str(), path, &pathlen, NULL)) return NULL;
 path[pathlen]=0;
-return StdFile::Open(path, write, false);
+return StdFile::Open(path, write, append);
 }
 
-IO* StdstreamsProtocolHandler (const tstring& uri, bool write) {
+IO* StdstreamsProtocolHandler (const tstring& uri, bool write, bool append) {
 if (starts_with(uri, TEXT("&in:")) && !write) return new StdFilePipe(GetStdHandle(STD_INPUT_HANDLE));
 else if (starts_with(uri, TEXT("&out:")) && write) return new StdFilePipe(GetStdHandle(STD_OUTPUT_HANDLE));
 else if (starts_with(uri, TEXT("&err:")) && write) return new StdFilePipe(GetStdHandle(STD_ERROR_HANDLE));
@@ -79,7 +79,7 @@ bool File::open (const tstring& path, bool write, bool append) {
 int dot = path.find(':');
 if (dot>1 && dot<=5) { // Handling custom protocols
 for (auto handler: protocolHandlers) {
-if (io = handler(path, write)) break;
+if (io = handler(path, write, append)) break;
 }}
 if (!io) io = StdFile::Open(path, write, append);
 return !!io;
@@ -136,11 +136,11 @@ if (n<=0) close();
 return s;
 }
 
-void File::registerHandler (const function<IO*(const tstring&,bool)>& f) {
+void File::registerHandler (const function<IO*(const tstring&,bool,bool)>& f) {
 File::protocolHandlers.push_back(f);
 }
 
-vector<function<IO*(const tstring&,bool)>> File::protocolHandlers = {
+vector<function<IO*(const tstring&,bool,bool)>> File::protocolHandlers = {
 FileURIProtocolHandler,
 StdstreamsProtocolHandler
 };
