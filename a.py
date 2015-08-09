@@ -3,7 +3,7 @@ import sixpad
 from sixpad import window as win
 
 def test () :
-	print(win.chooseFolder(folder='C:\\mingw\\progq\\', root='C:\\MinGW\\'))
+	print(win.prompt(title='Test Input', prompt='Entrez votre nom', text='Yoyo', list=['One', 'Two', 'Three']))
 
 def pageOpened (p):
  pass

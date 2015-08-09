@@ -11,5 +11,6 @@ tstring export FolderDialog (HWND hwnd, const tstring& folder=TEXT(""), const ts
 bool export FontDialog (HWND parent, LOGFONT&);
 COLORREF export ColorDialog (HWND parent, COLORREF clr = RGB(0,0,0) );
 int export ChoiceDialog (HWND parent, const tstring& title, const tstring& prompt, const std::vector<tstring>& choices, int defaultSelection = -1);
+tstring export InputDialog (HWND parent, const tstring& title, const tstring& prompt, const tstring& text=TEXT(""), const vector<tstring>& choices = {});
 
 #endif

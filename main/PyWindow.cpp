@@ -116,7 +116,7 @@ static PyObject* PyChoiceDlg (PyObject* unused, PyObject* args, PyObject* dic) {
 int initialSelection = 0;
 PyObject* pOptions = NULL;
 const wchar_t *prompt=0, *title=0;
-static const char* KWLST[] = {"prompt", "text", "options", "initialSelection", NULL};
+static const char* KWLST[] = {"prompt", "title", "options", "initialSelection", NULL};
 if (!PyArg_ParseTupleAndKeywords(args, dic, "uuO|i", (char**)KWLST, &prompt, &title, &pOptions, &initialSelection) || !PySequence_Check(pOptions)) return NULL;
 vector<tstring> options;
 for (int i=0, n=PySequence_Size(pOptions); i<n; i++) {
@@ -133,6 +133,30 @@ re = ChoiceDialog(win, title, prompt, options, initialSelection);
 });//RunSync
 Py_END_ALLOW_THREADS
 return Py_BuildValue("i",re);
+}
+
+static PyObject* PyInputDlg (PyObject* unused, PyObject* args, PyObject* dic) {
+PyObject* pOptions = NULL;
+const wchar_t *prompt=0, *title=0, *pText=0;
+static const char* KWLST[] = {"prompt", "title", "text", "list", NULL};
+if (!PyArg_ParseTupleAndKeywords(args, dic, "uu|uO", (char**)KWLST, &prompt, &title, &pText, &pOptions)) return NULL;
+if (pOptions && pOptions!=Py_None && !PySequence_Check(pOptions)) return NULL;
+vector<tstring> options;
+if (pOptions&&pOptions!=Py_None) for (int i=0, n=PySequence_Size(pOptions); i<n; i++) {
+PyObject* item = PySequence_GetItem(pOptions,i);
+if (!item || !PyUnicode_Check(item)) return NULL;
+const wchar_t* str = PyUnicode_AsUnicode(item);
+if (!str) return NULL;
+options.push_back(str);
+}
+tstring text = pText?pText:TEXT("");
+Py_BEGIN_ALLOW_THREADS
+RunSync([&]()mutable{
+text = InputDialog(win, title, prompt, text, options);
+});//RunSync
+Py_END_ALLOW_THREADS
+if (text.size()<=0) { Py_RETURN_NONE; }
+else return Py_BuildValue("u",text.c_str() );
 }
 
 static PyObject* PyFileDlg (PyObject* args, PyObject* dic, int flags) {
@@ -281,6 +305,7 @@ PyDecl("alert", PyAlert),
 PyDecl("warning", PyWarn),
 PyDecl("confirm", PyConfirm),
 {"choice", (PyCFunction)PyChoiceDlg, METH_VARARGS | METH_KEYWORDS, NULL},
+{"prompt", (PyCFunction)PyInputDlg, METH_VARARGS | METH_KEYWORDS, NULL},
 {"openDialog", (PyCFunction)PyOpenFileDlg, METH_VARARGS | METH_KEYWORDS, NULL},
 {"saveDialog", (PyCFunction)PySaveFileDlg, METH_VARARGS | METH_KEYWORDS, NULL},
 {"chooseFolder", (PyCFunction)PyFolderDlg, METH_VARARGS | METH_KEYWORDS, NULL},

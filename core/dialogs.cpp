@@ -101,8 +101,8 @@ static INT_PTR CALLBACK ChoiceDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM l
 static ChoiceDlgData* data = NULL;
 switch (umsg) {
 case WM_INITDIALOG : {
-HWND hList = GetDlgItem(hwnd, 1002);
 data = (ChoiceDlgData*)lp;
+HWND hList = GetDlgItem(hwnd, 1002);
 SetDlgItemText(hwnd, IDOK, msg("&OK"));
 SetDlgItemText(hwnd, IDCANCEL, msg("Ca&ncel"));
 SetDlgItemText(hwnd, 1001, data->prompt);
@@ -138,6 +138,49 @@ DialogBoxParam(dllHinstance, IDD_CHOICE, parent, ChoiceDlgProc, &cdd);
 return cdd.selection;
 }
 
+struct InputDlgData {
+const vector<tstring>& choices;
+const tstring &prompt, &title;
+tstring text;
+InputDlgData (const vector<tstring>&  c, const tstring& t, const tstring& p, const tstring& x): choices(c), title(t), prompt(p), text(x) {}
+};
+
+INT_PTR InputDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
+static InputDlgData* data = NULL;
+switch (umsg) {
+case WM_INITDIALOG : {
+data = (InputDlgData*)lp;
+HWND hTxt = GetDlgItem(hwnd,1002);
+SendMessage(hTxt, CB_RESETCONTENT, 0, 0);
+SetDlgItemText(hwnd, IDOK, msg("&OK"));
+SetDlgItemText(hwnd, IDCANCEL, msg("Ca&ncel"));
+SetDlgItemText(hwnd, 1001, data->prompt);
+SetDlgItemText(hwnd, 1002, data->text);
+SetWindowText(hwnd, data->title);
+if (data->choices.size()>=0) for (auto s: data->choices) {
+SendMessage(hTxt, CB_ADDSTRING, 0, s.c_str() );
+}
+}return TRUE;
+case WM_COMMAND :
+switch (LOWORD(wp)) {
+case IDOK : {
+data->text = GetDlgItemText(hwnd, 1002);
+	EndDialog(hwnd, 1);
+}return TRUE;
+case IDCANCEL : 
+data->text = TEXT("");
+EndDialog(hwnd, 2); 
+return TRUE;
+}break;
+}
+return FALSE;
+}
+
+tstring export InputDialog (HWND parent, const tstring& title, const tstring& prompt, const tstring& text, const vector<tstring>& choices) {
+InputDlgData idd(choices, title, prompt, text);
+DialogBoxParam(dllHinstance, IDD_INPUT, parent, InputDlgProc, &idd);
+return idd.text;
+}
 
 static int CALLBACK FolderDialogCallback (HWND hwnd,UINT uMsg,LPARAM lp, LPARAM pData) {
 	switch(uMsg) 	{
@@ -175,4 +218,6 @@ if (bi.pidlRoot) ILFree((LPITEMIDLIST)bi.pidlRoot);
 if (pidl) ILFree(pidl);
 return re;
 }
+
+
 

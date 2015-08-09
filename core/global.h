@@ -76,6 +76,7 @@ typedef std::string tstring;
 #define IDD_GOTOLINE 901
 #define IDD_SEARCHREPLACE 902
 #define IDD_CHOICE 903
+#define IDD_INPUT 904
 
 #define IDM_NEW 1000
 #define IDM_OPEN 1001
