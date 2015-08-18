@@ -1,4 +1,5 @@
 #include "global.h"
+#include "Page.h"
 #include "strings.hpp"
 #include "Thread.h"
 #include "python34.h"
@@ -8,6 +9,7 @@ using namespace std;
 
 extern HMENU menu;
 extern HWND win;
+extern shared_ptr<Page> curPage;
 
 int AddUserCommand (std::function<void(void)> f, int cmd = 0);
 bool RemoveUserCommand (int cmd);
@@ -17,7 +19,7 @@ struct PyMenuItem {
     PyObject_HEAD
 PyObject* parent;
 HMENU menu, submenu;
-int pos, cmd;
+int cmd;
 bool popup;
 
 tstring getName (void);
@@ -35,11 +37,12 @@ void setRadio (int);
 tstring getAccelerator (void);
 void setAccelerator (const tstring&);
 int getCmd (void);
+UINT getID (void);
 int getItemCount (void);
 PyObject* getItem (int n);
 PyObject* getItemByName (const tstring&);
 PyObject* getParent (void) { return parent; }
-PyObject* addItem (tstring label, PySafeObject action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator);
+PyObject* addItem (tstring label, PySafeObject action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator, int isSpecific);
 void remove (void);
 int show (void);
 };
@@ -91,17 +94,17 @@ return NULL;
 }}
 
 static PyObject* PyMenuItem_AddItem (PyObject* o, PyObject* args, PyObject* dic) {
-static const char* KWLST[] = {"label", "action", "index", "accelerator", "name", "submenu", "separator", NULL};
+static const char* KWLST[] = {"label", "action", "index", "accelerator", "name", "submenu", "separator", "specific", NULL};
 PyMenuItem& self = *(PyMenuItem*)o;
 const wchar_t *label=0, *accelerator=0, *name=0;
-int setsub=0, setsep=0, index=-1, length = self.getItemCount();
+int setsub=0, setsep=0, specific=0, index=-1, length = self.getItemCount();
 PyObject* action = NULL;
 if (!self.submenu) { PyErr_SetString(PyExc_ValueError, "not a submenu"); return NULL; }
-if (!PyArg_ParseTupleAndKeywords(args, dic, "|uOiuuii", (char**)KWLST, &label, &action, &index, &accelerator, &name, &setsub, &setsep)) return NULL;
+if (!PyArg_ParseTupleAndKeywords(args, dic, "|uOiuuiii", (char**)KWLST, &label, &action, &index, &accelerator, &name, &setsub, &setsep, &specific)) return NULL;
 if (action && action!=Py_None && !setsub && !PyCallable_Check(action)) { PyErr_SetString(PyExc_ValueError, "action must be callable"); return NULL; }
 if (index<0) index+=length+1;
 if (index>length) { PyErr_SetString(PyExc_ValueError, "index out of range"); return NULL; }
-return self.addItem(toTString(label), action, toTString(accelerator), toTString(name), index, setsub, setsep);
+return self.addItem(toTString(label), action, toTString(accelerator), toTString(name), index, setsub, setsep, specific);
 }
 
 static PyObject* PyMenuItem_RemItem (PyObject* o, PyObject* args, PyObject* dic) {
@@ -196,12 +199,17 @@ PyModule_AddObject(m, "MenuItem", (PyObject*)&PyMenuItemType);
 return true;
 }
 
+UINT PyMenuItem::getID () {
+if (submenu) return (UINT)submenu;
+else return cmd;
+}
+
 int PyMenuItem::hasFlag (int flag) {
 MENUITEMINFO mii;
 mii.cbSize = sizeof(MENUITEMINFO);
 mii.fMask = MIIM_STATE | MIIM_FTYPE;
 RunSync([&]()mutable{
-if (!GetMenuItemInfo(menu, pos, TRUE, &mii)) mii.fState=0;
+if (!GetMenuItemInfo(menu, getID(), FALSE, &mii)) mii.fState=0;
 });//RunSync
 return (0!=(mii.fState&flag));
 }
@@ -210,14 +218,14 @@ void PyMenuItem::setChecked (int checked) {
 if (submenu) return;
 checked = checked? MF_CHECKED : MF_UNCHECKED;
 RunSync([&]()mutable{
-CheckMenuItem(menu, pos, MF_BYPOSITION | checked);
+CheckMenuItem(menu, cmd, MF_BYCOMMAND | checked);
 });//RunSync
 }
 
 void PyMenuItem::setEnabled (int enabled) {
 enabled = enabled? MF_ENABLED :  MF_GRAYED  | MF_DISABLED;
 RunSync([&]()mutable{
-EnableMenuItem(menu, pos, MF_BYPOSITION | enabled);
+EnableMenuItem(menu, getID(), MF_BYCOMMAND | enabled);
 });//RunSync
 }
 
@@ -247,46 +255,24 @@ SetMenuItemInfo(menu, cmd, FALSE, &mii);
 
 int PyMenuItem::getCmd (void) { return cmd; }
 
-tstring GetMenuName (HMENU menu, int pos) {
-MENUITEMINFO mii;
-mii.cbSize = sizeof(MENUITEMINFO);
-mii.fMask = MIIM_DATA;
-if (!GetMenuItemInfo(menu, pos, TRUE, &mii)) return TEXT("");
-const TCHAR* re = (const TCHAR*)(mii.dwItemData);
-if (re) return tstring(re);
-else return TEXT("");
-}
-
-void SetMenuName (HMENU menu, int pos, BOOL bypos, LPCTSTR name) {
-MENUITEMINFO mii;
-mii.cbSize = sizeof(MENUITEMINFO);
-mii.fMask = MIIM_DATA;
-if (!GetMenuItemInfo(menu, pos, bypos, &mii)) return;
-if (mii.dwItemData) free((void*)(mii.dwItemData));
-mii.dwItemData = name? (ULONG_PTR)tstrdup(name) :NULL;
-SetMenuItemInfo(menu, pos, bypos, &mii);
-}
-
 tstring PyMenuItem::getName (void) {
 tstring re = TEXT("");
 RunSync([&]()mutable{
-re = GetMenuName(menu, pos);
+re = GetMenuName(menu, getID(), FALSE);
 });//RunSync
 return re;
 }
 
 void PyMenuItem::setName (const tstring& name) {
 RunSync([&]()mutable{
-SetMenuName(menu, pos, TRUE, name.c_str() );
+SetMenuName(menu, getID(), FALSE, name.c_str() );
 });//RunSync
 }
 
 tstring PyMenuItem::getLabel (void) {
 tstring re = TEXT("");
 RunSync([&]()mutable{
-int len = GetMenuString(menu, pos, NULL, 0, MF_BYPOSITION);
-tstring text = tstring(len,(TCHAR)0);
-GetMenuString(menu, pos, (TCHAR*)(text.data()), len+1, MF_BYPOSITION);
+tstring text = GetMenuString(menu, getID(), MF_BYCOMMAND);
 int x = text.find_first_of(TEXT("\t\a"));
 if (x>=0 && x<text.size()) text = text.substr(0,x);
 re = text;
@@ -328,7 +314,7 @@ PyObject* PyMenuItem::getItemByName (const tstring& name) {
 PyObject* re = NULL;
 RunSync([&]()mutable{
 if (submenu) for (int i=0, l=getItemCount(); i<l; i++) {
-if (GetMenuName(submenu, i)==name) { re = getItem(i); return; }
+if (GetMenuName(submenu, i, TRUE)==name) { re = getItem(i); return; }
 }
 });//RunSync
 if (re) return re;
@@ -349,7 +335,7 @@ if (!GetMenuItemInfo(submenu, n, TRUE, &mii)) return;
 PyMenuItem* it = PyMenuItemNew(&PyMenuItemType, NULL, NULL);
 it->parent = (PyObject*)this;
 it->menu = submenu;
-it->pos = n;
+//@@it->pos = n;
 it->submenu = mii.hSubMenu;
 it->cmd = mii.wID;
 it->popup = false;
@@ -363,7 +349,7 @@ PyObject* PyMenuItem_GetMenuBar (void) {
 PyMenuItem* it = PyMenuItemNew(&PyMenuItemType, NULL, NULL);
 it->parent = NULL;
 it->menu = NULL;
-it->pos = 0;
+//@@it->pos = 0;
 it->submenu = menu;
 it->cmd = 0;
 it->popup = false;
@@ -379,7 +365,7 @@ if (!menu) return NULL;
 PyMenuItem* it = PyMenuItemNew(&PyMenuItemType, NULL, NULL);
 it->parent = NULL;
 it->menu = NULL;
-it->pos = 0;
+//@@it->pos = 0;
 it->submenu = menu;
 it->cmd = 0;
 it->popup = true;
@@ -388,9 +374,10 @@ return (PyObject*)it;
 
 void PyMenuItem::remove (void) {
 RunSync([&]()mutable{
-SetMenuName(menu, pos, true, NULL);
-DeleteMenu(menu, pos, MF_BYPOSITION);
+SetMenuName(menu, getID(), FALSE, NULL);
+DeleteMenu(menu, getID(), MF_BYCOMMAND);
 DrawMenuBar(win);
+if (curPage) curPage->RemoveSpecificMenu(menu, getID());
 if (cmd>=IDM_USER_COMMAND && cmd<0xF000 && !submenu) {
 RemoveUserCommand(cmd);
 RemoveAccelerator(cmd);
@@ -411,7 +398,7 @@ Py_END_ALLOW_THREADS
 return re;
 }
 
-PyObject* PyMenuItem::addItem (tstring  label, PySafeObject action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator) {
+PyObject* PyMenuItem::addItem (tstring  label, PySafeObject action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator, int isSpecific) {
 if (!submenu) { Py_RETURN_NONE; }
 int cmd = pos+1, kf=0, key= 0;
 if (action && !isSeparator && !isSubmenu) cmd = AddUserCommand(action.asFunction<void()>() );
@@ -425,6 +412,7 @@ else if (isSeparator) InsertMenu(submenu, pos, MF_SEPARATOR | MF_BYPOSITION, 0xE
 else InsertMenu(submenu, pos, MF_STRING | MF_BYPOSITION, cmd, label.c_str() );
 if (name.size()>0) SetMenuName(submenu, pos, TRUE, name.c_str());
 DrawMenuBar(win);
+if (isSpecific && curPage) curPage->AddSpecificMenu(submenu, hSub?(UINT)hSub:cmd, pos, hSub?MF_POPUP:0);
 re = getItem(pos);
 });//RunSync
 return re;

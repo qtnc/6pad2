@@ -1,7 +1,7 @@
 #include "IniFile.h"
 #include "file.h"
 
-bool IniFile::save (const tstring& fn) {
+bool export IniFile::save (const tstring& fn) {
 File f(fn, true);
 for (auto it: *this) {
 f.write(it.first);
@@ -23,7 +23,7 @@ return true;
 }
 
 
-bool IniFile::load (const tstring& fn) {
+bool export IniFile::load (const tstring& fn) {
 File f(fn);
 if (!f) return false;
 string section = "";
@@ -49,7 +49,7 @@ else set3(name, value, true);
 return true;
 }
 
-void IniFile::fusion (IniFile& in, bool overwrite) {
+void export IniFile::fusion (IniFile& in, bool overwrite) {
 for (auto it: in) {
 if (overwrite || !contains(it.first)) set3(it.first, it.second);
 }

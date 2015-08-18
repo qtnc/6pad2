@@ -536,7 +536,7 @@ ModifyMenu(menu, i, flg2, mii.wID, newLabel.c_str() );
 if (mii.hSubMenu) I18NMenus(mii.hSubMenu);
 }}
 
-void SetMenuName (HMENU, int, BOOL, LPCTSTR);
+void SetMenuName (HMENU, UINT, BOOL, LPCTSTR);
 void SetMenuNamesFromResource (HMENU menu) {
 Resource res(TEXT("menuNames"),257);
 const char *str, *data = (const char*)res.data();
@@ -742,6 +742,15 @@ config.set("recentFile" + toString(i++), file);
 }}
 if (config.size()>0) config.save(appDir + TEXT("\\") + appName + TEXT(".ini") );
 return msg.wParam;
+}
+
+void AddModlessWindow (HWND hwnd) {
+modlessWindows.push_back(hwnd);
+}
+
+void RemoveModlessWindow (HWND hwnd) {
+auto it = find(modlessWindows.begin(), modlessWindows.end(), hwnd);
+if (it!=modlessWindows.end()) modlessWindows.erase(it);
 }
 
 void GoToNextModlessWindow (int dist) {
@@ -954,7 +963,7 @@ SendMessage(hEdit, WM_SETFONT, gfont, TRUE);
 //SendMessage(hEdit, EM_SETTABSTOPS, 1, &xx);
 SetDlgItemFocus(hwnd, 1002);
 SetWindowSubclass(GetDlgItem(hwnd,1002), (SUBCLASSPROC)ConsoleDlgInputSubclassProc, 0, 0);
-modlessWindows.push_back(hwnd);
+AddModlessWindow(hwnd);
 }return false;
 case WM_COMMAND :
 switch(LOWORD(wp)) {
@@ -973,7 +982,7 @@ SetDlgItemText(hwnd, 1001, TEXT(">>>"));
 break;
 case IDCANCEL : {
 consoleWin = NULL;
-modlessWindows.erase(find(modlessWindows.begin(), modlessWindows.end(), hwnd));
+RemoveModlessWindow(hwnd);
 DestroyWindow(hwnd);
 GoToNextModlessWindow(0);
 }break;
@@ -1066,11 +1075,12 @@ return DefWindowProc(hwnd, msg, wp, lp);
 }
 
 SixpadData sp = {
+SIXPAD_VERSION_ID, 0, 0, 0, 0, 0, CLASSNAME, 
 &msg, &RegisterPageFactory,
 &AddUserCommand, &RemoveUserCommand,
 &AddAccelerator, &RemoveAccelerator, &FindAccelerator,
 &KeyCodeToName,  &KeyNameToCode,
 &SetTimeout, &ClearTimeout,
-&msgs, &config, 
-CLASSNAME, SIXPAD_VERSION_ID, 0
-};
+&AddModlessWindow, &RemoveModlessWindow, &GoToNextModlessWindow,
+&msgs, &config,
+0};

@@ -14,9 +14,9 @@ HANDLE handle;
 public:
 template<class F> static inline Thread start (const F& f) { return Thread(f); }
 template<class F> inline Thread (const F& cf): handle(0) { init(new Proc(cf)); }
-bool join (DWORD ms = INFINITE);
+bool export join (DWORD ms = INFINITE);
 private:
-void init (Proc*);
+void export init (Proc*);
 };
 
 template<class F> inline void RunSync (const F& cf, bool del = false) {

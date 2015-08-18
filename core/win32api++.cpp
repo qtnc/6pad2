@@ -1,20 +1,20 @@
 #include "global.h"
 
-tstring GetWindowText (HWND hwnd) {
+tstring export GetWindowText (HWND hwnd) {
 int len = GetWindowTextLength(hwnd);
 tstring text = tstring(len,(TCHAR)0);
 GetWindowText(hwnd, (TCHAR*)text.data(), len+1);
 return text;
 }
 
-tstring GetDlgItemText (HWND hwnd, int id) {
+tstring export GetDlgItemText (HWND hwnd, int id) {
 int len = GetDlgItemTextLength(hwnd, id);
 tstring text = tstring(len,(TCHAR)0);
 GetDlgItemText(hwnd, id, (TCHAR*)text.data(), len+1);
 return text;
 }
 
-tstring EditGetLine (HWND hEdit, int sLine, int sPos) {
+tstring export EditGetLine (HWND hEdit, int sLine, int sPos) {
 if (sPos<0) sPos = SendMessage(hEdit, EM_LINEINDEX, sLine, 0);
 int length = SendMessage(hEdit, EM_LINELENGTH, sPos, 0);
 tstring line(length, (TCHAR)0);
@@ -24,18 +24,18 @@ SendMessage(hEdit, EM_GETLINE, sLine, (LPARAM)line.data() );
 return line;
 }
 
-tstring EditGetLine (HWND hEdit) {
+tstring export EditGetLine (HWND hEdit) {
 return EditGetLine(hEdit, SendMessage(hEdit, EM_LINEFROMCHAR, -1, 0));
 }
 
-tstring EditGetSelectedText (HWND hEdit) {
+tstring export EditGetSelectedText (HWND hEdit) {
 int sStart=0, sEnd=0;
 SendMessage(hEdit, EM_GETSEL, &sStart, &sEnd);
 if (sStart==sEnd) return TEXT("");
 else return EditGetSubstring(hEdit, sStart, sEnd);
 }
 
-tstring EditGetSubstring (HWND hEdit, int start, int end) {
+tstring export EditGetSubstring (HWND hEdit, int start, int end) {
 int len = GetWindowTextLength(hEdit);
 if (end<0) end+=len;
 if (start<0) start+=len;
@@ -47,6 +47,33 @@ LPCTSTR text = (LPCTSTR)LocalLock(hLoc);
 tstring str(text + start, text + end);
 LocalUnlock(hLoc);
 return str;
+}
+
+tstring export GetMenuString (HMENU menu, UINT id, UINT type) {
+int len = GetMenuString(menu, id, NULL, 0, type);
+tstring text = tstring(len,(TCHAR)0);
+GetMenuString(menu, id, (TCHAR*)(text.data()), len+1, type);
+return text;
+}
+
+tstring export GetMenuName (HMENU menu, UINT pos, BOOL bypos) {
+MENUITEMINFO mii;
+mii.cbSize = sizeof(MENUITEMINFO);
+mii.fMask = MIIM_DATA;
+if (!GetMenuItemInfo(menu, pos, bypos, &mii)) return TEXT("");
+const TCHAR* re = (const TCHAR*)(mii.dwItemData);
+if (re) return tstring(re);
+else return TEXT("");
+}
+
+void export SetMenuName (HMENU menu, UINT pos, BOOL bypos, LPCTSTR name) {
+MENUITEMINFO mii;
+mii.cbSize = sizeof(MENUITEMINFO);
+mii.fMask = MIIM_DATA;
+if (!GetMenuItemInfo(menu, pos, bypos, &mii)) return;
+if (mii.dwItemData) free((void*)(mii.dwItemData));
+mii.dwItemData = name? (ULONG_PTR)tstrdup(name) :NULL;
+SetMenuItemInfo(menu, pos, bypos, &mii);
 }
 
 unsigned long long export GetCurTime () {

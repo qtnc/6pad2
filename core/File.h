@@ -13,16 +13,16 @@ virtual bool IsClosed () = 0;
 
 struct export File {
 IO* io;
-bool open (const tstring& path, bool write=false, bool append=false);
-int read (void* buf, int len);
-int write (const void* buf, int len = -1);
-int write (const string& str) ;
-bool writeFully (const void* buf, int len) ;
-string readFully () ;
-string readUntil (char c = '\n', char ign = '\r') ;
-string readLine () { return readUntil(); }
-void close () ;
-void flush () ;
+bool export open (const tstring& path, bool write=false, bool append=false);
+int export read (void* buf, int len);
+int export write (const void* buf, int len = -1);
+int export write (const string& str) ;
+bool export writeFully (const void* buf, int len) ;
+string export readFully () ;
+string export readUntil (char c = '\n', char ign = '\r') ;
+inline string readLine () { return readUntil(); }
+void export close () ;
+void export flush () ;
 inline File () : io(0)  { }
 inline File (const tstring& path, bool write=false, bool append=false): io(0) { open(path,write, append); }
 inline File (const File&) = delete;
@@ -35,7 +35,7 @@ inline File& operator<< (const string& s) { write(s); return *this; }
 inline File& operator<< (const char* s) { return operator<<(string(s)); }
 template<class T> inline File& operator<< (const T& x) { return operator<<(toString(x)); }
 
-static void registerHandler (const function<IO*(const tstring&,bool, bool)>&);
+static void export registerHandler (const function<IO*(const tstring&,bool, bool)>&);
 static std::vector<std::function<IO*(const tstring&, bool, bool)>> protocolHandlers;
 };
 

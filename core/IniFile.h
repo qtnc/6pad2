@@ -26,9 +26,9 @@ using super::size;
 using super::clear;
 using super::equal_range;
 
-bool load (const tstring& fn) ;
-bool save (const tstring& fn) ;
-void fusion (IniFile& ini, bool overwrite=true);
+bool export load (const tstring& fn) ;
+bool export save (const tstring& fn) ;
+void export fusion (IniFile& ini, bool overwrite=true);
 inline bool contains (const std::string& key)  { return find(key)!=end(); }
 inline bool contains (const std::string& section, const std::string& key) {
 auto it = sectionsByName.find(section);

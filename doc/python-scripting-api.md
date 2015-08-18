@@ -307,6 +307,7 @@ Menu add(...):
 	- accelerator=a string specifying a shortcut key such a 'Ctrl+E'
 	- name=The name of the submenu allowing it to be referenced in python code
 	- submenu=True to create a submenu rahter than a menu item
+	- specific=True to create a page-specific menu element, i.e. it appears only when the current page is active
 	- separator=True to create an item separator
 
 void remove(...):

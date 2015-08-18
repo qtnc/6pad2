@@ -65,6 +65,13 @@ if (re.getType()==T_BOOL && !re) break;
 return re;
 }};
 
+struct PageSpecificMenu {
+HMENU menu;
+UINT id, pos, flags;
+tstring label, name;
+inline PageSpecificMenu (HMENU h, UINT i, UINT p, UINT f): menu(h), id(i), pos(p), flags(f), label(), name() {}
+};
+
 struct export Page: std::enable_shared_from_this<Page>  {
 tstring name=TEXT(""), file=TEXT("");
 int encoding=-1, indentationMode=-1, tabWidth=-2, lineEnding=-1, markedPosition=0, curUndoState=0;
@@ -72,6 +79,7 @@ unsigned long long flags = 0, lastSave=0;
 HWND zone=0;
 PySafeObject pyData;
 std::vector<shared_ptr<UndoState>> undoStates;
+std::vector<PageSpecificMenu> specificMenus;
 
 signal<void(shared_ptr<Page>)> ondeactivated, onactivated, onclosed, onsaved;
 signal<void(shared_ptr<Page>, int,var)> onattrChange;
@@ -94,6 +102,8 @@ virtual bool IsModified () ;
 virtual void SetModified (bool);
 virtual bool IsReadOnly ();
 virtual void SetReadOnly (bool);
+virtual void AddSpecificMenu (HMENU menu, UINT id, UINT pos, UINT flags);
+virtual void RemoveSpecificMenu (HMENU menu, UINT id);
 virtual void CreateZone (HWND parent, bool useEditFieldSubclass=true);
 virtual void ResizeZone (const RECT&);
 virtual void HideZone ();

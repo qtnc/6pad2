@@ -57,6 +57,8 @@ static list<FindData> finds;
 void SetClipboardText (const tstring&);
 tstring GetClipboardText (void);
 void PrepareSmartPaste (tstring& text, const tstring& indent);
+tstring GetMenuName (HMENU, UINT, BOOL);
+void SetMenuName (HMENU, UINT, BOOL, LPCTSTR);
 
 void Page::SetName (const tstring& n) { 
 name = n;
@@ -1000,9 +1002,18 @@ zone=hEdit;
 void Page::HideZone () {
 ShowWindow(zone, SW_HIDE);
 EnableWindow(zone, FALSE);
-}
+for (auto& item: specificMenus) {
+item.label = GetMenuString(item.menu, item.id, MF_BYCOMMAND);
+item.name = GetMenuName(item.menu, item.id, FALSE);
+RemoveMenu(item.menu, item.id, MF_BYCOMMAND);
+}}
 
 void Page::ShowZone (const RECT& r) {
+for (auto& item: specificMenus) {
+InsertMenu(item.menu, item.pos, MF_BYPOSITION | MF_STRING | item.flags, item.id, item.label.c_str() );
+if (item.name.size()>0) SetMenuName(item.menu, item.id, FALSE, item.name.c_str());
+}
+DrawMenuBar(sp->win);
 EnableWindow(zone, TRUE);
 SetWindowPos(zone, NULL,
 r.left+3, r.top+3, r.right - r.left -6, r.bottom - r.top -6,
@@ -1024,6 +1035,15 @@ MoveWindow(zone, r.left+3, r.top+3, r.right-r.left -6, r.bottom-r.top -6, true);
 
 void Page::SetFont (HFONT font) {
 if (zone) SendMessage(zone, WM_SETFONT, font, true);
+}
+
+void Page::AddSpecificMenu (HMENU menu, UINT id, UINT pos, UINT flags) {
+specificMenus.push_back(PageSpecificMenu(menu, id, pos, flags));
+}
+
+void Page::RemoveSpecificMenu (HMENU menu, UINT id) {
+auto it = std::find_if(specificMenus.begin(), specificMenus.end(), [&](const PageSpecificMenu& m){ return m.menu==menu && m.id==id; });
+if (it!=specificMenus.end()) specificMenus.erase(it);
 }
 
 void Page::PushUndoState (shared_ptr<UndoState> u, bool tryToJoin) {

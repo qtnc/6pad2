@@ -40,6 +40,9 @@ tstring export EditGetLine (HWND hEdit) ;
 tstring export EditGetLine (HWND hEdit, int line, int lineindex=-1);
 tstring export EditGetSelectedText (HWND hEdit);
 tstring export EditGetSubstring (HWND, int, int);
+tstring export GetMenuString (HMENU, UINT, UINT);
+tstring export GetMenuName (HMENU, UINT, BOOL);
+void export SetMenuName (HMENU, UINT, BOOL, LPCTSTR);
 
 inline bool IsCtrlDown () { return GetKeyState(VK_CONTROL)<0; }
 inline bool IsShiftDown () { return GetKeyState(VK_SHIFT)<0; }

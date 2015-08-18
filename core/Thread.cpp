@@ -7,10 +7,10 @@ delete f;
 return 0;
 }
 
-void Thread::init (Proc* f) {
+void export Thread::init (Proc* f) {
 handle = CreateThread(NULL, 0, ThreadProc, (LPVOID)f, 0, NULL);
 }
 
-bool Thread::join (DWORD time) {
+bool export Thread::join (DWORD time) {
 return WaitForSingleObject(handle, time) == WAIT_OBJECT_0;
 }

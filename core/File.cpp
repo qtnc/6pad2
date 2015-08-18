@@ -64,18 +64,18 @@ else if (starts_with(uri, TEXT("&err:")) && write) return new StdFilePipe(GetStd
 else return NULL;
 }
 
-void File::close () { 
+void export File::close () { 
 if (io){
 io->Close();
 delete io;
 io = NULL;
 }}
 
-void File::flush () {
+void export File::flush () {
 if (io) io->Flush();
 }
 
-bool File::open (const tstring& path, bool write, bool append) {
+bool export File::open (const tstring& path, bool write, bool append) {
 int dot = path.find(':');
 if (dot>1 && dot<=5) { // Handling custom protocols
 for (auto handler: protocolHandlers) {
@@ -85,21 +85,21 @@ if (!io) io = StdFile::Open(path, write, append);
 return !!io;
 }
 
-int File::read (void* buf, int len) {
+int export File::read (void* buf, int len) {
 if (io) return io->Read(buf,len);
 else return -1;
 }
 
-int File::write (const void* buf, int len) {
+int export File::write (const void* buf, int len) {
 if (io) return io->Write(buf, len);
 else return -1;
 }
 
-int File::write (const string& s) {
+int export File::write (const string& s) {
 return write(s.c_str(), s.size());
 }
 
-string File::readFully () {
+string export File::readFully () {
 if (!io) return "";
 int size = io->size();
 string str;
@@ -116,14 +116,14 @@ close();
 return str;
 }
 
-bool File::writeFully (const void* buf, int len) {
+bool export File::writeFully (const void* buf, int len) {
 int pos=0, nWritten=0;
 if (!io) return false;
 while (pos<len && (nWritten=write(buf+pos, len-pos))>0) pos+=nWritten;
 return pos>=len;
 }
 
-string File::readUntil (char lim, char ign) {
+string export File::readUntil (char lim, char ign) {
 int n;
 char c;
 string s = "";
@@ -136,7 +136,7 @@ if (n<=0) close();
 return s;
 }
 
-void File::registerHandler (const function<IO*(const tstring&,bool,bool)>& f) {
+void export File::registerHandler (const function<IO*(const tstring&,bool,bool)>& f) {
 File::protocolHandlers.push_back(f);
 }
 

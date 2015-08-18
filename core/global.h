@@ -43,7 +43,7 @@ typedef std::string tstring;
 #define DEBUG 0
 #endif
 
-#define SIXPAD_VERSION "Alpha 4"
+#define SIXPAD_VERSION "Alpha 5"
 #define SIXPAD_VERSION_ID 0x00000004
 
 #define LE_DOS 0
