@@ -76,6 +76,13 @@ if (!p) { Py_RETURN_NONE; }
 return p->GetPyData();
 }
 
+static void PyFocusWin (void) {
+RunSync([&]()mutable{
+if (GetWindowLong(win, GWL_STYLE)&WS_MINIMIZE) ShowWindow(win, SW_RESTORE);
+SetForegroundWindow(win);
+});//
+}
+
 static int PyMsgBox (const tstring& str, const tstring& title, DWORD flags) {
 int re;
 Py_BEGIN_ALLOW_THREADS
@@ -298,6 +305,7 @@ PyDecl("new", PyNewPage),
 PyDecl("playSound", PyPlaySound),
 
 // Basic dialog boxes and related functions
+PyDecl("focus", PyFocusWin),
 PyDecl("beep", Beep),
 PyDecl("messageBeep", MessageBeep),
 PyDecl("messageBox", PyMsgBox),
@@ -319,7 +327,7 @@ PyDecl("createPopupMenu", PyMenuItem_CreatePopupMenu),
 
 // Global events management
 PyDecl("addEvent", AppAddEvent),
-//PyDecl("removeEvent", AppRemoveEvent),
+PyDecl("removeEvent", AppRemoveEvent),
 PyDecl("setTimeout", PySetTimer1),
 PyDecl("setInterval", PySetTimer2),
 PyDecl("clearTimeout", ClearTimeout),

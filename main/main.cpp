@@ -201,6 +201,7 @@ SendMessage(tabctl, TCM_SETCURFOCUS, i, 0);
 }
 
 inline void PageEnsureFocus (shared_ptr<Page> p) {
+if (GetWindowLong(win, GWL_STYLE)&WS_MINIMIZE) ShowWindow(win, SW_RESTORE);
 if (GetForegroundWindow()!=win) SetForegroundWindow(win);
 if (curPage!=p) {
 int i = std::find(pages.begin(), pages.end(), p) -pages.begin();
@@ -465,6 +466,7 @@ cp.lpData = (LPVOID)file.c_str();
 HWND hWin = NULL;
 while (hWin=FindWindowEx(NULL, hWin, CLASSNAME, NULL)) {
 if (SendMessage(hWin, WM_COPYDATA, win, &cp)) {
+if (GetWindowLong(hWin, GWL_STYLE)&WS_MINIMIZE) ShowWindow(hWin, SW_RESTORE);
 SetForegroundWindow(hWin);
 //if (flags&OF_EXITONDOUBLEOPEN) exit(0);
 return true;

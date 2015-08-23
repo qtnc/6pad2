@@ -81,6 +81,8 @@ str openDialog(str file='', str title='', [(str,str)] filters = [], int initialF
 	You can use keyword arguments.
 str chooseFolder(str folder='', str title='', str root='', bool showFiles=False)
 :	Show a dialog box where the user can choose a folder in a tree view. If showFiles is set to True, the user can also select files, otherwise he can only select folders. Returns the item selected by the user, or None if he cancelled the dialog box. You can use keyword arguments.
+void focus ():
+:	Focus 6pad++ window.
 <span id="wcpm1"></span>Menu createPopupMenu(): 
 :	Create a new popup menu and return it.
 int addAccelerator(str key, callback function):
