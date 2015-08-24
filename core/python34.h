@@ -158,7 +158,7 @@ else Py_RETURN_FALSE;
 default: Py_RETURN_NONE;
 }}
 static var convert3 (PyObject* o) {
-if (o==Py_None) return var();
+if (!o||o==Py_None) return var();
 else if (o==Py_True) return true;
 else if (o==Py_False) return false;
 else if (PyLong_Check(o)) return (int)(PyLong_AsLong(o));
