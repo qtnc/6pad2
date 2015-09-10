@@ -61,6 +61,7 @@ void OpenConsoleWindow (void);
 void UpdateRecentFilesMenu (void);
 void ParseLineCol (tstring& file, int& line, int& col);
 tstring GetErrorText (int errorCode);
+vector<tstring> GetHDROPFiles (HDROP);
 void CSignal ( void(*)(int) );
 LRESULT WINAPI AppWinProc (HWND, UINT, WPARAM, LPARAM);
 
@@ -405,13 +406,8 @@ else if (curPage) curPage->Paste();
 
 static void DoDropFiles (HDROP hDrop) {
 POINT pt;
-int nFiles = DragQueryFile(hDrop, -1, NULL, NULL);
 DragQueryPoint(hDrop, &pt);
-if (nFiles<=0) return;
-for (int i=0; i<nFiles; i++) {
-TCHAR buf[300] = {0};
-if (!DragQueryFile(hDrop, i, buf, 299)) break;
-tstring file = buf;
+for (const tstring& file: GetHDROPFiles(hDrop)) {
 if (curPage && !curPage->onfileDropped(curPage, file, pt.x, pt.y)) continue;
 else if (!onfileDropped(file, pt.x, pt.y)) continue;
 if (2==config.get("instanceMode",0)) OpenFile(file, OF_NEWINSTANCE); 
@@ -533,7 +529,7 @@ mii.fMask = MIIM_ID | MIIM_SUBMENU;
 if (!GetMenuItemInfo(menu, i, TRUE, &mii)) continue;
 int accFlags=0, accKey=0;
 int flg2 = MF_BYPOSITION | (mii.hSubMenu? MF_POPUP : MF_STRING);
-if (FindAccelerator((int&)(mii.wID), accFlags, accKey)) newLabel += TEXT("\t\t") + KeyCodeToName(accFlags, accKey, true);
+if (FindAccelerator(hAccel, (int&)(mii.wID), accFlags, accKey)) newLabel += TEXT("\t\t") + KeyCodeToName(accFlags, accKey, true);
 ModifyMenu(menu, i, flg2, mii.wID, newLabel.c_str() );
 if (mii.hSubMenu) I18NMenus(mii.hSubMenu);
 }}
@@ -733,6 +729,7 @@ MSG msg;
 while (GetMessage(&msg,NULL,0,0)) {
 if (TranslateAccelerator(win, hGlobAccel, &msg)) continue;
 for (HWND hWin: modlessWindows) if (IsDialogMessage(hWin, &msg)) goto endmsgloop; // continue x2
+if (curPage && curPage->hPageAccel && TranslateAccelerator(win, curPage->hPageAccel, &msg)) continue;
 if (TranslateAccelerator(win, hAccel, &msg)) continue;
 TranslateMessage(&msg);	
 DispatchMessage(&msg);
@@ -1085,4 +1082,4 @@ SIXPAD_VERSION_ID, 0, 0, 0, 0, 0, CLASSNAME,
 &SetTimeout, &ClearTimeout,
 &AddModlessWindow, &RemoveModlessWindow, &GoToNextModlessWindow,
 &msgs, &config,
-0};
+hAccel, 0};

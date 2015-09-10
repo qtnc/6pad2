@@ -20,7 +20,7 @@ struct PyMenuItem {
 PyObject* parent;
 HMENU menu, submenu;
 int cmd;
-bool popup;
+bool popup, specific;
 
 tstring getName (void);
 void setName (const tstring&);
@@ -282,7 +282,8 @@ return re;
 
 void PyMenuItem::setLabel (tstring label) {
 int kflags=0, key=0;
-FindAccelerator(cmd, kflags, key);
+HACCEL& hAccel = sp.hAccel;
+FindAccelerator(hAccel, cmd, kflags, key);
 if (key) label += TEXT("\t\t") + KeyCodeToName(kflags, key, true);
 RunSync([&]()mutable{
 if (submenu) ModifyMenu(menu, (UINT)submenu, MF_BYCOMMAND | MF_POPUP, (UINT)submenu, label.c_str() );
@@ -292,7 +293,8 @@ else ModifyMenu(menu, cmd, MF_BYCOMMAND | MF_STRING, cmd, label.c_str() );
 
 tstring PyMenuItem::getAccelerator (void) {
 int kf=0, key=0;
-if (!submenu && FindAccelerator(cmd, kf, key))return KeyCodeToName(kf,key,false);
+HACCEL& hAccel = sp.hAccel;
+if (!submenu && FindAccelerator(hAccel, cmd, kf, key))return KeyCodeToName(kf,key,false);
 else return TEXT("");
 }
 
@@ -300,8 +302,9 @@ void PyMenuItem::setAccelerator (const tstring& s) {
 int kf=0, key=0;
 if (submenu) return;
 if (!KeyNameToCode(s, kf, key)) return;
-RemoveAccelerator(cmd);
-AddAccelerator(kf, key, cmd);
+HACCEL& hAccel = sp.hAccel;
+RemoveAccelerator(hAccel, cmd);
+AddAccelerator(hAccel, kf, key, cmd);
 setLabel(getLabel());
 }
 
@@ -335,10 +338,10 @@ if (!GetMenuItemInfo(submenu, n, TRUE, &mii)) return;
 PyMenuItem* it = PyMenuItemNew(&PyMenuItemType, NULL, NULL);
 it->parent = (PyObject*)this;
 it->menu = submenu;
-//@@it->pos = n;
 it->submenu = mii.hSubMenu;
 it->cmd = mii.wID;
 it->popup = false;
+it->specific = specific || (curPage && curPage->IsSpecificMenu(submenu, mii.wID));
 re = (PyObject*)it;
 });//RunSync
 if (re) Py_XINCREF((PyObject*)this);
@@ -374,13 +377,14 @@ return (PyObject*)it;
 
 void PyMenuItem::remove (void) {
 RunSync([&]()mutable{
+HACCEL& hAccel = specific&&curPage? curPage->hPageAccel : sp.hAccel;
 SetMenuName(menu, getID(), FALSE, NULL);
 DeleteMenu(menu, getID(), MF_BYCOMMAND);
 DrawMenuBar(win);
 if (curPage) curPage->RemoveSpecificMenu(menu, getID());
 if (cmd>=IDM_USER_COMMAND && cmd<0xF000 && !submenu) {
 RemoveUserCommand(cmd);
-RemoveAccelerator(cmd);
+RemoveAccelerator(hAccel, cmd);
 }
 });//RunSync
 }
@@ -401,8 +405,9 @@ return re;
 PyObject* PyMenuItem::addItem (tstring  label, PySafeObject action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator, int isSpecific) {
 if (!submenu) { Py_RETURN_NONE; }
 int cmd = pos+1, kf=0, key= 0;
+HACCEL& hAccel = (isSpecific||specific)&&curPage? curPage->hPageAccel : sp.hAccel;
 if (action && !isSeparator && !isSubmenu) cmd = AddUserCommand(action.asFunction<void()>() );
-if (cmd && accelerator.size()>0 && KeyNameToCode(accelerator, kf, key)) AddAccelerator(kf, key, cmd);
+if (cmd && accelerator.size()>0 && KeyNameToCode(accelerator, kf, key)) AddAccelerator(hAccel, kf, key, cmd);
 if (key) label += TEXT("\t\t") + KeyCodeToName(kf, key, true);
 PyObject* re = NULL;
 RunSync([&]()mutable{
@@ -412,7 +417,7 @@ else if (isSeparator) InsertMenu(submenu, pos, MF_SEPARATOR | MF_BYPOSITION, 0xE
 else InsertMenu(submenu, pos, MF_STRING | MF_BYPOSITION, cmd, label.c_str() );
 if (name.size()>0) SetMenuName(submenu, pos, TRUE, name.c_str());
 DrawMenuBar(win);
-if (isSpecific && curPage) curPage->AddSpecificMenu(submenu, hSub?(UINT)hSub:cmd, pos, hSub?MF_POPUP:0);
+if (isSpecific && curPage) curPage->AddSpecificMenu(submenu, hSub?(UINT)hSub:cmd, pos, hSub?MF_POPUP:MF_STRING);
 re = getItem(pos);
 });//RunSync
 return re;

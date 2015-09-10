@@ -60,6 +60,10 @@ void PrepareSmartPaste (tstring& text, const tstring& indent);
 tstring GetMenuName (HMENU, UINT, BOOL);
 void SetMenuName (HMENU, UINT, BOOL, LPCTSTR);
 
+Page::~Page () {
+if (hPageAccel) DestroyAcceleratorTable(hPageAccel);
+}
+
 void Page::SetName (const tstring& n) { 
 name = n;
 onattrChange(shared_from_this(), PA_NAME, name);
@@ -1044,6 +1048,11 @@ specificMenus.push_back(PageSpecificMenu(menu, id, pos, flags));
 void Page::RemoveSpecificMenu (HMENU menu, UINT id) {
 auto it = std::find_if(specificMenus.begin(), specificMenus.end(), [&](const PageSpecificMenu& m){ return m.menu==menu && m.id==id; });
 if (it!=specificMenus.end()) specificMenus.erase(it);
+}
+
+bool Page::IsSpecificMenu (HMENU menu, UINT id) {
+auto it = std::find_if(specificMenus.begin(), specificMenus.end(), [&](const PageSpecificMenu& m){ return m.menu==menu && m.id==id; });
+return it!=specificMenus.end();
 }
 
 void Page::PushUndoState (shared_ptr<UndoState> u, bool tryToJoin) {

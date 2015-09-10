@@ -43,13 +43,17 @@ if (k<=0) return 0;
 function<void()> f = cb.asFunction<void()>();
 int cmd = AddUserCommand(f);
 if (cmd<=0) return 0;
-if (AddAccelerator(kf, k, cmd)) return cmd;
+if (AddAccelerator(sp.hAccel, kf, k, cmd)) return cmd;
 else return 0;
+}
+
+static bool PyRemoveAccelerator (int id) {
+return RemoveAccelerator(sp.hAccel,id);
 }
 
 tstring PyFindAcceleratorByID (int cmd) {
 int k=0, kf=0;
-FindAccelerator(cmd, kf, k);
+FindAccelerator(sp.hAccel, cmd, kf, k);
 if (k<0) return TEXT("");
 else return KeyCodeToName(kf,k,false);
 }
@@ -57,7 +61,7 @@ else return KeyCodeToName(kf,k,false);
 int PyFindAcceleratorByKey (const tstring& kn) {
 int cmd=0, k=0, kf=0;
 KeyNameToCode(kn, kf, k);
-FindAccelerator(cmd, kf, k);
+FindAccelerator(sp.hAccel, cmd, kf, k);
 return cmd;
 }
 
@@ -320,7 +324,7 @@ PyDecl("confirm", PyConfirm),
 
 // Menus and accelerators management
 PyDecl("addAccelerator", PyAddAccelerator),
-PyDecl("RemoveAccelerator", RemoveAccelerator),
+PyDecl("RemoveAccelerator", PyRemoveAccelerator),
 PyDecl("findAcceleratorByID", PyFindAcceleratorByID),
 PyDecl("findAcceleratorByKey", PyFindAcceleratorByKey),
 PyDecl("createPopupMenu", PyMenuItem_CreatePopupMenu),

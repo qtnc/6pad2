@@ -3,12 +3,10 @@
 using namespace std;
 
 extern HWND win;
-extern HACCEL hAccel;
 extern unordered_map<int, function<void(void)>> userCommands, timers;
 
 extern tstring msg (const char* name);
 
-static vector<ACCEL> accell;
 static unordered_map<string,int> KEYNAMES = {
 #define K(n) {"F" #n, VK_F##n}
 K(1), K(2), K(3), K(4), K(5), K(6), K(7), K(8), K(9), K(10), K(11), K(12), K(13), K(14), K(15), K(16), K(17), K(18), K(19), K(20), K(21), K(22), K(23), K(24),
@@ -109,38 +107,41 @@ return true;
 return false;
 }
 
-static void LoadAccelTable (void) {
+static void LoadAccelTable (HACCEL hAccel, vector<ACCEL>& accel) {
+if (!hAccel) return;
 int n = CopyAcceleratorTable(hAccel, NULL, 0);
-accell.resize(n);
-CopyAcceleratorTable(hAccel, &accell[0], n);
+accel.resize(n);
+CopyAcceleratorTable(hAccel, &accel[0], n);
 }
 
-bool AddAccelerator (int flags, int key, int cmd) {
-LoadAccelTable();
+bool AddAccelerator (HACCEL& hAccel, int flags, int key, int cmd) {
+vector<ACCEL> accel;
+LoadAccelTable(hAccel, accel);
 ACCEL acc;
 memset(&acc, 0, sizeof(acc));
 acc.fVirt = flags;
 acc.key = key;
 acc.cmd = cmd;
-accell.push_back(acc);
-HACCEL hNew = CreateAcceleratorTable(&accell[0], accell.size());
+accel.push_back(acc);
+HACCEL hNew = CreateAcceleratorTable(&accel[0], accel.size());
 if (hNew) {
 DestroyAcceleratorTable(hAccel);
 hAccel = hNew;
 }}
 
-BOOL RemoveAccelerator (int cmd) {
-LoadAccelTable();
+BOOL RemoveAccelerator (HACCEL& hAccel, int cmd) {
+vector<ACCEL> accel;
+LoadAccelTable(hAccel, accel);
 bool found = false;
-for(int i=0, n=accell.size(); i<n; i++) {
-if (accell[i].cmd==cmd) {
-accell[i] = accell[n -1];
-accell.pop_back();
+for(int i=0, n=accel.size(); i<n; i++) {
+if (accel[i].cmd==cmd) {
+accel[i] = accel[n -1];
+accel.pop_back();
 found = true;
 break;
 }}
 if (!found) return false;
-HACCEL hNew = CreateAcceleratorTable(&accell[0], accell.size());
+HACCEL hNew = CreateAcceleratorTable(&accel[0], accel.size());
 if (hNew) {
 DestroyAcceleratorTable(hAccel);
 hAccel = hNew;
@@ -148,16 +149,17 @@ hAccel = hNew;
 return true;
 }
 
-bool FindAccelerator (int& cmd, int& flags, int& key) {
-LoadAccelTable();
-for (int i=0, n=accell.size(); i<n; i++) {
-if (cmd>0 && accell[i].cmd==cmd) {
-flags = accell[i].fVirt;
-key = accell[i].key;
+bool FindAccelerator (HACCEL& hAccel, int& cmd, int& flags, int& key) {
+vector<ACCEL> accel;
+LoadAccelTable(hAccel, accel);
+for (int i=0, n=accel.size(); i<n; i++) {
+if (cmd>0 && accel[i].cmd==cmd) {
+flags = accel[i].fVirt;
+key = accel[i].key;
 return true;
 }
-else if (cmd<=0 && accell[i].key==key && accell[i].fVirt==flags) {
-cmd = accell[i].cmd;
+else if (cmd<=0 && accel[i].key==key && accel[i].fVirt==flags) {
+cmd = accel[i].cmd;
 return true;
 }}
 return false;

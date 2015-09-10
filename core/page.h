@@ -77,6 +77,7 @@ tstring name=TEXT(""), file=TEXT("");
 int encoding=-1, indentationMode=-1, tabWidth=-2, lineEnding=-1, markedPosition=0, curUndoState=0;
 unsigned long long flags = 0, lastSave=0;
 HWND zone=0;
+HACCEL hPageAccel=0;
 PySafeObject pyData;
 std::vector<shared_ptr<UndoState>> undoStates;
 std::vector<PageSpecificMenu> specificMenus;
@@ -90,7 +91,7 @@ signal<var(shared_ptr<Page>,const tstring&), VarSignalCombiner> onsave, onbefore
 signal<var(shared_ptr<Page>, const tstring&, int), VarSignalCombiner> onenter;
 
 
-virtual ~Page() {}
+virtual ~Page();
 virtual void SetName (const tstring& name) ;
 virtual void SetEncoding (int e);
 virtual void SetLineEnding (int e);
@@ -104,6 +105,7 @@ virtual bool IsReadOnly ();
 virtual void SetReadOnly (bool);
 virtual void AddSpecificMenu (HMENU menu, UINT id, UINT pos, UINT flags);
 virtual void RemoveSpecificMenu (HMENU menu, UINT id);
+virtual bool IsSpecificMenu (HMENU menu, UINT id);
 virtual void CreateZone (HWND parent, bool useEditFieldSubclass=true);
 virtual void ResizeZone (const RECT&);
 virtual void HideZone ();

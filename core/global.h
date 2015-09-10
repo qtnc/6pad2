@@ -20,6 +20,7 @@ typedef std::wstring tstring;
 #define tstrdup wcsdup
 #define tstrrchr wcsrchr
 #define tsnprintf snwprintf
+inline bool IsUnicode () { return true; }
 #else
 #define Py_TString_Decl "s"
 typedef std::string tstring;
@@ -28,6 +29,7 @@ typedef std::string tstring;
 #define tstrdup strdup
 #define tstrrchr strrchr
 #define tsnprintf snprintf
+inline bool IsUnicode () { return false; }
 #endif
 #define TSTR(s) tstring(TEXT(s))
 #define wsnprintf snwprintf
