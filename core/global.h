@@ -48,6 +48,9 @@ inline bool IsUnicode () { return false; }
 #define SIXPAD_VERSION "Alpha 5"
 #define SIXPAD_VERSION_ID 0x00000004
 
+#define OF_CHECK_OTHER_WINDOWS 1
+#define OF_NEW_INSTANCE 2
+
 #define LE_DOS 0
 #define LE_UNIX 1
 #define LE_MAC 2

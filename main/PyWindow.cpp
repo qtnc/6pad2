@@ -30,7 +30,7 @@ int AppRemoveEvent (const string&, int id);
 int AddUserCommand (std::function<void(void)> f, int cmd=0);
 int SetTimeout (const std::function<void(void)>& f, int time, bool repeat);
 void ClearTimeout (int id);
-shared_ptr<Page> OpenFile (const tstring& filename, int flags);
+shared_ptr<Page> OpenFile (tstring filename, int flags);
 shared_ptr<Page> PageAddEmpty (bool focus, const string& type);
 
 PyObject* PyMenuItem_GetMenuBar (void);
@@ -68,7 +68,7 @@ return cmd;
 static PyObject* PyOpenFile (const tstring& filename) {
 shared_ptr<Page> p;
 RunSync([&]()mutable{
-p = OpenFile(filename, 1);
+p = OpenFile(filename, OF_CHECK_OTHER_WINDOWS);
 });
 if (!p) { Py_RETURN_NONE; }
 return p->GetPyData();

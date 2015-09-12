@@ -22,10 +22,6 @@
 using namespace std;
 using boost::signals2::signal;
 
-#define OF_REUSEOPENEDTABS 1
-#define OF_NEWINSTANCE 2
-#define OF_EXITONDOUBLEOPEN 4
-
 IniFile msgs, config;
 tstring appPath, appDir, appName, configFileName, appLocale;
 shared_ptr<Page> curPage(0);
@@ -56,7 +52,7 @@ HACCEL hAccel = 0, hGlobAccel=0;
 HANDLE consoleInputEvent=0;
 CRITICAL_SECTION csConsoleInput;
 
-shared_ptr<Page> OpenFile (const tstring& file, int flags=0);
+shared_ptr<Page> OpenFile (tstring file, int flags=0);
 void OpenConsoleWindow (void);
 void UpdateRecentFilesMenu (void);
 void ParseLineCol (tstring& file, int& line, int& col);
@@ -410,8 +406,8 @@ DragQueryPoint(hDrop, &pt);
 for (const tstring& file: GetHDROPFiles(hDrop)) {
 if (curPage && !curPage->onfileDropped(curPage, file, pt.x, pt.y)) continue;
 else if (!onfileDropped(file, pt.x, pt.y)) continue;
-if (2==config.get("instanceMode",0)) OpenFile(file, OF_NEWINSTANCE); 
-else OpenFile(file, OF_REUSEOPENEDTABS);
+if (2==config.get("instanceMode",0)) OpenFile(file, OF_NEW_INSTANCE); 
+else OpenFile(file, OF_CHECK_OTHER_WINDOWS);
 }}
 
 tstring ConsoleRead (void) {
@@ -435,11 +431,12 @@ if (say) speechSay(s2.c_str(), false);
 if (consoleWin) SendMessage(consoleWin, WM_COMMAND, 999, &s);
 }
 
-bool OpenFile3 (const tstring& file) {
+static inline bool OpenFile_CheckOpenTabs  (const tstring& file, int line, int col) {
 for (int i=0; i<pages.size(); i++) {
 auto page = pages[i];
-if (file==page->file) {
+if (iequals(file, page->file)) {
 SendMessage(tabctl, TCM_SETCURFOCUS, i, 0);
+if (line>0&&col>0) page->SetCurrentPositionLC(line -1, col -1);
 return true;
 }}
 if (1==config.get("instanceMode", 0)) {
@@ -449,31 +446,48 @@ return true;
 return false;
 }
 
-bool OpenFile2 (const tstring& file, int flags) {
-if (flags&OF_NEWINSTANCE) {
-ShellExecute(win, TEXT("open"), appPath.c_str(), file.c_str(), NULL, SW_SHOW);
-return true;
+static inline bool OpenFile_CheckOpenTabsCPD (char* data) {
+int line = *(int*)data,
+col = ((int*)data)[1];
+LPCTSTR file = (LPCTSTR)(data + 2*sizeof(int));
+return OpenFile_CheckOpenTabs(file, line, col);
 }
-if (flags&OF_REUSEOPENEDTABS) {
+
+static bool OpenFile_CheckOtherWindows (const tstring& file, int line, int col) {
+char cpbuf[ 2*sizeof(int) + (file.size()+1) * sizeof(TCHAR)];
 COPYDATASTRUCT cp;
 cp.dwData = 76;
-cp.cbData = sizeof(TCHAR)*(file.size()+1);
-cp.lpData = (LPVOID)file.c_str();
+cp.cbData = sizeof(cpbuf);
+cp.lpData = (LPVOID)cpbuf;
 HWND hWin = NULL;
+memcpy(cpbuf +0, &line, sizeof(int));
+memcpy(cpbuf +sizeof(int), &col, sizeof(int));
+memcpy(cpbuf +2*sizeof(int), file.c_str(), (file.size()+1) * sizeof(TCHAR));
 while (hWin=FindWindowEx(NULL, hWin, CLASSNAME, NULL)) {
 if (SendMessage(hWin, WM_COPYDATA, win, &cp)) {
 if (GetWindowLong(hWin, GWL_STYLE)&WS_MINIMIZE) ShowWindow(hWin, SW_RESTORE);
 SetForegroundWindow(hWin);
-//if (flags&OF_EXITONDOUBLEOPEN) exit(0);
 return true;
-}}}
+}}
 return false;
 }
 
-shared_ptr<Page> OpenFile (const tstring& file1, int flags) {
-tstring file=file1; int line=0, col=0;
+static inline bool OpenFile_StartupCheck (tstring file) {
+int line=0, col=0;
 ParseLineCol(file, line, col);
-if (OpenFile2(file, flags)) return NULL;
+File::normalizePath(file);
+return OpenFile_CheckOtherWindows(file, line, col);
+}
+
+shared_ptr<Page> OpenFile (tstring file, int flags) {
+if (flags&OF_NEW_INSTANCE) {
+ShellExecute(win, TEXT("open"), appPath.c_str(), file.c_str(), NULL, SW_SHOW);
+return NULL;
+}
+int line=0, col=0;
+ParseLineCol(file, line, col);
+File::normalizePath(file);
+if ((flags&OF_CHECK_OTHER_WINDOWS) && OpenFile_CheckOtherWindows(file, line, col)) return NULL;
 string type = "text";
 var vtype = onpageBeforeOpen(file);
 if (vtype.getType()==T_STR) type = toString(vtype.toTString());
@@ -605,7 +619,7 @@ arg[0]='/';
 if (arg==TEXT("/headless")) sp.headless=headless=true;
 continue; 
 } 
-if (OpenFile2(arg, OF_REUSEOPENEDTABS)) return 0;
+if (OpenFile_StartupCheck(arg)) return 0;
 }
 bool writeToStdout = (1&GetFileType(GetStdHandle(STD_OUTPUT_HANDLE))), 
 readFromStdin = (1&GetFileType(GetStdHandle(STD_INPUT_HANDLE)));
@@ -846,12 +860,12 @@ return true;
 bool ActionCommand (HWND hwnd, int cmd) {
 switch(cmd){
 case IDM_OPEN: 
-if (2==config.get("instanceMode",0)) OpenFileDialog(OF_NEWINSTANCE); 
-else OpenFileDialog(OF_REUSEOPENEDTABS);
+if (2==config.get("instanceMode",0)) OpenFileDialog(OF_NEW_INSTANCE); 
+else OpenFileDialog(OF_CHECK_OTHER_WINDOWS);
 return true;
 case IDM_OPEN_NI: 
-if (1==config.get("instanceMode",0)) OpenFileDialog(OF_REUSEOPENEDTABS);
-else OpenFileDialog(OF_NEWINSTANCE); 
+if (1==config.get("instanceMode",0)) OpenFileDialog(OF_CHECK_OTHER_WINDOWS);
+else OpenFileDialog(OF_NEW_INSTANCE); 
 return true;
 case IDM_REOPEN: PageReopen(curPage); return true;
 case IDM_SAVE: if (curPage) curPage->Save(); return true;
@@ -1046,7 +1060,7 @@ if (id&0x8000) ClearTimeout(id);
 }}break;
 case WM_COPYDATA: {
 COPYDATASTRUCT& cp = *(COPYDATASTRUCT*)(lp);
-if (cp.dwData==76) return OpenFile3((LPCTSTR)(cp.lpData));
+if (cp.dwData==76) return OpenFile_CheckOpenTabsCPD((char*)cp.lpData);
 }break;
 case WM_DROPFILES:
 DoDropFiles((HDROP)wp);

@@ -136,6 +136,17 @@ if (n<=0) close();
 return s;
 }
 
+void export File::normalizePath (tstring& file) {
+int i = file.find(':');
+if (i>=0 && i<=5 && i!=tstring::npos) return; // very probably wheither already an absolute path e.g. C:\xxx\yyy.zzz, or an URL path e.g. http://example.com/file.html
+else if (file.find(TEXT("\\\\"))==0) return; // Very probably a network name e.g. \\machineX\SharedFolder\xyz.txt
+else if (file.size()<1 || file[0]=='&') return; // special names, e.g. &out
+TCHAR buf[512] = {0};
+if (GetFullPathName(file.c_str(), 511, buf, NULL)) {
+tstring absPath = buf;
+if (absPath.size()>0) file = absPath;
+}}
+
 void export File::registerHandler (const function<IO*(const tstring&,bool,bool)>& f) {
 File::protocolHandlers.push_back(f);
 }

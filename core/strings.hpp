@@ -15,6 +15,7 @@ using boost::starts_with;
 using boost::trim;
 using boost::split;
 using boost::is_any_of;
+using boost::iequals;
 
 #define export __declspec(dllexport)
 

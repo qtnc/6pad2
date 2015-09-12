@@ -35,6 +35,7 @@ inline File& operator<< (const string& s) { write(s); return *this; }
 inline File& operator<< (const char* s) { return operator<<(string(s)); }
 template<class T> inline File& operator<< (const T& x) { return operator<<(toString(x)); }
 
+static void export normalizePath (tstring& filename);
 static void export registerHandler (const function<IO*(const tstring&,bool, bool)>&);
 static std::vector<std::function<IO*(const tstring&, bool, bool)>> protocolHandlers;
 };
