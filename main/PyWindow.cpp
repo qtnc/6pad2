@@ -36,19 +36,22 @@ shared_ptr<Page> PageAddEmpty (bool focus, const string& type);
 PyObject* PyMenuItem_GetMenuBar (void);
 PyObject* PyMenuItem_CreatePopupMenu (void);
 
-static int PyAddAccelerator (const tstring& kn, PySafeObject cb) {
+static int PyAddAccelerator (const tstring& kn, PySafeObject cb, OPT, bool specific) {
 int k=0, kf=0;
 KeyNameToCode(kn, kf, k);
 if (k<=0) return 0;
 function<void()> f = cb.asFunction<void()>();
 int cmd = AddUserCommand(f);
 if (cmd<=0) return 0;
-if (AddAccelerator(sp.hAccel, kf, k, cmd)) return cmd;
+HACCEL& accel = curPage&&specific? curPage->hPageAccel : sp.hAccel;
+if (AddAccelerator(accel, kf, k, cmd)) return cmd;
 else return 0;
 }
 
 static bool PyRemoveAccelerator (int id) {
-return RemoveAccelerator(sp.hAccel,id);
+bool re = RemoveAccelerator(sp.hAccel,id);
+if (!re && curPage) re = RemoveAccelerator(curPage->hPageAccel, id);
+return re;
 }
 
 tstring PyFindAcceleratorByID (int cmd) {
@@ -68,13 +71,15 @@ return cmd;
 static PyObject* PyOpenFile (const tstring& filename) {
 shared_ptr<Page> p;
 RunSync([&]()mutable{
-p = OpenFile(filename, OF_CHECK_OTHER_WINDOWS);
+if (filename.size()>0) p = OpenFile(filename, OF_CHECK_OTHER_WINDOWS);
+else p = PageAddEmpty(true, "text");
 });
 if (!p) { Py_RETURN_NONE; }
 return p->GetPyData();
 }
 
-static PyObject* PyNewPage (const string& type) {
+static PyObject* PyNewPage (OPT, string type) {
+if (type.size()<=0) type="text";
 shared_ptr<Page> p = PageAddEmpty(true, type);
 if (!p) { Py_RETURN_NONE; }
 return p->GetPyData();
@@ -97,27 +102,27 @@ Py_END_ALLOW_THREADS
 return re;
 }
 
-static void PyAlert (const tstring& str, const tstring& title) {
+static void PyAlert (const tstring& str, OPT, const tstring& title) {
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
-MessageBox(win, str.c_str(), title.c_str(), MB_OK | MB_ICONASTERISK);
+MessageBox(win, str.c_str(), (title.size()>0?title:msg("Info")).c_str(), MB_OK | MB_ICONASTERISK);
 });//RunSync
 Py_END_ALLOW_THREADS
 }
 
-static void PyWarn (const tstring& str, const tstring& title) {
+static void PyWarn (const tstring& str, OPT, const tstring& title) {
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
-MessageBox(win, str.c_str(), title.c_str(), MB_OK | MB_ICONERROR);
+MessageBox(win, str.c_str(), (title.size()>0?title:msg("Warning!")).c_str(), MB_OK | MB_ICONERROR);
 });//RunSync
 Py_END_ALLOW_THREADS
 }
 
-static int PyConfirm (const tstring& str, const tstring& title) {
+static int PyConfirm (const tstring& str, OPT, const tstring& title) {
 bool re = false;
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
-re = (IDYES==MessageBox(win, str.c_str(), title.c_str(), MB_YESNO | MB_ICONEXCLAMATION));
+re = (IDYES==MessageBox(win, str.c_str(), (title.size()>0?title:msg("Question")).c_str(), MB_YESNO | MB_ICONEXCLAMATION));
 });//RunSync
 Py_END_ALLOW_THREADS
 return re;
@@ -302,6 +307,10 @@ static int PyWindowInit (PyWindow* self, PyObject* args, PyObject* kwds) {
 return 0;
 }
 
+static string test123 (int a, OPT, string b) {
+return b+toString(a);
+}
+
 static PyMethodDef PyWindowMethods[] = {
 // General 6pad++ functions
 PyDecl("open", PyOpenFile),
@@ -337,6 +346,7 @@ PyDecl("setInterval", PySetTimer2),
 PyDecl("clearTimeout", ClearTimeout),
 PyDecl("clearInterval", ClearTimeout),
 
+PyDecl("test", test123),
 PyDeclEnd
 };
 
@@ -408,3 +418,6 @@ return true;
 PyObject* CreatePyWindowObject () {
 return (PyObject*)PyWindowNew(&PyWindowType, NULL, NULL);
 }
+
+
+

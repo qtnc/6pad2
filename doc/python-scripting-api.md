@@ -48,7 +48,7 @@ window:
 ## Methods
 Page open(str filename):
 :	Open a file in the editor. If the file has been successfully opened in this instance, the page object is returned, otherwise None.
-Page new (str type):
+Page new (str type = 'text'):
 :	Open a new page of the type specified with an empty file. By default, only the type 'text' is supported, other plugins may support additional types.
 void beep(int freq, int duration):
 :	Produce a PC speaker beep.
@@ -56,11 +56,11 @@ void messageBeep(int id):
 :	Produce a standard windows beep.
 int messageBox(str text, str title, int flags):
 :	Show a windows message box.
-void alert(str text, str title):
+void alert(str text, str title = 'Info'):
 :	Show an alert dialog box with an OK button.
-void warning(str text, str title):
+void warning(str text, str title = 'Warning!'):
 :	Show a warning dialog box with an OK button.
-int confirm(str text, str title):
+int confirm(str text, str title = 'Question'):
 :	Show a confirmation dialog box where the user can choose between yes and no; return 1 if the user clicked yes, 0 if he clicked no.
 int choice(str prompt, str title, [str] options, [int initialSelection=0]):
 :	Show a dialog box where the user can choose an option ammong a list. Returns the index of the chosen item, or -1 if the user cancelled the dialog box. You can use keyword arguments.
@@ -85,8 +85,8 @@ void focus ():
 :	Focus 6pad++ window.
 <span id="wcpm1"></span>Menu createPopupMenu(): 
 :	Create a new popup menu and return it.
-int addAccelerator(str key, callback function):
-:	Install a callback to be called when the given shortcut key is pressed.
+int addAccelerator(str key, callback function, bool specific = True):
+:	Install a callback to be called when the given shortcut key is pressed. If specific is set to True, the given shortcut key is specific to the current page, i.e. it is triggered only when pressed while being in the current page.
 	ON success, return a non-zero identifier used to unregister this accelerator.
 int removeAccelerator(int id):
 :	Remove an accelerator previously installed. You must pass the event ID returned by addAccelerator.
@@ -183,13 +183,13 @@ void delete(int start, int end):
 :	Delete a range of characters.
 void insert(int position, str text):
 :	Insert a string of text at the given position.
-void find(str term, bool scase, bool regex, bool up, bool stealthty):
+void find(str term, bool scase=False, bool regex=False, bool up=False, bool stealthty=False):
 :	Make a search in the text, as if the user issued a search using the Find dialog. SEt scase to True for a sensible case search, regex to True for a regular expression search, and up to True for a search backward instead of forward. If stealthty is True, the find term won't be added in the combobox of previously searched terms in the Find dialog box. You can use keywords arguments.
 void findNext():
 :	Find the next occurence of the text previously searched for, as if the user pressed F3 or chose the Find next item in the Edit menu.
 void findPrevious():
 :	Find the previous occurence of the text most recently searched for, as if the user pressed Shift+F3 or chose the Find previous item in the Edit menu.
-void searchReplace(str search, str replacement, bool scase, bool regex, bool stealthty):
+void searchReplace(str search, str replacement, bool scase=False, bool regex=False, bool stealthty=False):
 :	Make a search/replace operation in the text, as if the user issued this command from the search/replace dialog box. SEt scase to True for a sensible case search, regex to True for a regular expression search/replace. If stealthty is True, terms won't be added in comboboxes of previously used terms in the dialog box. You can use keyword arguments.
 void save():
 :	Save the file, as if file>save had been chosen.

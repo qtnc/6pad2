@@ -42,7 +42,7 @@ Py_END_ALLOW_THREADS
 return s;
 }
 
-static string PyGetConfig (const string& key, const string& def) {
+static string PyGetConfig (const string& key, OPT, const string& def) {
 auto it = config.find(key);
 if (it!=config.end()) return it->second;
 else return def;
@@ -92,12 +92,8 @@ static void PyBraille (const tstring& str) {
 brailleDisplay(str.c_str());
 }
 
-static PyObject* PySayStr (PyObject* unused, PyObject* args) {
-const wchar_t* str = 0;
-bool interrupt = false;
-if (!PyArg_ParseTuple(args, "u|p", &str, &interrupt)) return NULL;
-if (speechSay(str, interrupt)) Py_RETURN_TRUE;
-else Py_RETURN_FALSE;
+static int PySayStr (const tstring& str, OPT, bool interrupt) {
+return speechSay(str.c_str(), interrupt);
 }
 
 static PyMethodDef _6padMainDefs[] = {
@@ -115,7 +111,7 @@ PyDecl("getClipboardText", GetClipboardText),
 
 // Speech
 PyDecl("stopSpeech", speechStop),
-{"say", PySayStr, METH_VARARGS, NULL},
+PyDecl("say", PySayStr),
 PyDecl("braille", PyBraille),
 
 // Extension, includes and other general functions
