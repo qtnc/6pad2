@@ -5,15 +5,17 @@
 6pad++ is a simple and lightweight, yet powerful text editor for windows.
 Its main goal is to keep the accessibility and responsiveness of standard notepad, while providing a few not especially spectacular but useful features.
 
-Latest version is alpha 3.
+Latest version is alpha 4.
 If you have an improvement to suggest, if you found a bug, or if you have any question, feel free to contact me or post on the issue tracker.
 
 Have fun !
 
 # Download
 
-There is no official download yet available. As soon as the features, code and python API become more or less stable, first betas will be released.
-IN the meantime, nothing stops you from compiling 6pad++ yourself.
+There is no official release yet available. As soon as the features, code and python API become more or less stable, first betas will be released.
+
+You can download latest version, Alpha 4, at <http://vrac.quentinc.net/6pad%2b%2b.zip>.
+Note that this is still an *alpha release* !
 
 # Features
 
@@ -54,8 +56,7 @@ You can have a look at the [old 6pad repository](http://github.com/qtnc/6pad) if
 * IN the *main* directory is the code of the main 6pad++ executable.
 * IN *doc* folder, are documentations about the final product and the associated python API. This documentation is auto-generated from markdown files using pandoc.
 * In *lib* folder, are python libraries or DLLs, needed for the python 3.4.2 runtime.
-*In *plugins* subfolder, are 6pad++ plugins programmed in python. Read each subfolder's readme for more info.
-* In *addons* folder, are 6pad++ extension DLLs programmed in C++, and their associated source code. Read each subfolder's readme for more info.
+*In *plugins* subfolder, are 6pad++ plugins programmed in python and/or C++ and their associated source code. Read each subfolder's readme for more info.
 * IN *extensions* folder, are python extensions; they are completely independent and might be used outside 6pad++. Read each subfolder's readme for more info.
 
 Note 1: 6pad++ binary is compiled with MinGW/GCC 4.8.1 in 32-bit mode. If you want to make C++ plugins that can be used seamlessly with the base distribution, you must use that exact same compiler and settings.
