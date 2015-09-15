@@ -1148,7 +1148,7 @@ if (IsWindowVisible(p.zone)) SendMessage(p.zone, EM_SCROLLCARET, 0, 0);
 
 unordered_map<int,connection> connections;
 
-int AddSignalConnection (const connection& con) {
+int export AddSignalConnection (const connection& con) {
 for (auto it=connections.begin(); it!=connections.end(); ) {
 if (!it->second.connected()) connections.erase(it++);
 else ++it;
@@ -1158,7 +1158,7 @@ connections[++i] = con;
 return i;
 }
 
-connection RemoveSignalConnection (int id) {
+connection export RemoveSignalConnection (int id) {
 connection con = connections[id];
 for (auto it=connections.begin(); it!=connections.end(); ) {
 if (!it->second.connected()) connections.erase(it++);

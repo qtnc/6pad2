@@ -2,10 +2,8 @@
 #define ___PAGE_H9
 #include "global.h"
 #include "python34.h"
-#include<boost/signals2.hpp>
+#include "signals.h"
 #include<functional>
-using boost::signals2::signal;
-using boost::signals2::connection;
 
 #define PF_CLOSED 1
 #define PF_READONLY 2
@@ -45,25 +43,6 @@ virtual bool Join (UndoState& s) { return false; }
 virtual int GetTypeId () { return 0; }
 virtual ~UndoState(){}
 };
-
-struct BoolSignalCombiner {
-typedef bool result_type;
-template<class I> bool operator() (I start, I end) {
-bool re = true;
-while(start!=end && (re=*start)) ++start;
-return re;
-}};
-
-struct VarSignalCombiner {
-typedef var result_type;
-template<class I> var operator() (I start, I end) {
-var re;
-while(start!=end) {
-re = *start++;
-if (re.getType()==T_BOOL && !re) break;
-}
-return re;
-}};
 
 struct PageSpecificMenu {
 HMENU menu;

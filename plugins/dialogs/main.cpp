@@ -3,7 +3,9 @@
 HINSTANCE hinstance = 0;
 SixpadData* sp = 0;
 
-extern void test123 (void);
+bool PyRegister_TreeViewItem (PyObject* m);
+bool PyRegister_TreeViewDialog (PyObject* m);
+PyObject* test123 (void);
 
 static PyMethodDef MainDefs [] = {
 PyDecl("test", test123),
@@ -21,10 +23,8 @@ static BOOL SixpadDLLInit2 (SixpadData* d) { sp=d; }
 PyMODINIT_FUNC PyInit_qc6paddlgs  (void) {
 CallSixPadDLLInit(SixpadDLLInit2);
 PyObject* mod = PyModule_Create(&MainMod);
-//PyProcessType.tp_new = (typeof(PyProcessType.tp_new))PyProcessNew;
-//if (PyType_Ready(&PyProcessType) < 0)          return FALSE;
-//Py_INCREF(&PyProcessType); 
-//PyModule_AddObject(mod, "Process", (PyObject*)&PyProcessType); 
+PyRegister_TreeViewItem (mod);
+PyRegister_TreeViewDialog(mod);
 return mod;
 }
 
