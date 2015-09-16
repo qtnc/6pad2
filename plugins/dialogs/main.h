@@ -8,6 +8,7 @@
 #ifndef __WINDRES
 #include "../../core/sixpad.h"
 #include "../../core/python34.h"
+#include "../../core/thread.h"
 
 extern HINSTANCE hinstance;
 

@@ -17,13 +17,17 @@ return 0;
 
 static PyMethodDef PyTreeViewDialogMethods[] = {
 PyDecl("addEvent", &PyTreeViewDialog::addEvent),
+PyDecl("removeEvent", &PyTreeViewDialog::removeEvent),
+PyDecl("close", &PyTreeViewDialog::close),
+PyDecl("focus", &PyTreeViewDialog::focus),
 PyDeclEnd
 };
 
 #define Prop(x) PyAccessor(#x, &PyTreeViewDialog::get_##x, &PyTreeViewDialog::set_##x)
 #define RProp(x) PyReadOnlyAccessor(#x, &PyTreeViewDialog::get_##x)
 static PyGetSetDef PyTreeViewDialogAccessors[] = {
-RProp(root), RProp(selection),
+RProp(root), RProp(selection),  RProp(closed),
+Prop(title), Prop(text),
 PyDeclEnd
 };
 #undef Prop
@@ -117,13 +121,44 @@ if (selection) return (PyObject*) PyTreeViewItem::New(hTree, selection);
 else { Py_RETURN_NONE; }
 }
 
+int PyTreeViewDialog::get_closed () {
+return closed;
+}
+
+void PyTreeViewDialog::close () {
+if (!closed) SendMessage(hDlg, WM_COMMAND, IDCANCEL, 0);
+}
+
+tstring PyTreeViewDialog::get_title () {
+return GetWindowText(hDlg);
+}
+
+tstring PyTreeViewDialog::get_text  () {
+return GetDlgItemText(hDlg, 1001);
+}
+
+void PyTreeViewDialog::set_title (const tstring& title) {
+SetWindowText(hDlg, title);
+}
+
+void PyTreeViewDialog::set_text (const tstring& text) {
+SendMessage(hDlg, WM_USER, 1001, text.c_str());
+}
+
+void PyTreeViewDialog::focus () {
+if (!closed) RunSync([&]()mutable{
+ShowWindow(hDlg, SW_SHOW);
+SetForegroundWindow(hDlg);
+});//
+}
+
 int PyTreeViewDialog::addEvent (const string& type, const PySafeObject& cb) {
 connection con;
 if(false){}
 #define E(n) else if (type==#n) con = signals->on##n .connect(cb.asFunction<typename decltype(signals->on##n)::signature_type>());
-E(action) E(select) E(expand)
-E(edit) E(edited) E(close)
-E(copy) E(cut) E(paste) E(delete)
+E(action) E(select) E(expand) E(contextMenu)
+E(edit) E(edited) E(close) E(focus) E(blur)
+E(keyDown) E(keyUp)
 #undef E
 if (con.connected()) return AddSignalConnection(con);
 else return 0;
@@ -136,6 +171,19 @@ con.disconnect();
 return re;
 }
 
+static LRESULT CALLBACK TreeViewSubclassProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, PyTreeViewDialog* dlg) {
+switch(msg){
+case WM_KEYDOWN: case WM_SYSKEYDOWN: {
+int kc = LOWORD(wp) | GetCurrentModifiers();
+if (!dlg->signals->onkeyDown((PyObject*)dlg, kc)) return true;
+}break;
+case WM_KEYUP: case WM_SYSKEYUP: {
+int kc = LOWORD(wp) | GetCurrentModifiers();
+if (!dlg->signals->onkeyUp((PyObject*)dlg, kc)) return true;
+}break;
+}
+return DefSubclassProc(hwnd, msg, wp, lp);
+}
 
 static LRESULT CALLBACK EditingTreeLabelProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, HWND hTree) {
 if (msg==WM_KEYDOWN) switch(LOWORD(wp)){
@@ -160,8 +208,8 @@ SetWindowText(hwnd, tvdi.title);
 SetDlgItemText(hwnd, 1001, tvdi.label);
 SetDlgItemText(hwnd, IDOK, msg("&OK"));
 SetDlgItemText(hwnd, IDCANCEL, msg("&Close"));
+SetWindowSubclass(hTree, (SUBCLASSPROC)TreeViewSubclassProc, 0, (DWORD_PTR)&dlg);
 SetFocus(hTree);
-//SetWindowSubclass(GetDlgItem(hwnd,1002), (SUBCLASSPROC)ConsoleDlgInputSubclassProc, 0, 0);
 sp->AddModlessWindow(hwnd);
 }return false;
 case WM_COMMAND :
@@ -184,7 +232,8 @@ sp->RemoveModlessWindow(hwnd);
 DestroyWindow(hwnd);
 sp->GoToNextModlessWindow(0);
 }
-((PyTreeViewDialog*)( GetWindowLong(hwnd, DWL_USER))) ->Delete();
+dlg.closed=true; 
+dlg.Delete();
 }break;//IDCANCEL
 }break;//WM_COMMAND
 case WM_NOTIFY : {
@@ -243,10 +292,6 @@ NMHDR z = *(LPNMHDR)lp; z.code = NM_RCLICK;
 SendMessage(hwnd, WM_NOTIFY, 0, &z);
 }break;
 case VK_F2: SendMessage(nmh->hwndFrom, TVM_EDITLABEL, 0, SendMessage(nmh->hwndFrom, TVM_GETNEXTITEM, TVGN_CARET, NULL)); break;
-case 'C': if (IsCtrlDown()) { dlg.signals->oncopy((PyObject*)&dlg, dlg.get_selection()); return true; } break;
-case 'X': if (IsCtrlDown()) { dlg.signals->oncut((PyObject*)&dlg, dlg.get_selection()); return true; } break;
-case 'V': if (IsCtrlDown()) { dlg.signals->onpaste((PyObject*)&dlg, dlg.get_selection()); return true; } break;
-case VK_DELETE: dlg.signals->ondelete((PyObject*)&dlg, dlg.get_selection()); break;
 }return false;}
 //other notifications
 }}}break;
@@ -255,6 +300,7 @@ PyTreeViewDialog& dlg = *(PyTreeViewDialog*)GetWindowLong(hwnd, DWL_USER);
 if (LOWORD(wp)) dlg.signals->onfocus((PyObject*)&dlg);
 else dlg.signals->onblur((PyObject*)&dlg);
 }break;
+case WM_USER: SetDlgItemText(hwnd, LOWORD(wp), (LPCTSTR)lp); break;
 }
 return FALSE;
 }
