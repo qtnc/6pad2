@@ -582,6 +582,7 @@ set_unexpected(termHandler);
 CSignal(sigsegv);
 }
 SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+sp.uiThreadId = GetCurrentThreadId();
 SixpadDLLInit(&sp);
 
 {//Getting paths and such global parameters

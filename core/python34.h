@@ -431,6 +431,7 @@ template<G getf> static inline PyObject* getter (PyObject* self, void* unused) {
 #define PyToCType(t,x) (PyTypeSpec<t>::convert3(x))
 #define PyToPyType(x) (Py_BuildValue(PyTypeSpecs<decltype(x)>(), PyTypeSpec<decltype(x)>::convert2(x)))
 #define PyDecl(n,f) {(n), (PyFuncSpec<decltype(f)>::func<f>), METH_VARARGS, NULL}
+#define PyDeclStatic(n,f) {(n), (PyFuncSpec<decltype(f)>::func<f>), METH_VARARGS | METH_CLASS, NULL}
 #define PyAccessor(n,g,s) {(n), (PyGetterSpec<decltype(g)>::getter<g>), (PySetterSpec<decltype(s)>::setter<s>), NULL, NULL}
 #define PyWriteOnlyAccessor(n,s) {(n), NULL, (PySetterSpec<decltype(s)>::setter<s>), NULL, NULL}
 #define PyReadOnlyAccessor(n,g) {(n), (PyGetterSpec<decltype(g)>::getter<g>), NULL, NULL, NULL}

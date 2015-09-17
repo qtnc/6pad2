@@ -19,6 +19,10 @@ private:
 void export init (Proc*);
 };
 
+inline bool IsUIThread () {
+return (DWORD)GetCurrentThreadId == SPPTR uiThreadId;
+}
+
 template<class F> inline void RunSync (const F& cf, bool del = false) {
 Proc f(cf);
 SendMessage(SPPTR win, WM_RUNPROC, del, &f);

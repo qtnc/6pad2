@@ -37,6 +37,7 @@ HACCEL& hAccel;
 LPVOID reserved;
 HFONT font;
 bool headless;
+DWORD uiThreadId;
 };
 
 extern "C" BOOL export SixpadDLLInit (SixpadData*);

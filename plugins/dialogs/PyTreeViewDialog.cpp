@@ -5,6 +5,8 @@ using namespace std;
 #include "PyTreeViewDialog.h"
 using namespace std;
 
+INT_PTR TreeViewDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp); 
+
 static void PyTreeViewDialogDealloc (PyObject* pySelf) {
 PyTreeViewDialog* self = (PyTreeViewDialog*)pySelf;
 delete self->signals;
@@ -20,6 +22,7 @@ PyDecl("addEvent", &PyTreeViewDialog::addEvent),
 PyDecl("removeEvent", &PyTreeViewDialog::removeEvent),
 PyDecl("close", &PyTreeViewDialog::close),
 PyDecl("focus", &PyTreeViewDialog::focus),
+{"open", (PyCFunction)&PyTreeViewDialog::open, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
 PyDeclEnd
 };
 
@@ -129,6 +132,30 @@ void PyTreeViewDialog::close () {
 if (!closed) SendMessage(hDlg, WM_COMMAND, IDCANCEL, 0);
 }
 
+PyObject* PyTreeViewDialog::open (PyObject* unused, PyObject* args, PyObject* kwds) {
+const wchar_t *title=TEXT(""), *hint=TEXT(""), *okText=NULL, *cancelText=NULL;
+bool modal = false;
+PyObject* callback=NULL;
+static const char* KWLST[] = { "title", "hint", "modal", "callback", "okButtonText", "cancelButtonText", NULL};
+if (!PyArg_ParseTupleAndKeywords(args, kwds, "|uupOuu", (char**)KWLST, &title, &hint, &modal, &callback, &okText, &cancelText)) return NULL;
+TreeViewDialogInfo tvdi = { title, hint, okText?okText:msg("&OK"), cancelText?cancelText:msg("Ca&ncel"), modal, callback, NULL };
+if (modal) {
+bool cancelled;
+Py_BEGIN_ALLOW_THREADS
+RunSync([&]()mutable{ cancelled = IDYES!=DialogBoxParam(hinstance, IDD_TREEVIEW, sp->win, TreeViewDlgProc, &tvdi); });
+Py_END_ALLOW_THREADS
+PyTreeViewDialog& dlg = *tvdi.dlg;
+PyObject* re = NULL;
+if (cancelled) re = Py_BuildValue("(OO)", Py_None, Py_None);
+else re = Py_BuildValue("(uO)", dlg.signals->finalText.c_str(), *dlg.signals->finalValue );
+dlg.Delete();
+return re;
+} else {
+HWND hDlg = CreateDialogParam(hinstance, IDD_TREEVIEW, sp->win, TreeViewDlgProc, &tvdi);
+ShowWindow(hDlg, SW_SHOW);
+return (PyObject*) tvdi.dlg;
+}}
+
 tstring PyTreeViewDialog::get_title () {
 return GetWindowText(hDlg);
 }
@@ -197,6 +224,7 @@ return DefSubclassProc(hwnd, msg, wp, lp);
 INT_PTR TreeViewDlgProc (HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp) {
 switch (umsg) {
 case WM_INITDIALOG : {
+GIL_PROTECT
 HWND hTree = GetDlgItem(hwnd, 1002);
 TreeViewDialogInfo& tvdi = *(TreeViewDialogInfo*)(lp);
 tvdi.dlg = PyTreeViewDialog::New(hwnd, hTree);
@@ -204,21 +232,29 @@ PyTreeViewDialog& dlg = *tvdi.dlg;
 dlg.hTree = hTree;
 Py_XINCREF(&dlg);
 SetWindowLong(hwnd, DWL_USER, (LONG)tvdi.dlg);
+SetWindowLong(hwnd, GWL_USERDATA, tvdi.modal);
 SetWindowText(hwnd, tvdi.title);
 SetDlgItemText(hwnd, 1001, tvdi.label);
-SetDlgItemText(hwnd, IDOK, msg("&OK"));
-SetDlgItemText(hwnd, IDCANCEL, msg("&Close"));
+if (tvdi.okText.size()>0) SetDlgItemText(hwnd, IDYES, tvdi.okText);
+else ShowWindow(GetDlgItem(hwnd, IDYES), SW_HIDE);
+if (tvdi.cancelText.size()>0) SetDlgItemText(hwnd, IDCANCEL, tvdi.cancelText);
+else ShowWindow(GetDlgItem(hwnd, IDCANCEL), SW_HIDE);
 SetWindowSubclass(hTree, (SUBCLASSPROC)TreeViewSubclassProc, 0, (DWORD_PTR)&dlg);
+if (tvdi.callback) tvdi.callback.asFunction<void(PyObject*)>()((PyObject*)&dlg);
 SetFocus(hTree);
 sp->AddModlessWindow(hwnd);
 }return false;
 case WM_COMMAND :
 switch(LOWORD(wp)) {
-case IDOK: {
-if (GetFocus()!=GetDlgItem(hwnd,1002)) break;
+case IDYES: {
+GIL_PROTECT
 PyTreeViewDialog& dlg = *(PyTreeViewDialog*)GetWindowLong(hwnd, DWL_USER);
 bool modal = !!GetWindowLong(hwnd, GWL_USERDATA), re = modal;
-if (!dlg.signals->onaction.empty()) re = dlg.signals->onaction((PyObject*)&dlg, dlg.get_selection());
+auto selection = (PyTreeViewItem*)dlg.get_selection();
+if (!dlg.signals->onaction.empty()) re = dlg.signals->onaction((PyObject*)&dlg, (PyObject*)selection);
+dlg.signals->finalText = selection&&(PyObject*)selection!=Py_None? selection->get_text() :TEXT("");
+dlg.signals->finalValue = selection&&(PyObject*)selection!=Py_None? selection->get_value() :Py_None;
+Py_XDECREF((PyObject*)selection);
 if (!re) break; 
 }
 case IDCANCEL: {
@@ -226,7 +262,7 @@ PyTreeViewDialog& dlg = *(PyTreeViewDialog*)GetWindowLong(hwnd, DWL_USER);
 bool modal = !!GetWindowLong(hwnd, GWL_USERDATA), re = true;
 if (!dlg.signals->onclose.empty()) re = dlg.signals->onclose((PyObject*)&dlg);
 if (!re) return true;
-if (modal) EndDialog(hwnd,1);
+if (modal) EndDialog(hwnd,LOWORD(wp));
 else {
 sp->RemoveModlessWindow(hwnd);
 DestroyWindow(hwnd);
@@ -305,9 +341,3 @@ case WM_USER: SetDlgItemText(hwnd, LOWORD(wp), (LPCTSTR)lp); break;
 return FALSE;
 }
 
-PyObject* test123 (void) {
-TreeViewDialogInfo tvdi = { TEXT("Tree view dialog"), TEXT("Tree view control"), NULL };
-HWND hDlg = CreateDialogParam(hinstance, IDD_TREEVIEW, sp->win, TreeViewDlgProc, &tvdi);
-ShowWindow(hDlg, SW_SHOW);
-return (PyObject*) tvdi.dlg;
-}
