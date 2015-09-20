@@ -60,9 +60,23 @@ void PrepareSmartPaste (tstring& text, const tstring& indent);
 tstring GetMenuName (HMENU, UINT, BOOL);
 void SetMenuName (HMENU, UINT, BOOL, LPCTSTR);
 
+static void RecursiveDestroyMenuAndUserCommands (HMENU hMenu) {
+for (int i = GetMenuItemCount(hMenu) -1; i>=0; i--) {
+UINT id = GetMenuItemID(hMenu,i);
+HMENU hSub = GetSubMenu(hMenu,i);
+if (hSub) RecursiveDestroyMenuAndUserCommands(hSub);
+else sp->RemoveUserCommand(id);
+}
+DestroyMenu(hMenu);
+}
+
 Page::~Page () {
 if (hPageAccel) DestroyAcceleratorTable(hPageAccel);
-}
+for (auto itr = specificMenus.rbegin(); itr!=specificMenus.rend(); ++itr) {
+auto& item = *itr;
+if (item.flags&MF_POPUP) RecursiveDestroyMenuAndUserCommands((HMENU)item.id);
+else sp->RemoveUserCommand(item.id);
+}}
 
 void Page::SetName (const tstring& n) { 
 name = n;

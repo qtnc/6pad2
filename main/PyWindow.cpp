@@ -34,7 +34,7 @@ shared_ptr<Page> OpenFile (tstring filename, int flags);
 shared_ptr<Page> PageAddEmpty (bool focus, const string& type);
 
 PyObject* PyMenuItem_GetMenuBar (void);
-PyObject* PyMenuItem_CreatePopupMenu (void);
+int PyShowPopupMenu (PyObject*);
 
 static int PyAddAccelerator (const tstring& kn, PySafeObject cb, OPT, bool specific) {
 int k=0, kf=0;
@@ -336,7 +336,7 @@ PyDecl("addAccelerator", PyAddAccelerator),
 PyDecl("RemoveAccelerator", PyRemoveAccelerator),
 PyDecl("findAcceleratorByID", PyFindAcceleratorByID),
 PyDecl("findAcceleratorByKey", PyFindAcceleratorByKey),
-PyDecl("createPopupMenu", PyMenuItem_CreatePopupMenu),
+PyDecl("showPopupMenu", &PyShowPopupMenu),
 
 // Global events management
 PyDecl("addEvent", AppAddEvent),

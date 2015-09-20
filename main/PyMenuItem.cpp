@@ -20,7 +20,7 @@ struct PyMenuItem {
 PyObject* parent;
 HMENU menu, submenu;
 int cmd;
-bool popup, specific;
+bool specific;
 
 tstring getName (void);
 void setName (const tstring&);
@@ -44,15 +44,10 @@ PyObject* getItemByName (const tstring&);
 PyObject* getParent (void) { return parent; }
 PyObject* addItem (tstring label, PySafeObject action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator, int isSpecific);
 void remove (void);
-int show (void);
 };
 
 static void PyMenuItemDealloc (PyObject* pySelf) {
 PyMenuItem* self = (PyMenuItem*)pySelf;
-if (self->popup && self->submenu) {
-RunSync([&]()mutable{ DestroyMenu(self->submenu); });
-printf("Destroyed menu @%p\r\n", self);
-}
 Py_XDECREF(self->parent);
 Py_TYPE(pySelf)->tp_free(pySelf);
 }
@@ -127,7 +122,6 @@ Py_RETURN_NONE;
 static PyMethodDef PyMenuItemMethods[] = {
 {"add", (PyCFunction)PyMenuItem_AddItem, METH_VARARGS | METH_KEYWORDS, NULL},
 {"remove", (PyCFunction)PyMenuItem_RemItem, METH_VARARGS | METH_KEYWORDS, NULL},
-PyDecl("show", &PyMenuItem::show),
 PyDeclEnd
 };
 
@@ -340,7 +334,6 @@ it->parent = (PyObject*)this;
 it->menu = submenu;
 it->submenu = mii.hSubMenu;
 it->cmd = mii.wID;
-it->popup = false;
 it->specific = specific || (curPage && curPage->IsSpecificMenu(submenu, mii.wID));
 re = (PyObject*)it;
 });//RunSync
@@ -355,23 +348,6 @@ it->menu = NULL;
 //@@it->pos = 0;
 it->submenu = menu;
 it->cmd = 0;
-it->popup = false;
-return (PyObject*)it;
-}
-
-PyObject* PyMenuItem_CreatePopupMenu (void) {
-HMENU menu = NULL;
-RunSync([&]()mutable{
-menu = CreatePopupMenu();
-});//RunSync
-if (!menu) return NULL;
-PyMenuItem* it = PyMenuItemNew(&PyMenuItemType, NULL, NULL);
-it->parent = NULL;
-it->menu = NULL;
-//@@it->pos = 0;
-it->submenu = menu;
-it->cmd = 0;
-it->popup = true;
 return (PyObject*)it;
 }
 
@@ -387,19 +363,6 @@ RemoveUserCommand(cmd);
 RemoveAccelerator(hAccel, cmd);
 }
 });//RunSync
-}
-
-int PyMenuItem::show (void) {
-if (!submenu || !popup) return 0;
-int re = -1;
-Py_BEGIN_ALLOW_THREADS
-RunSync([&]()mutable{
-POINT p;
-GetCursorPos(&p);
-re = TrackPopupMenu(submenu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN | TPM_LEFTBUTTON, p.x, p.y, 0, GetForegroundWindow(), NULL);
-});//RunSync
-Py_END_ALLOW_THREADS
-return re;
 }
 
 PyObject* PyMenuItem::addItem (tstring  label, PySafeObject action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator, int isSpecific) {
@@ -423,3 +386,32 @@ re = getItem(pos);
 return re;
 }
 
+int ShowContextMenu (const vector<tstring>& items) {
+POINT p;
+HMENU menu = CreatePopupMenu();
+int itemID = 0;
+for (const tstring& item: items) AppendMenu(menu, MF_STRING, ++itemID, item.c_str() );
+GetCursorPos(&p);
+itemID = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN | TPM_LEFTBUTTON, p.x, p.y, 0, GetForegroundWindow(), NULL) -1;
+DestroyMenu(menu);
+return itemID;
+}
+
+int PyShowPopupMenu (PyObject* pOptions) {
+vector<tstring> items;
+int result;
+if (!PySequence_Check(pOptions)) return NULL;
+for (int i=0, n=PySequence_Size(pOptions); i<n; i++) {
+PyObject* item = PySequence_GetItem(pOptions,i);
+if (!item || !PyUnicode_Check(item)) return NULL;
+const wchar_t* str = PyUnicode_AsUnicode(item);
+if (!str) return NULL;
+items.push_back(str);
+}
+Py_BEGIN_ALLOW_THREADS
+RunSync([&]()mutable{
+result = ShowContextMenu(items);
+});//RunSync
+Py_END_ALLOW_THREADS
+return result;
+}
