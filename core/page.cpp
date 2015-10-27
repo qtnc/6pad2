@@ -286,8 +286,8 @@ if (!pyData) pyData = CreatePyEditorTabObject(shared_from_this());
 return *pyData;
 }
 
-void Page::FindNext () {
-if (finds.size()<=0) { FindDialog(); return; }
+bool Page::FindNext () {
+if (finds.size()<=0) { FindDialog(); return false; }
 FindData& fd = finds.front();
 int pos;
 SendMessage(zone, EM_GETSEL, 0, &pos);
@@ -296,13 +296,16 @@ auto p = preg_search(text, fd.findText, pos, !(fd.flags&FF_CASE), !(fd.flags&FF_
 if (p.first>=0 && p.second>=0) {
 SendMessage(zone, EM_SETSEL, p.first, p.second);
 SendMessage(zone, EM_SCROLLCARET, 0, 0);
+return true;
 }
-else MessageBeep(MB_ICONASTERISK);
-}
+else {
+MessageBeep(MB_ICONASTERISK);
+return false;
+}}
 
-void Page::FindPrev () {
+bool Page::FindPrev () {
 HWND& edit = zone;
-if (finds.size()<=0) { FindDialog(); return; }
+if (finds.size()<=0) { FindDialog(); return false; }
 FindData& fd = finds.front();
 int pos;
 SendMessage(edit, EM_GETSEL, &pos, 0);
@@ -311,18 +314,23 @@ auto p = preg_rsearch(text, fd.findText, pos, !(fd.flags&FF_CASE), !(fd.flags&FF
 if (p.first>=0 && p.second>=0) {
 SendMessage(edit, EM_SETSEL, p.first, p.second);
 SendMessage(edit, EM_SCROLLCARET, 0, 0);
+return true;
 }
-else MessageBeep(MB_ICONASTERISK);
-}
+else {
+MessageBeep(MB_ICONASTERISK);
+return false;
+}}
 
-void Page::Find (const tstring& searchText, bool scase, bool regex, bool up, bool stealthty) {
+bool Page::Find (const tstring& searchText, bool scase, bool regex, bool up, bool stealthty) {
 FindData fd(searchText, TEXT(""), (scase?FF_CASE:0) | (regex?FF_REGEX:0) | (up?FF_UPWARDS:0) );
 auto it = find(finds.begin(), finds.end(), fd);
 if (it!=finds.end()) { finds.erase(it); stealthty=false; }
 finds.push_front(fd);
-if (up) FindPrev();
-else FindNext();
+bool re;
+if (up) re = FindPrev();
+else re = FindNext();
 if (stealthty) finds.pop_front();
+return re;
 }
 
 void Page::FindReplace (const tstring& searchText, const tstring& replaceText, bool scase, bool regex, bool stealthty) {

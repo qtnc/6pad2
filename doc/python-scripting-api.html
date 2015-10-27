@@ -42,40 +42,40 @@
 <h1 id="module-sixpad">Module sixpad</h1>
 <h2 id="functions">Functions</h2>
 <dl>
-<dt>void setClipboardText(str newText):</dt>
+<dt>setClipboardText(newText) -&gt; None:</dt>
 <dd>Place a text in the system clipboard.
 </dd>
-<dt>str getClipboardText():</dt>
+<dt>getClipboardText() -&gt; str:</dt>
 <dd>Return the contents of the system clipboard.
 </dd>
-<dt>void include(str filename):</dt>
+<dt>include(filename) -&gt; None:</dt>
 <dd>Run a file.
 </dd>
-<dt>void loadExtension(str extensionName)</dt>
+<dt>loadExtension(extensionName) -&gt; None:</dt>
 <dd>Load the specified extension; the name can be a python script to be included directly, a python module to be imported, or a C/C++ DLL extension.
 </dd>
-<dt>void loadTranslation (str filename):</dt>
+<dt>loadTranslation (filename) -&gt; None:</dt>
 <dd>Load a translation .lng file.
 </dd>
-<dt>str msg(str key):</dt>
+<dt>msg(key) -&gt; str:</dt>
 <dd>Return the string associated to a given key in the translation file. Return the key itself if the string isn’t found.
 </dd>
-<dt>setConfig(str key, str value, [Bool multiple=False]):</dt>
+<dt>setConfig(key, value, multiple=False) -&gt; None:</dt>
 <dd>Set the value of a key in the configuration file. The multiple argument defines whether or not the key can be present multiple times. You can use keyword arguments ‘key’, ‘value’ and ‘multiple’.
 </dd>
-<dt>str getConfig (str key, str defaultValue):</dt>
+<dt>getConfig (key, defaultValue) -&gt; str:</dt>
 <dd>Return the value of a key from the configuration file. If the key has multiple values, the first value found is returned. If the key isn’t found, defaultValue is returned.
 </dd>
-<dt>[str] getConfigAsList(str key):</dt>
+<dt>getConfigAsList(key) -&gt; [str]:</dt>
 <dd>Return a list containing all the values associated with the given key in the configuration file.
 </dd>
-<dt>say(str text, [bool interrupt=False]):</dt>
+<dt>say(text, interrupt=False) -&gt; None:</dt>
 <dd>IF a scren reader is active, speak the specified string. IF interrupt is True, the message is spoken immediately, possibly stopping any other speech; if interrupt is False (by default), the message is spoken as soon as possible once all other currently spoken messages are finished.
 </dd>
-<dt>stopSpeech():</dt>
+<dt>stopSpeech() -&gt; None:</dt>
 <dd>If a screen reader is currently active, it is requested to stop immediately speaking.
 </dd>
-<dt>braille(str text):</dt>
+<dt>braille(text) -&gt; None:</dt>
 <dd>If a screen reader is currently active and if a braille display is connected, the given message is displayed on the braille display.
 </dd>
 </dl>
@@ -103,76 +103,79 @@
 <h1 id="the-window-object">The window object</h1>
 <h2 id="methods">Methods</h2>
 <dl>
-<dt>Page open(str filename):</dt>
+<dt>open(filename) -&gt; Page:</dt>
 <dd>Open a file in the editor. If the file has been successfully opened in this instance, the page object is returned, otherwise None.
 </dd>
-<dt>Page new (str type):</dt>
+<dt>new (type = ‘text’) -&gt; Page:</dt>
 <dd>Open a new page of the type specified with an empty file. By default, only the type ‘text’ is supported, other plugins may support additional types.
 </dd>
-<dt>void beep(int freq, int duration):</dt>
+<dt>beep(freq, duration) -&gt; None:</dt>
 <dd>Produce a PC speaker beep.
 </dd>
-<dt>void messageBeep(int id):</dt>
+<dt>messageBeep(typeID) -&gt; None:</dt>
 <dd>Produce a standard windows beep.
 </dd>
-<dt>int messageBox(str text, str title, int flags):</dt>
+<dt>messageBox(text, title, flags) -&gt; int:</dt>
 <dd>Show a windows message box.
 </dd>
-<dt>void alert(str text, str title):</dt>
+<dt>alert(text, title = ‘Info’) -&gt; None:</dt>
 <dd>Show an alert dialog box with an OK button.
 </dd>
-<dt>void warning(str text, str title):</dt>
+<dt>warning(text, title = ‘Warning!’) -&gt; None:</dt>
 <dd>Show a warning dialog box with an OK button.
 </dd>
-<dt>int confirm(str text, str title):</dt>
+<dt>confirm(text, title = ‘Question’) -&gt; int:</dt>
 <dd>Show a confirmation dialog box where the user can choose between yes and no; return 1 if the user clicked yes, 0 if he clicked no.
 </dd>
-<dt>int choice(str prompt, str title, [str] options, [int initialSelection=0]):</dt>
+<dt>choice(prompt, title, listOfOptions, initialSelection=0) -&gt; int:</dt>
 <dd>Show a dialog box where the user can choose an option ammong a list. Returns the index of the chosen item, or -1 if the user cancelled the dialog box. You can use keyword arguments.
 </dd>
-<dt>str prompt(str prompt, str title, str text=’’, [str] list=[]) :</dt>
+<dt>prompt(prompt, title, text=’’, list=[]) -&gt; str:</dt>
 <dd>Show a dialog box where the user can enter a single line of text. The list parameter allow to provide pre-entered suggestions. Returns the text entered by the user, or None if he cancelled the dialog box. You can use keyword arguments.
 </dd>
-<dt>str saveDialog(str file=‘’, str title=’’, [(str,str)] filters = [], int initialFilter=0)</dt>
+<dt>saveDialog(file=‘’, title=’’, filters=[], initialFilter=0) -&gt; multiple return types:</dt>
 <dd>Show a save dialog box where the user can choose a file to save to. If specified, the filters list must be a list of 2-tuples where the first item is the filter description e.g. “TExt files”, and the second is the pattern e.g. “<code>*.txt</code>”. Returns a str indicating the path being selected by the user, or None if he cancelled the dialog box. If a filters list is specified, returns a tuple where the first item is the selected file and the second is the index of the selected filter. You can use keyword arguments.
 </dd>
-<dt>str openDialog(str file=‘’, str title=’’, [(str,str)] filters = [], int initialFilter=0, multiple=False)</dt>
+<dt>openDialog(file=‘’, title=’’, filters=[], initialFilter=0, multiple=False) -&gt; multiple return types:</dt>
 <dd>Show an open dialog box where the user can choose a file to open. If specified, the filters list must be a list of 2-tuples where the first item is the filter description e.g. “TExt files”, and the second is the pattern e.g. “<code>*.txt</code>”. Returns a str indicating the path being selected by the user, or None if he cancelled the dialog box. If a filters list is specified, returns a tuple where the first item is the selected file and the second is the index of the selected filter. If multiple is set to True, the user can select more than one file to open and a list of str is returned instead of a single str. You can use keyword arguments.
 </dd>
-<dt>str chooseFolder(str folder=‘’, str title=’‘, str root=’’, bool showFiles=False)</dt>
+<dt>chooseFolder(folder=‘’, title=’‘, root=’’, showFiles=False) -&gt; str:</dt>
 <dd>Show a dialog box where the user can choose a folder in a tree view. If showFiles is set to True, the user can also select files, otherwise he can only select folders. Returns the item selected by the user, or None if he cancelled the dialog box. You can use keyword arguments.
 </dd>
-<dt><span id="wcpm1"></span>Menu createPopupMenu():</dt>
-<dd>Create a new popup menu and return it.
+<dt>focus () -&gt; None:</dt>
+<dd>Focus 6pad++ window.
 </dd>
-<dt>int addAccelerator(str key, callback function):</dt>
-<dd>Install a callback to be called when the given shortcut key is pressed. ON success, return a non-zero identifier used to unregister this accelerator.
+<dt>showPopupMenu(listOfOptions) -&gt; int:</dt>
+<dd>Show a popup (context) menu with the given list of option items. Returns the index of the selected item in the list, or -1 if the user closed the menu without choosing an option.
 </dd>
-<dt>int removeAccelerator(int id):</dt>
+<dt>addAccelerator(key, callbackFunction, specific = True) -&gt; int:</dt>
+<dd>Install a callback function to be called when the given shortcut key is pressed. If specific is set to True, the given shortcut key is specific to the current page, i.e. it is triggered only when pressed while being in the current page. ON success, return a non-zero identifier used to unregister this accelerator.
+</dd>
+<dt>removeAccelerator(id) -&gt; int:</dt>
 <dd>Remove an accelerator previously installed. You must pass the event ID returned by addAccelerator.
 </dd>
-<dt>int addEvent(str eventName, callback function):</dt>
-<dd>Install a callback to be called when the given event occurs. See the <a href="#windowEvents">list of supported events for window</a>. ON success, return a non-zero identifier used to unregister this event.
+<dt>addEvent(eventName, callbackFunction) -&gt; int:</dt>
+<dd>Install a callback function to be called when the given event occurs. See the <a href="#windowEvents">list of supported events for window</a>. ON success, return a non-zero identifier used to unregister this event.
 </dd>
-<dt>int removeEvent(str eventName, int eventId):</dt>
+<dt>removeEvent(eventName, eventID) -&gt; int:</dt>
 <dd>Remove an event previously registered. You must pass in the event ID previously returned by addEvent. Returns a non-zero value if the event has successfully been unregistered.
 </dd>
-<dt>int findAcceleratorByKey(str key):</dt>
+<dt>findAcceleratorByKey(key) -&gt; int:</dt>
 <dd>Look for an event associated to the given shortcut key. If found, its corresponding event ID is returned. IN case nothing is associated with the given shortcut key, 0 is returned.
 </dd>
-<dt>str findAcceleratorByID(int id):</dt>
+<dt>findAcceleratorByID(id) -&gt; str:</dt>
 <dd>Look for a shortcut key associated with the given event ID. If the event ID doesn’t exist, or if it isn’t associated with a shortcut key, an empty string is returned.
 </dd>
-<dt>int setTimeout(callback function, int delay):</dt>
+<dt>setTimeout(callbackFunction, delay) -&gt; int:</dt>
 <dd>Schedule the given callback function to be called asynchronously after the specified delay. Returns a timer identifier, which can be passed to <a href="#clearTimeout">clearTimeout</a> to cancel this timer.
 </dd>
-<dt>int setInterval(callback function, int interval):</dt>
+<dt>setInterval(callbackFunction, interval) -&gt; int:</dt>
 <dd>Schedule the given callback function to be called asynchronously and repeatedly each specified interval until it is cancelled with a call to <a href="#clearInterval">clearInterval</a>. Returns the timer identifier, which must be given to <code>clearInterval</code> in order to stop this timer.
 </dd>
-<dt><span id="clearTimeout"></span>clearTimeout(int timerId)</dt>
+<dt><span id="clearTimeout"></span>clearTimeout(timerId) -&gt; None:</dt>
 <dd>Cancel the specified timer.
 </dd>
-<dt><span id="clearInterval"></span>clearInterval(int timerId)</dt>
+<dt><span id="clearInterval"></span>clearInterval(timerId) -&gt; None:</dt>
 <dd>Cancel the specified timer.
 </dd>
 </dl>
@@ -198,7 +201,7 @@
 </dd>
 </dl>
 <h2 id="windowEvents">Events</h2>
-<p>The following events can be passed to addEvent/removeEvent for the window. In parenthesis are the arguments passed to the callback .</p>
+<p>The following events can be passed to addEvent/removeEvent for the window. In parenthesis are the arguments passed to the callback function.</p>
 <dl>
 <dt>activated ():</dt>
 <dd>Called when the application window has been activated, i.e. made visible and got focus.
@@ -212,98 +215,98 @@
 <dt>closed ():</dt>
 <dd>Called when the application has just been closed.
 </dd>
-<dt>pageOpened (Page newPage):</dt>
+<dt>pageOpened (newPage):</dt>
 <dd>Called just after a new page has been opened
 </dd>
-<dt>pageBeforeOpen (str fileName):</dt>
+<dt>pageBeforeOpen (fileName) -&gt; str|None:</dt>
 <dd>Called before a new page is opened. The filename about to be opened is passed in the callback, and it is supposed to return the page type to create. By default, only the type ‘text’ is supported, but plugins may support additional types.
 </dd>
-<dt>status (str text):</dt>
+<dt>status (text) -&gt; str|None:</dt>
 <dd>Called when the status bar contents is about to be updated. The text which is about to be set is passed to the callback and you can return a new text string to overwrite what will be shown on the status bar. Note that this event occurs after the status event of a specific page.
 </dd>
-<dt>title (str text):</dt>
+<dt>title (text) -&gt; str|None:</dt>
 <dd>Called when the title of the application window is about to be changed. The title which is going to be set is passed in the callback, and you can return a new text string to overwrite what will be shown on the title bar of the application window.
 </dd>
-<dt>fileDropped (str file, int x, int y):</dt>
+<dt>fileDropped (file, x, y) -&gt; bool:</dt>
 <dd>Called when a file has been dragged from windows explorer and dropped onto the application window, or when a file from windows explorer is copied and pasted into the application window. The callback receives the file name, and the mouse coordinates of the drop. In case of a clipboard operation, coordinates are (0;0). By returning True, the normal action is taken, i.e. open the dragged file in 6pad++. You can return False to prevent this action from happening. Note that this event is only triggered if no similar event is registered for the current page or if it returned True.
 </dd>
 </dl>
 <h1 id="page-class">Page class</h1>
 <h2 id="methods-1">Methods</h2>
 <dl>
-<dt>void focus():</dt>
+<dt>focus() -&gt; None:</dt>
 <dd>Focus the page.
 </dd>
-<dt>void close():</dt>
+<dt>close() -&gt; None:</dt>
 <dd>Close the page; a confirmation may be asked to the user.
 </dd>
-<dt>int addEvent(str eventName, callback function):</dt>
+<dt>addEvent(eventName, callbackFunction) -&gt; int:</dt>
 <dd>Install a callback to be called when the given event occurs at this page. See the <a href="#pageEvents">list of supported events for pages</a>. ON success, return a non-zero integer used to unregister this event.
 </dd>
-<dt>int removeEvent(str eventName, int eventId):</dt>
+<dt>removeEvent(eventName, eventId) -&gt; int:</dt>
 <dd>Remove an event previously registered. You must pass in the event ID previously returned by addEvent. Returns a non-zero value if the event has successfully been unregistered.
 </dd>
-<dt>void select(int start, int end):</dt>
+<dt>select(start, end) -&gt; None:</dt>
 <dd>Select a portion of text.
 </dd>
-<dt>str line(int lineNumber):</dt>
+<dt>line(lineNumber) -&gt; str:</dt>
 <dd>Returns a line of text.
 </dd>
-<dt>int lineLength(int lineNumber):</dt>
+<dt>lineLength(lineNumber) -&gt; int:</dt>
 <dd>Returns the length of the given line.
 </dd>
-<dt>int lineOfOffset(int position):</dt>
+<dt>lineOfOffset(position) -&gt; int:</dt>
 <dd>Return the line number corresponding to the character position given, or otherwise said, the line number where the given character position is found.
 </dd>
-<dt>int lineStartOffset(int lineNumber):</dt>
+<dt>lineStartOffset(lineNumber) -&gt; int:</dt>
 <dd>Return the character position corresponding to the beginning of the given line number. First line is line 0.
 </dd>
-<dt>int lineEndOffset(int lineNumber):</dt>
+<dt>lineEndOffset(lineNumber) -&gt; int:</dt>
 <dd>Return the character position corresponding to the end of the given line. First line is line 0.
 </dd>
-<dt>int lineSafeStartOffset(ine lineNumber):</dt>
+<dt>lineSafeStartOffset(lineNumber) -&gt; int:</dt>
 <dd>Return the character position corresponding to the true beginning of the given line number, where the first non-space character is found. First line is line 0.
 </dd>
-<dt>int lineIndentLevel(int lineNumber):</dt>
+<dt>lineIndentLevel(lineNumber) -&gt; int:</dt>
 <dd>Return the indentation level of the given line.
 </dd>
-<dt>str substring(int start, int end):</dt>
-<dd>Gets a substring of the whole text currently present in being edited.
+<dt>substring(start, end) -&gt; str:</dt>
+<dd>Gets a substring of the whole text currently being edited.
 </dd>
-<dt>void replace(int start, int end, str text):</dt>
+<dt>replace(start, end, newText) -&gt; None:</dt>
 <dd>Replace a range of characters by the given text.
 </dd>
-<dt>void delete(int start, int end):</dt>
+<dt>delete(start, end) -&gt; None:</dt>
 <dd>Delete a range of characters.
 </dd>
-<dt>void insert(int position, str text):</dt>
+<dt>insert(position, text) -&gt; None:</dt>
 <dd>Insert a string of text at the given position.
 </dd>
-<dt>void find(str term, bool scase, bool regex, bool up, bool stealthty):</dt>
-<dd>Make a search in the text, as if the user issued a search using the Find dialog. SEt scase to True for a sensible case search, regex to True for a regular expression search, and up to True for a search backward instead of forward. If stealthty is True, the find term won’t be added in the combobox of previously searched terms in the Find dialog box. You can use keywords arguments.
+<dt>find(term, scase=False, regex=False, up=False, stealthty=False) -&gt; int:</dt>
+<dd>Make a search in the text, as if the user issued a search using the Find dialog. SEt scase to True for a sensible case search, regex to True for a regular expression search, and up to True for a search backward instead of forward. If stealthty is True, the find term won’t be added in the combobox of previously searched terms in the Find dialog box. You can use keywords arguments. Returns 1 or 0 depending on if something has been found or not.
 </dd>
-<dt>void findNext():</dt>
-<dd>Find the next occurence of the text previously searched for, as if the user pressed F3 or chose the Find next item in the Edit menu.
+<dt>findNext() -&gt; int:</dt>
+<dd>Find the next occurence of the text previously searched for, as if the user pressed F3 or chose the Find next item in the Edit menu. Returns 1 if something has been found, 0 otherwise.
 </dd>
-<dt>void findPrevious():</dt>
-<dd>Find the previous occurence of the text most recently searched for, as if the user pressed Shift+F3 or chose the Find previous item in the Edit menu.
+<dt>findPrevious() -&gt; int:</dt>
+<dd>Find the previous occurence of the text most recently searched for, as if the user pressed Shift+F3 or chose the Find previous item in the Edit menu. Returns 1 if something has been found, 0 otherwise.
 </dd>
-<dt>void searchReplace(str search, str replacement, bool scase, bool regex, bool stealthty):</dt>
+<dt>searchReplace(search, replacement, scase=False, regex=False, stealthty=False) -&gt; None:</dt>
 <dd>Make a search/replace operation in the text, as if the user issued this command from the search/replace dialog box. SEt scase to True for a sensible case search, regex to True for a regular expression search/replace. If stealthty is True, terms won’t be added in comboboxes of previously used terms in the dialog box. You can use keyword arguments.
 </dd>
-<dt>void save():</dt>
-<dd>Save the file, as if file&gt;save had been chosen.
+<dt>save() -&gt; None:</dt>
+<dd>Save the file, as if file&gt;save had been chosen by the user.
 </dd>
-<dt>void reload():</dt>
-<dd>Reload the file, as if file&gt;reload had been chosen.
+<dt>reload() -&gt; None:</dt>
+<dd>Reload the file, as if file&gt;reload had been chosen by the user.
 </dd>
-<dt>void undo():</dt>
-<dd>Undo the last operation.
+<dt>undo() -&gt; None:</dt>
+<dd>Undo the last operation, as if Edit&gt;Undo had been chosen by the user.
 </dd>
-<dt>void redo():</dt>
-<dd>Redo the last operation.
+<dt>redo() -&gt; None:</dt>
+<dd>Redo the last operation, as if Edit&gt;Redo had been chosen by the user.
 </dd>
-<dt>void pushUndoState(object):</dt>
+<dt>pushUndoState(UndoStateCompatibleObject) -&gt; None:</dt>
 <dd>Push an undoable operation on the top of the undo stack. The object passed must have the two methods undo(self,page) and redo(self,page).
 </dd>
 </dl>
@@ -349,7 +352,7 @@
 <dd>The current column where the caret is. If there is a selection, selectionEnd is taken as being the current position.
 </dd>
 <dt>int curLine:</dt>
-<dd>The current line number where the caret is. If there is a selection, selectionEnd is taken as being the current position. Modifying this value is the same as doing <code>position = lineStartIndex(value)</code>.
+<dd>The current line number where the caret is. If there is a selection, selectionEnd is taken as being the current position. Modifying this value is the same as doing <code>position = lineStartIndex(value)</code>, i.e. the cursor is placed at the beginning of the line.
 </dd>
 <dt>str curLineText:</dt>
 <dd>The text of the line where the caret currently is. If there is a selection, selectionEnd is taken as being the current position.
@@ -380,7 +383,7 @@
 <dd>Return the first character or the first line of text.
 </dd>
 <dt>object[4:9]:</dt>
-<dd>Return a substring of text from the 3rd to the 8th character, or the text between the beginning of the 3rd line and the end of 7th line.
+<dd>Return a substring of text from the 5th to the 10th character, or the text between the beginning of the 5th line and the end of 10th line.
 </dd>
 </dl>
 <p>Replacing ranges, such as <code>object[4:9] = 'Hello'</code> also works, and overwrite the range specified. However, note that <em>specifying a step different than 1</em>, (e.g. <code>object[10:20:3]</code> <em>isn’t supported</em> and raises an error.</p>
@@ -390,31 +393,31 @@
 <dt>activated ():</dt>
 <dd>Called when the page has been activated, i.e. it ahs been made visible and focused because the user switched to this page.
 </dd>
-<dt>deactivate ():</dt>
+<dt>deactivate () -&gt; bool:</dt>
 <dd>Called when a page is about to be deactivated, i.e. lose focus and become hidden because the user wants to switch to another page. By returning False, you can prevent the page from being deactivated.
 </dd>
 <dt>deactivated ():</dt>
 <dd>Called just after the page has been deactivated.
 </dd>
-<dt>close ():</dt>
+<dt>close () -&gt; bool:</dt>
 <dd>Called when the page is about to be closed (upon Ctrl+F4 or exiting the application). By returning False, you can prevent the page from being closed and the application from being exited. Note that even if you accept the close by returning True or None, the user will still be asked whether he really wants to close this page. For security, there is no way to bypass this last confirmation.
 </dd>
 <dt>closed ():</dt>
 <dd>Called just after the page has been closed.
 </dd>
-<dt>load (str text):</dt>
+<dt>load (text) -&gt; str|None:</dt>
 <dd>Occurs when the text of the page is about to be loaded. The text which is going to appear in the edition field is passed to the callback. You can return a new string to overwrite the text being loaded.
 </dd>
-<dt>beforeSave (str fileName):</dt>
-<dd>Occurs when the page is about to be saved. The file name is passed in the callback and you can return another file name in order to save to a different file,
+<dt>beforeSave (fileName) -&gt; str|None:</dt>
+<dd>Occurs when the page is about to be saved. The file name is passed in the callback and you can return another file name in order to save to a different file.
 </dd>
-<dt>save (str text):</dt>
+<dt>save (text) -&gt; str|None:</dt>
 <dd>Occurs when the page is about to be saved. The text that is about to be saved is passed in the callback. You can return a new text string to overwrite what is going to be saved.
 </dd>
-<dt>status (str text):</dt>
+<dt>status (text) -&gt; str|None:</dt>
 <dd>Occurs when the contents of the status bar is about to be updated. The text which is about to be displayed is passed to the callback, and you can return another text string to overwrite it.
 </dd>
-<dt>enter (str line):</dt>
+<dt>enter (line) -&gt; multiple return types:</dt>
 <dd><p>Occurs when the user pressed the enter key in order to start a new line of text. The line of text where the user is before creating the new one is passed to the callback. You can return :</p>
 <ul>
 <li>True or None to accept starting a new line</li>
@@ -423,26 +426,26 @@
 </ul>
 - An str which will be automatically written at the beginning of the new line
 </dd>
-<dt>keyPressed (int ch):</dt>
+<dt>keyPressed (ch) -&gt; bool:</dt>
 <dd>Occurs when a key press generating a character to write has been pressed. By returning False, you can prevent the character from being inserted into the edition area at the current caret position.
 </dd>
-<dt>keyDown (int vk):</dt>
+<dt>keyDown (vk) -&gt; bool:</dt>
 <dd>Occurs when the user press a key in the edition area. By returning False, you can prevent the default action of the key from happening.
 </dd>
-<dt>keyUp (int vk):</dt>
+<dt>keyUp (vk) -&gt; bool:</dt>
 <dd>Occurs when the user releases a key in the edition area. By returning False, you can prevent the default action of the key from happening.
 </dd>
-<dt>contextmenu ():</dt>
+<dt>contextmenu () -&gt; bool:</dt>
 <dd>Occurs when the user calls the context menu with application key and/or Shift+F10 and/or right mouse button. By returning False, you can prevent the default context menu from appearing.
 </dd>
-<dt>fileDropped (str file, int x, int y):</dt>
+<dt>fileDropped (file, x, y) -&gt; bool:</dt>
 <dd>Called when a file has been dragged from windows explorer and dropped onto the application window, or when a file from windows explorer is copied and pasted into the application window. The callback receives the file name, and the mouse coordinates of the drop. In case of a clipboard operation, coordinates are (0;0). By returning True, the normal action is taken, i.e. open the dragged file in 6pad++. You can return False to prevent this action from happening.
 </dd>
 </dl>
 <h1 id="menuobj">Menu class</h1>
 <h2 id="methods-2">Methods</h2>
 <dl>
-<dt>Menu add(…):</dt>
+<dt>add(label=‘’, action=None, index=-1, accelerator=’‘, name=’’, submenu=False, separator=False, specific=False) -&gt; Menu:</dt>
 <dd><p>Add a new item to the menu and returns it. Specify a serie of keyword arguments to define what kind of menu item to add:</p>
 <ul>
 <li>label=text of the item</li>
@@ -451,14 +454,12 @@
 <li>accelerator=a string specifying a shortcut key such a ‘Ctrl+E’</li>
 <li>name=The name of the submenu allowing it to be referenced in python code</li>
 <li>submenu=True to create a submenu rahter than a menu item</li>
+<li>specific=True to create a page-specific menu element, i.e. it appears only when the current page is active</li>
 </ul>
 - separator=True to create an item separator
 </dd>
-<dt>void remove(…):</dt>
+<dt>remove(name=None, index=-1) -&gt; None:</dt>
 <dd>Remove this item or a subitem; without any argument, remove this item from the menu; specifiy wheither the keyword argument name or index to remove a subitem by its name or index.
-</dd>
-<dt>int show():</dt>
-<dd>Make this menu appear to the user; this can work only if this menu is a popup menu (see <a href="#wcpm1">window.createPopupMenu</a>). Return the command identifier of the item selected by the user, or 0 in case he cancelled the menu or if it failed to display for some reason.
 </dd>
 </dl>
 <h2 id="mappingindexing">Mapping, indexing and calling</h2>
@@ -477,11 +478,10 @@
 <dd>Equivalent to menu[‘itemName’].
 </dd>
 </dl>
-<p>IN any case, None is returned if the item is not found</p>
+<p>IN any case, None is returned if the item is not found. In case this menu object represents a single menu item, you can also use the regular call operator like a function to trigger the action normally executed by the item. I.e. <code>item()</code>. If the item represents a submenu, calling it like a function raises an error.</p>
 <ul>
-<li><em>Warning: slicing, e.g. menu[1:3] doesn’t work</em></li>
+<li><em>Warning: slicing, e.g. menu[1:3] doesn’t work</em> and raise an error.</li>
 </ul>
-<p>In case this menu object represents a single menu item, you can also use the regular call operator like a function to trigger the action normally executed by the item. I.e. <code>item()</code>. If the item represents a submenu, calling it like a function raises an error.</p>
 <h2 id="members-3">Members</h2>
 <dl>
 <dt>int submenu (read only):</dt>

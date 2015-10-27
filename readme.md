@@ -1,21 +1,17 @@
-# 6pad++, the successor of 6pad
-
-6pad++ is the successor of 6pad; 6pad is now abandonned.
+# 6pad++, the tiny and smart text editor
 
 6pad++ is a simple and lightweight, yet powerful text editor for windows.
 Its main goal is to keep the accessibility and responsiveness of standard notepad, while providing a few not especially spectacular but useful features.
 
-Latest version is alpha 4.
+Latest version is beta 1.
 If you have an improvement to suggest, if you found a bug, or if you have any question, feel free to contact me or post on the issue tracker.
 
 Have fun !
 
 # Download
 
-There is no official release yet available. As soon as the features, code and python API become more or less stable, first betas will be released.
-
-You can download latest version, Alpha 4, at <http://vrac.quentinc.net/6pad%2b%2b.zip>.
-Note that this is still an *alpha release* !
+You can download latest version, beta 1, at <http://vrac.quentinc.net/6pad%2b%2b.zip>.
+Note that this is still a *beta release* !
 
 # Features
 
@@ -40,13 +36,12 @@ IN the opposite side, complete integrated developement editors like eclipse are 
 There effectively already exist a text editor made for screen reader users, it is called [EdSharp](http://empowermentzone.com/EdSharp.htm).
 However, I find its interface not as easy as it is said; menus are especially full of rarely used features, are quite randomly mixed up, and it lakes an obvious way of customizing the whole thing with scripts in an easy way. And, of course, I don't program in C#.
 
-# Changes from 6pad
+# 6pad++, the successor of 6pad
 
-Main changes compared to 6pad are:
-
-* 6pad++ is in C++11 instead of C99
-* 6pad++ is scriptable in python 3.4 instead of lua 5.1.4
-* Dropped PCRE API in favor of boost::regex; in practice it makes very few differences.
+6pad++ is the successor of 6pad. 6pad was programmed in pur C. It was often buggy because of this and didn't use a modern development language, that's why I decided to start a new project from the beginning, in C++11.
+6pad proposed a lua scripting interface instead of python. I decided to switch to python because lua isn't very adapted in advanced string manipulation, after all the main task of a text editor. In particular, lua doesn't support unicode and UTF-8 natively.
+Python 3 isn't a string manipulation specific language either, but it is today a widely popular language which perfectly supports Unicode and UTF-8. 
+It also natively offers much more functionalities often useful as scripting language in a text editor beside text manipulation, such as file search for example.
 
 You can have a look at the [old 6pad repository](http://github.com/qtnc/6pad) if you wish. That old 6pad is no longer maintained.
 
@@ -63,3 +58,7 @@ Note 1: 6pad++ binary is compiled with MinGW/GCC 4.8.1 in 32-bit mode. If you wa
 This is because Visual Studio's and GCC's ABI aren't eachother compatible.
 
 Note 2: 6pad++ binary is linked with msvcr100.dll instead of msvcrt.dll. This is an obligation because python34.dll has also been linked with msvcr100.dll and I don't have any control on python34.dll. This python34.dll, as well as the whole python library found in python34.zip, have been taken unmodified from the default python 3.4 windows installer available at <http://www.python.org/>. I just removed completely useless python modules.
+
+# License
+
+6pad++ is distributed as a free software with the GPL license version 3. For more information, please read license.txt.

@@ -132,9 +132,9 @@ virtual void SetCurrentPositionLC (int, int);
 virtual void GoToDialog ();
 virtual void FindDialog () ;
 virtual void FindReplaceDialog () ;
-virtual void Find(const tstring& searchText, bool scase, bool regex, bool up, bool stealthty);
-virtual void FindNext ();
-virtual void FindPrev () ;
+virtual bool Find(const tstring& searchText, bool scase, bool regex, bool up, bool stealthty);
+virtual bool FindNext ();
+virtual bool FindPrev () ;
 virtual void FindReplace (const tstring& search, const tstring& replace, bool caseSensitive, bool isRegex, bool stealthty);
 
 inline int GetSelectionStart () { int s,e; GetSelection(s,e); return s; }

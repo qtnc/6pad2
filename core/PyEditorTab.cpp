@@ -55,10 +55,10 @@ int addEvent (const string& type, const PySafeObject& cb) {  return page()->AddE
 int removeEvent (const string& type, int id) { return page()->RemoveEvent(type, id); }
 void focus () { page()->Focus(); }
 void close () { page()->Focus(); page()->Close(); }
-void find (const tstring& term, bool scase, bool regex, bool up, bool stealthty) {  RunSync([&]()mutable{  page()->Find(term, scase, regex, up, stealthty); });  }
+bool find (const tstring& term, bool scase, bool regex, bool up, bool stealthty) {  RunSync([&]()mutable{  page()->Find(term, scase, regex, up, stealthty); });  }
 void searchReplace (const tstring& sText, const tstring& rText, bool scase, bool regex, bool stealthty) {  RunSync([&]()mutable{ page()->FindReplace(sText, rText, scase, regex, stealthty); });  }
-void findNext () { RunSync([&]()mutable{ page()->FindNext(); }); }
-void findPrev () { RunSync([&]()mutable{ page()->FindPrev(); }); }
+int findNext () { bool re; RunSync([&]()mutable{ re = page()->FindNext(); });  return re; }
+int findPrev () { bool re; RunSync([&]()mutable{ re = page()->FindPrev(); }); return re; }
 void undo () { RunSync([&]()mutable{ page()->Undo(); }); }
 void redo () { RunSync([&]()mutable{ page()->Redo(); }); }
 void save () { RunSync([&]()mutable{ page()->SaveFile(); }); }
@@ -120,8 +120,11 @@ const wchar_t *findText=0;
 bool scase=false, regex=false, up=false, stealthty=false;
 static const char* KWLST[] = {"term", "scase", "regex", "up", "stealthty", NULL};
 if (!PyArg_ParseTupleAndKeywords(args, dic, "u|pppp", (char**)KWLST, &findText, &scase, &regex, &up, &stealthty)) return NULL;
-if(self) self->find(findText, scase, regex, up, stealthty);
-Py_RETURN_NONE;
+bool re=false;
+if(self) re = self->find(findText, scase, regex, up, stealthty);
+PyObject* re2 = re? Py_True : Py_False;
+Py_INCREF(re2);
+return re2;
 }
 
 static PyObject* PyPageFindReplace (PyEditorTab* self, PyObject* args, PyObject* dic) {
