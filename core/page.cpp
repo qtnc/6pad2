@@ -344,7 +344,7 @@ int start, end;
 SendMessage(zone, EM_GETSEL, &start, &end);
 tstring oldText = GetWindowText(zone);
 if (start!=end) oldText = tstring(oldText.begin()+start, oldText.begin()+end);
-tstring newText = preg_replace(oldText, searchText, replaceText, !scase, regex);
+tstring newText = preg_replace(oldText, searchText, replaceText, !scase, !regex);
 if (start!=end) {
 SendMessage(zone, EM_REPLACESEL, 0, newText.c_str() );
 SendMessage(zone, EM_SETSEL, start, start+newText.size());
@@ -772,15 +772,19 @@ static bool EZHandleDel (Page* curPage, HWND hwnd) {
 int selStart, selEnd;
 SendMessage(hwnd, EM_GETSEL, &selStart, &selEnd);
 if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selEnd, EditGetSubstring(hwnd, selStart, selEnd), true) ));
-else if (selStart<GetWindowTextLength(hwnd)) {
+else if (selStart>=GetWindowTextLength(hwnd)) return false;
 tstring text = EditGetSubstring(hwnd, selStart, selStart+1);
 if (text==TEXT("\r")) {
-text = EditGetSubstring(hwnd, selStart, selStart+2);
-curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selStart+2, text, 2) ));
+text = EditGetSubstring(hwnd, selStart, selStart+100);
+int pos = text.find_first_not_of(TEXT(" \t\r\n"));
+if (pos<2 || pos>=text.size()) pos=2;
+if (pos==3 && text[2]==' ') pos=2;
+text = text.substr(0, pos);
+curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selStart+text.size(), text, 2) ));
+SendMessage(hwnd, EM_SETSEL, selStart, selStart+text.size());
 }
 else curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selStart+1, text, 2) ));
-}
-return true;
+return false;
 }
 
 static LRESULT EZHandleEnter (Page* page, HWND hEdit) {
@@ -823,6 +827,20 @@ tstring line = EditGetLine(hEdit, nLine, pos);
 pos = line.find_first_not_of(TEXT("\t \xA0"));
 if (pos<0 || pos>=line.size()) pos=line.size();
 SendMessage(hEdit, EM_SETSEL, offset+pos, offset+pos);
+return true;
+}
+
+static LRESULT EZHandleShiftHome (HWND hEdit) {
+int ss=0, se=0, ssL=0, seL=0, offset=0;
+SendMessage(hEdit, EM_GETSEL, &ss, &se);
+ssL = SendMessage(hEdit, EM_LINEFROMCHAR, ss, 0);
+seL = SendMessage(hEdit, EM_LINEFROMCHAR, se, 0);
+if (ssL!=seL) return false; // selection spends multiple lines, normal shift+home behavior
+offset = SendMessage(hEdit, EM_LINEINDEX, ssL, 0);
+tstring line = EditGetLine(hEdit, ssL);
+se = line.find_first_not_of(TEXT("\t \xA0"));
+if (se<0 || se>=line.size()) se=line.size();
+SendMessage(hEdit, EM_SETSEL, ss, offset+se);
 return true;
 }
 
@@ -945,7 +963,8 @@ case VK_RIGHT | VKM_ALT | VKM_SHIFT: return EZHandleSelectDown(hwnd, EZGetEndInd
 case VK_RIGHT | VKM_ALT: return EZHandleMoveDown(hwnd, EZGetEndIndentedBlockPos, false);
 case VK_HOME: return EZHandleHome(hwnd, false);
 case VK_HOME | VKM_ALT: return EZHandleHome(hwnd, true);
-case VK_DELETE:  EZHandleDel(curPage, hwnd); break;
+case VK_HOME | VKM_SHIFT: if (EZHandleShiftHome(hwnd)) return true; break;
+case VK_DELETE:  if (EZHandleDel(curPage, hwnd)) return true; break;
 }}break;//WM_KEYDOWN/WM_SYSKEYDOWN
 case WM_PASTE : {
 int start, end;
