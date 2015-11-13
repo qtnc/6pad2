@@ -19,7 +19,7 @@ msg(key) -> str:
 :	Return the string associated to a given key in the translation file. Return the key itself if the string isn't found.
 setConfig(key, value, multiple=False) -> None:
 :	Set the value of a key in the configuration file. The multiple argument defines whether or not the key can be present multiple times. You can use keyword arguments 'key', 'value' and 'multiple'.
-getConfig (key, defaultValue) -> str:
+getConfig (key, defaultValue = '') -> str:
 :	Return the value of a key from the configuration file. If the key has multiple values, the first value found is returned. If the key isn't found, defaultValue is returned.
 getConfigAsList(key) -> [str]:
 :	Return a list containing all the values associated with the given key in the configuration file.
@@ -174,7 +174,7 @@ lineEndOffset(lineNumber) -> int:
 lineSafeStartOffset(lineNumber) -> int:
 :	Return the character position corresponding to the true beginning of the given line number, where the first non-space character is found. First line is line 0.
 lineIndentLevel(lineNumber) -> int:
-:	Return the indentation level of the given line.
+:	Return the indentation level of the given line, according to current indentation settings.
 substring(start, end) -> str:
 :	Gets a substring of the whole text currently being edited.
 replace(start, end, newText) -> None:
@@ -201,6 +201,8 @@ redo() -> None:
 :	Redo the last operation, as if Edit>Redo had been chosen by the user.
 pushUndoState(UndoStateCompatibleObject) -> None:
 :	Push an undoable operation on the top of the undo stack. The object passed must have the two methods undo(self,page) and redo(self,page).
+doteditorconfig(key, defaultValue = '') -> str
+:	Get the value of a configuration key that can be found in .editorconfig files for the current file. If the key is not found, defaultValue is returned. Note that .editorconfig configuration directives are loaded/updated when the file is loaded, reloaded or saved.
 
 ## Members
 int closed (read only):

@@ -51,6 +51,11 @@ void setEncoding (int e) { RunSync([&]()mutable{ page()->SetEncoding(e); }); }
 void setIndentationMode (int i) { RunSync([&]()mutable{ page()->SetIndentationMode(i); }); }
 void setTabWidth (int i) { RunSync([&]()mutable{ page()->SetTabWidth(i); }); }
 void setAutoLineBreak (int b) { RunSync([&]()mutable{ page()->SetAutoLineBreak(b); }); }
+string getDotEditorConfigValue (const string& key, OPT, const string& def) {
+IniFile& ini = page()->dotEditorConfig;
+auto it = ini.find(key);
+return it!=ini.end()? it->second : def;
+}
 int addEvent (const string& type, const PySafeObject& cb) {  return page()->AddEvent(type,cb); }
 int removeEvent (const string& type, int id) { return page()->RemoveEvent(type, id); }
 void focus () { page()->Focus(); }
@@ -230,11 +235,11 @@ PyDecl("undo", &PyEditorTab::undo),
 PyDecl("redo", &PyEditorTab::redo),
 PyDecl("save", &PyEditorTab::save),
 PyDecl("reload", &PyEditorTab::reload),
-//PyDecl("find", &PyEditorTab::find),
 {"find", (PyCFunction)PyPageFind, METH_VARARGS | METH_KEYWORDS, NULL},
 PyDecl("findNext", &PyEditorTab::findNext),
 PyDecl("findPrevious", &PyEditorTab::findPrev),
 {"searchReplace", (PyCFunction)PyPageFindReplace, METH_VARARGS | METH_KEYWORDS, NULL},
+PyDecl("doteditorconfig", &PyEditorTab::getDotEditorConfigValue),
 PyDeclEnd
 };
 

@@ -440,7 +440,7 @@ SetName(FileNameToPageName(*this, file));
 flags&=~(PF_MUSTSAVEAS|PF_READONLY);
 int editorConfigOverride = sp->config->get("editorConfigOverride", 1);
 if (editorConfigOverride>0) {
-IniFile ini;
+IniFile& ini = dotEditorConfig;
 ReadDotEditorconfigs(file, ini);
 int le = elt(to_upper_copy(ini.get("end_of_line",string("0"))), lineEnding, {"CRLF", "LF", "CR", "RS", "LS"});
 int enc = eltm(to_lower_copy(ini.get("charset",string("0"))), encoding, {{"latin1", 1252}, {"latin-1", 1252}, {"utf-8", 65001}, {"utf8", 65001}, {"utf-16le", 1200}, {"utf-16be", 1201}, {"utf-8-bom", 65002}});
@@ -484,7 +484,7 @@ File fd(file);
 if (!fd) return -GetLastError();
 int editorConfigOverride = (!guessFormat?0: sp->config->get("editorConfigOverride", 1));
 if (!guessFormat || editorConfigOverride<=0) return LoadData(fd.readFully(), guessFormat);
-IniFile ini;
+IniFile& ini = dotEditorConfig;
 ReadDotEditorconfigs(file, ini);
 if (editorConfigOverride==2) {
 lineEnding = elt(to_upper_copy(ini.get("end_of_line",string("0"))), sp->config->get("defaultLineEnding", LE_DOS), {"CRLF", "LF", "CR", "RS", "LS"});

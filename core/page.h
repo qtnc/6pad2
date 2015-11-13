@@ -2,6 +2,7 @@
 #define ___PAGE_H9
 #include "global.h"
 #include "python34.h"
+#include "IniFile.h"
 #include "signals.h"
 #include<functional>
 
@@ -58,6 +59,7 @@ unsigned long long flags = 0, lastSave=0;
 HWND zone=0;
 HACCEL hPageAccel=0;
 PySafeObject pyData;
+IniFile dotEditorConfig;
 std::vector<shared_ptr<UndoState>> undoStates;
 std::vector<PageSpecificMenu> specificMenus;
 

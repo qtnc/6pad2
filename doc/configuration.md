@@ -91,7 +91,18 @@ By default, this parameter is set to 1.
 1:
 :	Use .editorconfig files, but load the file in the format guessed rather than how it is specified in .editorconfig if it appear to be more appropriate. When saving the file, settings defined in .editorconfig are always taken into account.
 2:
-:	Use .editorconfig files and always open the files in the format specified in .editorconfig, even if there are potential encoding and/or line endings conflicts. 
+:	Use .editorconfig files and always open the files in the format specified in .editorconfig, even if there are potential encoding and/or line endings conflicts.
+
+The following .editorconfig properties are supported :
+
+charset:
+:	The character set encoding: "Latin1", "UTF8", "UTF8BOM", "UTF16Le", "UTF16Be"
+indent_style:
+:	Indentation type: "tab" or "space"
+indent_size:
+:	Number of spaces of an indentation level when using spaces as indentation: number in range 1-8.
+tab_width:
+:	Size of a tab when using tabs as indentation: number in range 1-8
 
 ## maxRecentFiles
 The maximum number of entries present in the recent files menu. Default to 10.
