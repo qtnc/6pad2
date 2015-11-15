@@ -495,15 +495,20 @@ tabWidth = ini.get("tab_width", ini.get("indent_size", indentationMode));
 guessFormat=false;
 }
 auto result = LoadData(fd.readFully(), guessFormat);
-if (editorConfigOverride==1) {
+if (editorConfigOverride>=1) {
 lineEnding = elt(to_upper_copy(ini.get("end_of_line",string("0"))), lineEnding, {"CRLF", "LF", "CR", "RS", "LS"});
 encoding = eltm(to_lower_copy(ini.get("charset",string("0"))), encoding, {{"latin1", 1252}, {"latin-1", 1252}, {"utf-8", 65001}, {"utf8", 65001}, {"utf-16le", 1200}, {"utf-16be", 1201}, {"utf-8-bom", 65002}});
 indentationMode = elt(to_lower_copy(ini.get("indent_style",string("0"))), indentationMode, {"tab", "space"});
 if (indentationMode) indentationMode = ini.get("indent_size", indentationMode);
 tabWidth = ini.get("tab_width", ini.get("indent_size", indentationMode));
-}
+if (!ini.get("_6p_auto_indent", true)) flags |= PF_NOAUTOINDENT;
+if (ini.get("_6p_auto_line_break", false)) flags |= PF_AUTOLINEBREAK;
+if (!ini.get("_6p_smart_home", true)) flags |= PF_NOSMARTHOME;
+if (!ini.get("_6p_safe_indent", true)) flags |= PF_NOSAFEINDENT;
+if (!ini.get("_6p_smart_paste", true)) flags |= PF_NOSMARTPASTE;
 bool trimEol = ini.get("trim_trailing_whitespace", false); //todo: flag this setting
 bool eofNewline = ini.get("insert_final_newline", false); //todo: flag this setting
+}
 return result;
 }
 
@@ -755,31 +760,46 @@ if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDelet
 curPage->PushUndoState(shared_ptr<UndoState>(new TextInserted(selStart, text, false )) ,tryToJoin);
 }
 
-static void EZHandleBackspace (Page* curPage, HWND hwnd) {
+static bool EZHandleBackspace (Page* curPage, HWND hwnd) {
 int selStart, selEnd;
 SendMessage(hwnd, EM_GETSEL, &selStart, &selEnd);
 if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selEnd, EditGetSubstring(hwnd, selStart, selEnd), true) ));
-else if (selStart>0) {
+else if (selStart<=0) return false;
 tstring text = EditGetSubstring(hwnd, selStart -1, selStart);
-if (text==TEXT("\n")) {
+if (text[0]=='\n') {
 text = EditGetSubstring(hwnd, selStart -2, selStart);
 curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart -2, selStart, text, false) ));
+return false;
 }
-else curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart -1, selStart, text, false) ));
+else if (!(curPage->flags&PF_NOSAFEINDENT) && (text[0]==' ' || text[0]=='\t')) {
+int ln = SendMessage(hwnd, EM_LINEFROMCHAR, selStart, 0);
+int li = SendMessage(hwnd, EM_LINEINDEX, ln, 0);
+tstring line = EditGetLine(hwnd, ln);
+int pos = line.find_first_not_of(TEXT("\t "));
+if (pos<0 || pos>line.size()) pos=line.size();
+if (selStart<li+pos) { // Within the indent characters, prevent accidental erase
+MessageBeep(MB_OK);
+return true;
 }}
+curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart -1, selStart, text, false) ));
+return false;
+}
 
-static bool EZHandleDel (Page* curPage, HWND hwnd) {
+static bool EZHandleDel (Page* curPage, HWND hwnd, bool normal) {
 int selStart, selEnd;
 SendMessage(hwnd, EM_GETSEL, &selStart, &selEnd);
 if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selEnd, EditGetSubstring(hwnd, selStart, selEnd), true) ));
 else if (selStart>=GetWindowTextLength(hwnd)) return false;
 tstring text = EditGetSubstring(hwnd, selStart, selStart+1);
 if (text==TEXT("\r")) {
+if (normal) text = EditGetSubstring(hwnd, selStart, selStart+2);
+else {
 text = EditGetSubstring(hwnd, selStart, selStart+100);
 int pos = text.find_first_not_of(TEXT(" \t\r\n"));
 if (pos<2 || pos>=text.size()) pos=2;
 if (pos==3 && text[2]==' ') pos=2;
 text = text.substr(0, pos);
+}
 curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selStart+text.size(), text, 2) ));
 SendMessage(hwnd, EM_SETSEL, selStart, selStart+text.size());
 }
@@ -787,7 +807,7 @@ else curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selS
 return false;
 }
 
-static LRESULT EZHandleEnter (Page* page, HWND hEdit) {
+static LRESULT EZHandleEnter (Page* page, HWND hEdit, bool noAutoIndent) {
 int pos=0, nLine=0, addIndent=0;
 SendMessage(hEdit, EM_GETSEL, &pos, 0);
 nLine = SendMessage(hEdit, EM_LINEFROMCHAR, pos, 0);
@@ -799,7 +819,7 @@ case T_BOOL: if (!re) return false; break;
 case T_INT: addIndent = re.toInt(); break;
 case T_STR: addString = re.toTString(); break;
 }
-pos = line.find_first_not_of(TEXT("\t \xA0"));
+pos = noAutoIndent? 0 : line.find_first_not_of(TEXT("\t \xA0"));
 if (pos<0 || pos>=line.size()) pos=line.size();
 if (addIndent<0) pos = max(0, pos + addIndent * max(1, page->indentationMode));
 line = line.substr(0,pos);
@@ -830,7 +850,8 @@ SendMessage(hEdit, EM_SETSEL, offset+pos, offset+pos);
 return true;
 }
 
-static LRESULT EZHandleShiftHome (HWND hEdit) {
+static LRESULT EZHandleShiftHome (HWND hEdit, bool normal) {
+if (normal) return false;
 int ss=0, se=0, ssL=0, seL=0, offset=0;
 SendMessage(hEdit, EM_GETSEL, &ss, &se);
 ssL = SendMessage(hEdit, EM_LINEFROMCHAR, ss, 0);
@@ -928,14 +949,12 @@ return true;
 }}
 switch(cc) {
 case VK_RETURN: 
-return EZHandleEnter(curPage, hwnd);
+return EZHandleEnter(curPage, hwnd, curPage->flags&PF_NOAUTOINDENT);
 case VK_TAB: 
 if (EZHandleTab(curPage, hwnd)) return true; 
 EZTextInserted(curPage, hwnd, TEXT("\t")); 
 break;
-case VK_BACK: 
-EZHandleBackspace(curPage, hwnd);
-break;
+case VK_BACK:  if (EZHandleBackspace(curPage, hwnd)) return true; break;
 default: 
 EZTextInserted(curPage, hwnd, tstring(1,LOWORD(wp)) ); 
 break;
@@ -961,20 +980,23 @@ case VK_LEFT | VKM_ALT | VKM_SHIFT: return EZHandleSelectUp(hwnd, EZGetStartInde
 case VK_LEFT | VKM_ALT: return EZHandleMoveUp(hwnd, EZGetStartIndentedBlockPos);
 case VK_RIGHT | VKM_ALT | VKM_SHIFT: return EZHandleSelectDown(hwnd, EZGetEndIndentedBlockPos);
 case VK_RIGHT | VKM_ALT: return EZHandleMoveDown(hwnd, EZGetEndIndentedBlockPos, false);
-case VK_HOME: return EZHandleHome(hwnd, false);
+case VK_HOME: return EZHandleHome(hwnd, curPage->flags&PF_NOSMARTHOME);
 case VK_HOME | VKM_ALT: return EZHandleHome(hwnd, true);
-case VK_HOME | VKM_SHIFT: if (EZHandleShiftHome(hwnd)) return true; break;
-case VK_DELETE:  if (EZHandleDel(curPage, hwnd)) return true; break;
+case VK_HOME | VKM_SHIFT: if (EZHandleShiftHome(hwnd, curPage->flags&PF_NOSMARTHOME)) return true; break;
+case VK_HOME | VKM_SHIFT | VKM_ALT: if (EZHandleShiftHome(hwnd, true)) return true; break;
+case VK_DELETE:  if (EZHandleDel(curPage, hwnd, curPage->flags&PF_NOSAFEINDENT)) return true; break;
 }}break;//WM_KEYDOWN/WM_SYSKEYDOWN
 case WM_PASTE : {
 int start, end;
 SendMessage(hwnd, EM_GETSEL, &start, &end);
 tstring line = EditGetLine(hwnd);
 tstring str = GetClipboardText();
+if (!(curPage->flags&PF_NOSMARTPASTE)) {
 int pos = line.find_first_not_of(TEXT(" \t"));
 if (pos>=line.size()) pos=line.size();
 tstring indent = line.substr(0,pos);
 PrepareSmartPaste(str, indent);
+}
 if (start!=end) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(start, end, EditGetSubstring(hwnd, start, end), true) ));
 curPage->PushUndoState(shared_ptr<UndoState>(new TextInserted(start, str, false )));
 SendMessage(hwnd, EM_REPLACESEL, 0, str.c_str());

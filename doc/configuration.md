@@ -60,6 +60,31 @@ The default indentation convention to use when creating a new empty file. Defaul
 ## defaultTabWidth
 The default size, in spaces, visually taken by a tab characters, between 1 and 8. Default to 4.
 
+## defaultAutoIndent {#defaultAutoIndent}
+Define whether automatic indentation is on or off (true or false) for new files.
+
+When automatic indentation is on, pressing enter creates a new line with the same indentation level as the previous line; when it is off, new lines always start without any indentation.
+
+## defaultSmartPaste {#defaultSmartPaste}
+Define whether smart paste is on or off (true or false) for new files.
+
+When smart paste is on, indentations of the pasted text are striped away and readjusted to the indentation level of the current line. When it is off, no adjustment is done and the text is always pasted exactly as it has been stored in the clipboard.
+
+## defaultSmartHome {#defaultSmartHome}
+Define whether smart home is on or off (true or false) for new files.
+
+When smart home is on, pressing *Home* place the cursor at the first non-blank character, after indentation spaces and tabs, instead of at the true beginning of the line.
+Similarely, when there is no selection or if the selection doesn't spend multiple lines, pressing *Shift+Home* selects to the first non-blank character instead of the effective beginning of the line.
+The normal selection / cursor movement to the effective beginning of the line behavior occurrs if this parameter is off, if the current selection spends multiple lines, or if you add the *Alt* key. In other words you can place the cursor at the true beginning of the line by pressing *Alt+Home*.
+
+## defaultSafeIndent {#defaultSafeIndent}
+Define whether safe indentation is on or off (true or false) for new files.
+
+When safe indentation is on, the following behaviors occur:
+
+* When pressing *Del* at the end of a line, the next line is joined to the current one as usual, but indentation of the joining line is triped away. The importance of this behavior is most notably useful when pressing *Del* at the end of a line and then again *Enter* to split it again. Without this adjustment, repressing *enter* may cause the indentation of the next line to double unexpectedly.
+* Pressing *backspace* within indentation spaces or tabs has no effect, to make sure you don't erase indentation levels by accident. To remove indentation levels, *Backspace* only works if the cursor is on the first non-blank character. Note that you can also use *Shift+Tab* to remove indentation levels.
+
 ## instanceMode
 Define how to manage multiple instances of the program and multiple files opened at once. Default to 0.
 
@@ -93,16 +118,31 @@ By default, this parameter is set to 1.
 2:
 :	Use .editorconfig files and always open the files in the format specified in .editorconfig, even if there are potential encoding and/or line endings conflicts.
 
-The following .editorconfig properties are supported :
+The following standard .editorconfig properties are supported :
 
 charset:
 :	The character set encoding: "Latin1", "UTF8", "UTF8BOM", "UTF16Le", "UTF16Be"
+end_of_line:
+:	Line ending type: "CRLF", "LF" or "CR"
 indent_style:
 :	Indentation type: "tab" or "space"
 indent_size:
 :	Number of spaces of an indentation level when using spaces as indentation: number in range 1-8.
 tab_width:
 :	Size of a tab when using tabs as indentation: number in range 1-8
+
+The following proprietary .editorconfig parameters are also recognized :
+
+_6p_auto_line_break:
+:	Define [defaultAutoLineBreak](#defaultAutoLineBreak) parameter for specific files.
+_6p_auto_indent:
+:	Define [defaultAutoIndent](#defaultAutoIndent) parameter for specific files.
+_6p_smart_home:
+:	Define [defaultSmartHome](#defaultSmartHome) parameter for specific files.
+_6p_smart_paste:
+:	Define [defaultSmartPaste](#defaultSmartPaste) parameter for specific files.
+_6p_safe_indent:
+:	Define [defaultSafeIndent](#defaultSafeIndent) parameter for specific files.
 
 ## maxRecentFiles
 The maximum number of entries present in the recent files menu. Default to 10.

@@ -279,7 +279,12 @@ p->encoding = config.get("defaultEncoding", (int)GetACP() );
 p->lineEnding = config.get("defaultLineEnding", LE_DOS);
 p->indentationMode = config.get("defaultIndentationMode", 0);
 p->tabWidth = config.get("defaultTabWidth", 4);
-p->flags = config.get("defaultAutoLineBreak", false)? PF_AUTOLINEBREAK : 0;
+p->flags = 
+(config.get("defaultAutoLineBreak", false)? PF_AUTOLINEBREAK : 0)
+| (config.get("defaultAutoIndent", true)? 0 : PF_NOAUTOINDENT)
+| (config.get("defaultSmartHome", true)? 0 : PF_NOSMARTHOME)
+| (config.get("defaultSafeIndent", true)? 0 : PF_NOSAFEINDENT)
+| (config.get("defaultSmartPaste", true)? 0 : PF_NOSMARTPASTE);
 PageAdd(p, focus);
 return p;
 }
