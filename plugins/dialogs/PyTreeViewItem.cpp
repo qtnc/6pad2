@@ -21,9 +21,8 @@ PyDeclEnd
 #define Prop(x) PyAccessor(#x, &PyTreeViewItem::get_##x, &PyTreeViewItem::set_##x)
 #define RProp(x) PyReadOnlyAccessor(#x, &PyTreeViewItem::get_##x)
 static PyGetSetDef PyTreeViewItemAccessors[] = {
-Prop(text), Prop(value),
-Prop(expanded),
-RProp(parent), RProp(nextSibling), RProp(previousSibling), RProp(firstChild), RProp(children),
+Prop(text), Prop(value), Prop(expanded),
+RProp(parent), RProp(nextSibling), RProp(previousSibling), RProp(firstChild), RProp(lastChild), RProp(childNodes), RProp(hasChildNodes),
 PyDeclEnd
 };
 #undef Prop
@@ -135,6 +134,10 @@ PyObject* PyTreeViewItem::get_parent () {
 return pyobj((HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_PARENT, item));
 }
 
+int PyTreeViewItem::get_hasChildNodes () {
+return !!SendMessage(hTree, TVM_GETNEXTITEM, TVGN_CHILD, item);
+}
+
 PyObject* PyTreeViewItem::get_firstChild () {
 return pyobj((HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_CHILD, item));
 }
@@ -147,7 +150,7 @@ PyObject* PyTreeViewItem::get_previousSibling  () {
 return pyobj((HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_PREVIOUS, item));
 }
 
-PyObject* PyTreeViewItem::get_children () {
+PyObject* PyTreeViewItem::get_childNodes () {
 PyObject* list = PyList_New(0);
 HTREEITEM cur = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_CHILD, item);
 while(cur){
@@ -155,6 +158,16 @@ PyList_Append(list, pyobj(cur));
 cur = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_NEXT, cur);
 }
 return list;
+}
+
+PyObject* PyTreeViewItem::get_lastChild () {
+HTREEITEM last=NULL, cur = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_CHILD, item);
+if (!cur) { Py_RETURN_NONE; }
+while(cur){
+last=cur;
+cur = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_NEXT, cur);
+}
+return pyobj(last);
 }
 
 void PyTreeViewItem::set_text (const tstring& s) {

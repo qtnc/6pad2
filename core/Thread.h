@@ -20,7 +20,7 @@ void export init (Proc*);
 };
 
 inline bool IsUIThread () {
-return (DWORD)GetCurrentThreadId == SPPTR uiThreadId;
+return (DWORD)(GetCurrentThreadId()) == SPPTR uiThreadId;
 }
 
 template<class F> inline void RunSync (const F& cf, bool del = false) {

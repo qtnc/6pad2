@@ -96,6 +96,10 @@ static int PySayStr (const tstring& str, OPT, bool interrupt) {
 return speechSay(str.c_str(), interrupt);
 }
 
+static int PyIsUIThread () {
+return IsUIThread();
+}
+
 static PyMethodDef _6padMainDefs[] = {
 // Translation management
 PyDecl("msg", msg),
@@ -109,7 +113,7 @@ PyDecl("getConfigAsList", PyGetConfigMulti),
 PyDecl("setClipboardText", SetClipboardText),
 PyDecl("getClipboardText", GetClipboardText),
 
-// Speech
+// Speech and screen readers
 PyDecl("stopSpeech", speechStop),
 PyDecl("say", PySayStr),
 PyDecl("braille", PyBraille),
@@ -118,6 +122,7 @@ PyDecl("braille", PyBraille),
 PyDecl("include", PyInclude),
 PyDecl("loadExtension", PyLoadExtension),
 PyDecl("loadTranslation", PyLoadLang),
+PyDecl("isUIThread", PyIsUIThread),
 PyDecl("preg_replace", preg_replace),
 
 // Overload of print, to be able to print in python console GUI

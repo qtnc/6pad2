@@ -219,5 +219,3 @@ if (pidl) ILFree(pidl);
 return re;
 }
 
-
-

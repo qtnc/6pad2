@@ -8,6 +8,7 @@ def func():
 	win.beep(800,120)
 
 def func4 ():
+	print(sixpad.isUIThread())
 	dlgs.test()
 
 def func3 (dlg):
