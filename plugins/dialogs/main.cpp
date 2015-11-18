@@ -5,6 +5,7 @@ SixpadData* sp = 0;
 
 bool PyRegister_TreeViewItem (PyObject* m);
 bool PyRegister_TreeViewDialog (PyObject* m);
+bool PyRegister_ProgressDialog (PyObject* m);
 void test123 (void) { Beep(1047,250); }
 
 static PyMethodDef MainDefs [] = {
@@ -25,6 +26,7 @@ CallSixPadDLLInit(SixpadDLLInit2);
 PyObject* mod = PyModule_Create(&MainMod);
 PyRegister_TreeViewItem (mod);
 PyRegister_TreeViewDialog(mod);
+PyRegister_ProgressDialog(mod);
 return mod;
 }
 

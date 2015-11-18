@@ -198,6 +198,7 @@ it.mask = TVIF_PARAM;
 it.lParam = (LPARAM)newVal;
 Py_XINCREF(newVal);
 Py_XDECREF(oldVal);
+Py_XDECREF(oldVal);
 SendMessage(hTree, TVM_SETITEM, 0, &it);
 }
 

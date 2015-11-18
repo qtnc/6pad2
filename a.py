@@ -1,15 +1,22 @@
 import os, sys
 import sixpad
 from sixpad import window as win
-
+from time import sleep
+from threading import Thread
 import qc6paddlgs as dlgs
 
 def func():
 	win.beep(800,120)
 
+def func5 () :
+	ppd = dlgs.ProgressDialog.open(title='Title', text='Text')
+	for i in range(1,100):
+		sleep(0.4)
+		ppd.value=i
+	ppd.close()
+
 def func4 ():
-	print(sixpad.isUIThread())
-	dlgs.test()
+	Thread(target=func5) .start()
 
 def func3 (dlg):
 	for i in range(1,11):
@@ -23,6 +30,7 @@ def func2 ():
 
 #win.addAccelerator('F5', func)
 win.addAccelerator('Ctrl+E', func4)
+win.addAccelerator('Ctrl+0', func5)
 
 #win.menus.tools.add(label='Hello item', accelerator='Ctrl+E', specific=True, action=func)
 test = win.menus.add(label='&Test', name='test', index=4, submenu=True, specific=True)
