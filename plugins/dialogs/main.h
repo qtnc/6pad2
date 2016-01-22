@@ -4,7 +4,8 @@
 
 #define IDD_OUTPUT 899
 #define IDD_TREEVIEW 898
-#define IDD_PROGRESS 897
+#define IDD_TREEVIEW2 897
+#define IDD_PROGRESS 896
 
 #ifndef __WINDRES
 #include "../../core/sixpad.h"

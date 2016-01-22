@@ -21,8 +21,8 @@ PyDeclEnd
 #define Prop(x) PyAccessor(#x, &PyTreeViewItem::get_##x, &PyTreeViewItem::set_##x)
 #define RProp(x) PyReadOnlyAccessor(#x, &PyTreeViewItem::get_##x)
 static PyGetSetDef PyTreeViewItemAccessors[] = {
-Prop(text), Prop(value), Prop(expanded),
-RProp(parent), RProp(nextSibling), RProp(previousSibling), RProp(firstChild), RProp(lastChild), RProp(childNodes), RProp(hasChildNodes),
+Prop(text), Prop(value), Prop(expanded), Prop(checked), Prop(partiallyChecked),
+RProp(parentNode), RProp(nextSibling), RProp(previousSibling), RProp(firstChild), RProp(lastChild), RProp(childNodes), RProp(hasChildNodes),
 PyDeclEnd
 };
 #undef Prop
@@ -130,7 +130,7 @@ if (it) return (PyObject*) PyTreeViewItem::New(hTree, it);
 else { Py_RETURN_NONE; }
 }
 
-PyObject* PyTreeViewItem::get_parent () {
+PyObject* PyTreeViewItem::get_parentNode () {
 return pyobj((HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_PARENT, item));
 }
 
@@ -232,3 +232,38 @@ SendMessage(hTree, TVM_SELECTITEM, TVGN_CARET, item);
 void PyTreeViewItem::set_expanded (bool expand) {
 SendMessage(hTree, TVM_EXPAND, expand?TVE_EXPAND:TVE_COLLAPSE, item);
 }
+
+void PyTreeViewItem::setStateImage  (int index) {
+TVITEM it;
+it.hItem = item;
+it.mask = TVIF_STATE;
+it.stateMask = TVIS_STATEIMAGEMASK;
+it.state = (index&0x0F)<<12;
+SendMessage(hTree, TVM_SETITEM, 0, &it);
+}
+
+int PyTreeViewItem::getStateImage  () {
+TVITEM it;
+it.hItem = item;
+it.mask = TVIF_STATE;
+it.stateMask = TVIS_STATEIMAGEMASK;
+SendMessage(hTree, TVM_GETITEM, 0, &it);
+return (it.state>>12)&0x0F;
+}
+
+int PyTreeViewItem::get_checked () {
+return getStateImage()>1;
+}
+
+int PyTreeViewItem::get_partiallyChecked () {
+return getStateImage()==3;
+}
+
+void PyTreeViewItem::set_checked (bool b) {
+setStateImage(b? 2 : 1);
+}
+
+void PyTreeViewItem::set_partiallyChecked (bool b) {
+if (b) setStateImage(3);
+}
+

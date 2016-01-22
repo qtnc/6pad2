@@ -17,7 +17,7 @@ void removeChild (PyObject*);
 PyObject* addChild (const tstring& text, HTREEITEM hAfter = TVI_LAST, PyObject* udata=0, UINT state = 0);
 PyObject* appendChild (const tstring& text, OPT, PyObject* value);
 PyObject* insertBefore (const tstring& text, PyObject* child, OPT, PyObject* value);
-PyObject* get_parent  () ;
+PyObject* get_parentNode  () ;
 PyObject* get_firstChild () ;
 PyObject* get_lastChild () ;
 PyObject* get_childNodes ();
@@ -33,6 +33,12 @@ int get_expanded ();
 void set_expanded (bool expanded) ;
 int get_selected ();
 void select () ;
+int getStateImage ();
+void setStateImage (int index);
+int get_checked ();
+int get_partiallyChecked ();
+void set_checked (bool b);
+void set_partiallyChecked (bool b);
 };
 
 

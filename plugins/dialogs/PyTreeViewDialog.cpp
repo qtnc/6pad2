@@ -105,7 +105,6 @@ return re;
 }
 
 bool PyTreeViewDialog::allowEdit (HTREEITEM item, tstring& text) {
-
 if (!signals->onedited.empty()) {
 var re = signals->onedited((PyObject*)this, (PyObject*)PyTreeViewItem::New(hTree, item), text);
 if (re.getType()==T_BOOL && !re) return false;
@@ -134,15 +133,15 @@ if (!closed) SendMessage(hDlg, WM_COMMAND, IDCANCEL, 0);
 
 PyObject* PyTreeViewDialog::open (PyObject* unused, PyObject* args, PyObject* kwds) {
 const wchar_t *title=TEXT(""), *hint=TEXT(""), *okText=NULL, *cancelText=NULL;
-bool modal = false;
+bool modal = false, checkboxes=false;
 PyObject* callback=NULL;
-static const char* KWLST[] = { "title", "hint", "modal", "callback", "okButtonText", "cancelButtonText", NULL};
-if (!PyArg_ParseTupleAndKeywords(args, kwds, "|uupOuu", (char**)KWLST, &title, &hint, &modal, &callback, &okText, &cancelText)) return NULL;
-TreeViewDialogInfo tvdi = { title, hint, okText?okText:msg("&OK"), cancelText?cancelText:msg("Ca&ncel"), modal, callback, NULL };
+static const char* KWLST[] = { "title", "hint", "modal", "callback", "okButtonText", "cancelButtonText", "checkboxes", NULL};
+if (!PyArg_ParseTupleAndKeywords(args, kwds, "|uupOuup", (char**)KWLST, &title, &hint, &modal, &callback, &okText, &cancelText, &checkboxes)) return NULL;
+TreeViewDialogInfo tvdi = { title, hint, okText?okText:msg("&OK"), cancelText?cancelText:msg("Ca&ncel"), modal, checkboxes, callback, NULL };
 if (modal) {
 bool cancelled;
 Py_BEGIN_ALLOW_THREADS
-RunSync([&]()mutable{ cancelled = IDYES!=DialogBoxParam(hinstance, IDD_TREEVIEW, sp->win, TreeViewDlgProc, &tvdi); });
+RunSync([&]()mutable{ cancelled = IDYES!=DialogBoxParam(hinstance, (checkboxes? IDD_TREEVIEW2 : IDD_TREEVIEW), sp->win, TreeViewDlgProc, &tvdi); });
 Py_END_ALLOW_THREADS
 PyTreeViewDialog& dlg = *tvdi.dlg;
 PyObject* re = NULL;
@@ -151,7 +150,7 @@ else re = Py_BuildValue("(uO)", dlg.signals->finalText.c_str(), *dlg.signals->fi
 dlg.Delete();
 return re;
 } else {
-HWND hDlg = CreateDialogParam(hinstance, IDD_TREEVIEW, sp->win, TreeViewDlgProc, &tvdi);
+HWND hDlg = CreateDialogParam(hinstance, (checkboxes? IDD_TREEVIEW2 : IDD_TREEVIEW), sp->win, TreeViewDlgProc, &tvdi);
 ShowWindow(hDlg, SW_SHOW);
 return (PyObject*) tvdi.dlg;
 }}
@@ -239,6 +238,7 @@ if (tvdi.okText.size()>0) SetDlgItemText(hwnd, IDYES, tvdi.okText);
 else ShowWindow(GetDlgItem(hwnd, IDYES), SW_HIDE);
 if (tvdi.cancelText.size()>0) SetDlgItemText(hwnd, IDCANCEL, tvdi.cancelText);
 else ShowWindow(GetDlgItem(hwnd, IDCANCEL), SW_HIDE);
+if (tvdi.checkboxes) SendMessage(hTree, 0x1100+44, 0x80, 0x80); // Partial checkboxes
 SetWindowSubclass(hTree, (SUBCLASSPROC)TreeViewSubclassProc, 0, (DWORD_PTR)&dlg);
 if (tvdi.callback) tvdi.callback.asFunction<void(PyObject*)>()((PyObject*)&dlg);
 SetFocus(hTree);
