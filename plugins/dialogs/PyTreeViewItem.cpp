@@ -10,9 +10,34 @@ static int PyTreeViewItemInit (PyTreeViewItem* self, PyObject* args, PyObject* k
 return 0;
 }
 
+static PyObject* appendChildProxy (PyObject* item, PyObject* args, PyObject* kwds) {
+static const char* KWLST[] = { "text", "value", "checked", "partiallyChecked", "expanded", "selected", NULL};
+const wchar_t *text = nullptr;
+PyObject *value= nullptr;
+BOOL checked=false, partiallyChecked=false, expanded=false, selected=false;
+if (!PyArg_ParseTupleAndKeywords(args, kwds, "uO|$pppp", (char**)KWLST, &text, &value, &checked, &partiallyChecked, &expanded, &selected)) return NULL;
+if (!value || !text) return NULL;
+UINT state = (expanded? TVIS_EXPANDED : 0) | (selected? TVIS_SELECTED : 0) | (checked? 2<<12 : 0) | (partiallyChecked? 3<<12 : 0);
+return ((PyTreeViewItem*)item) ->appendChild(text, value, state);
+}
+
+static PyObject* insertBeforeProxy (PyObject* item, PyObject* args, PyObject* kwds) {
+static const char* KWLST[] = { "before", "text", "value", "checked", "partiallyChecked", "expanded", "selected", NULL};
+const wchar_t *text = nullptr;
+PyObject *value=nullptr, *child=nullptr;
+BOOL checked=false, partiallyChecked=false, expanded=false, selected=false;
+if (!PyArg_ParseTupleAndKeywords(args, kwds, "OuO|pppp", (char**)KWLST, &child, &text, &value, &checked, &partiallyChecked, &expanded, &selected)) return NULL;
+if (!child || !value || !text) return NULL;
+UINT state = (expanded? TVIS_EXPANDED : 0) | (selected? TVIS_SELECTED : 0) | (checked? 2<<12 : 0) | (partiallyChecked? 3<<12 : 0);
+return ((PyTreeViewItem*)item) ->insertBefore(child, text, value, state);
+}
+
 #define M(x) PyDecl(#x, &PyTreeViewItem::x)
 static PyMethodDef PyTreeViewItemMethods[] = {
-M(appendChild), M(insertBefore), M(removeChild),
+{"appendChild", (PyCFunction)appendChildProxy, METH_VARARGS | METH_KEYWORDS, NULL},
+{"insertBefore", (PyCFunction)insertBeforeProxy, METH_VARARGS | METH_KEYWORDS, NULL},
+M(removeChild),
+M(select),
 PyDecl("delete", &PyTreeViewItem::remove),
 PyDeclEnd
 };
@@ -96,7 +121,8 @@ ins.hInsertAfter = hAfter;
 ins.item.mask = TVIF_TEXT | TVIF_STATE | TVIF_PARAM;
 ins.item.hItem = NULL;
 ins.item.state =  state;
-ins.item.stateMask = TVIS_EXPANDED | TVIS_SELECTED;
+ins.item.stateMask = TVIS_EXPANDED | TVIS_SELECTED | (state&TVIS_STATEIMAGEMASK? TVIS_STATEIMAGEMASK : 0);
+//printf("\nstate=%#08X, %d", state, state&TVIS_STATEIMAGEMASK);
 ins.item.pszText = (LPTSTR)text.c_str();
 ins.item.cchTextMax = text.size();
 ins.item.lParam = (LPARAM)udata;
@@ -105,16 +131,16 @@ Py_XINCREF(udata);
 return (PyObject*) PyTreeViewItem::New(hTree, newItem);
 }
 
-PyObject* PyTreeViewItem::appendChild (const tstring& text, OPT, PyObject* value) {
-return addChild(text, TVI_LAST, value);
+PyObject* PyTreeViewItem::appendChild (const tstring& text, PyObject* value, UINT state) {
+return addChild(text, TVI_LAST, value, state);
 }
 
-PyObject* PyTreeViewItem::insertBefore (const tstring& text, PyObject* child, OPT, PyObject* value) {
-if (!child || child==Py_None) return appendChild(text, 0, value);
+PyObject* PyTreeViewItem::insertBefore (PyObject* child, const tstring& text, PyObject* value, UINT state) {
+if (!child || child==Py_None) return appendChild(text, value, state);
 HTREEITEM beforeItem = ((PyTreeViewItem*)child) ->item;
 HTREEITEM afterItem = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_PREVIOUS, beforeItem);
 if (!afterItem) afterItem = TVI_FIRST;
-return addChild(text, afterItem, value);
+return addChild(text, afterItem, value, state);
 }
 
 void PyTreeViewItem::remove () {
@@ -233,7 +259,7 @@ void PyTreeViewItem::set_expanded (bool expand) {
 SendMessage(hTree, TVM_EXPAND, expand?TVE_EXPAND:TVE_COLLAPSE, item);
 }
 
-void PyTreeViewItem::setStateImage  (int index) {
+void TVSetStateImage (HWND hTree, HTREEITEM item, int index) {
 TVITEM it;
 it.hItem = item;
 it.mask = TVIF_STATE;
@@ -242,13 +268,22 @@ it.state = (index&0x0F)<<12;
 SendMessage(hTree, TVM_SETITEM, 0, &it);
 }
 
-int PyTreeViewItem::getStateImage  () {
+int TVGetStateImage (HWND hTree, HTREEITEM item) {
 TVITEM it;
 it.hItem = item;
 it.mask = TVIF_STATE;
 it.stateMask = TVIS_STATEIMAGEMASK;
 SendMessage(hTree, TVM_GETITEM, 0, &it);
 return (it.state>>12)&0x0F;
+}
+
+
+void PyTreeViewItem::setStateImage  (int index) {
+TVSetStateImage(hTree, item, index);
+}
+
+int PyTreeViewItem::getStateImage  () {
+return TVGetStateImage(hTree, item);
 }
 
 int PyTreeViewItem::get_checked () {

@@ -6,7 +6,9 @@ SixpadData* sp = 0;
 bool PyRegister_TreeViewItem (PyObject* m);
 bool PyRegister_TreeViewDialog (PyObject* m);
 bool PyRegister_ProgressDialog (PyObject* m);
-void test123 (void) { Beep(1047,250); }
+void test123 (void) { 
+Beep(2500, 300);
+}
 
 static PyMethodDef MainDefs [] = {
 PyDecl("test", test123),

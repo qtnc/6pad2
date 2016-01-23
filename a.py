@@ -18,23 +18,23 @@ def func5 () :
 def func4 ():
 	Thread(target=func5) .start()
 
-def func3c (dlg, item):
-	win.beep(item.checked*800+800, 200)
-
 def func3 (dlg):
-	dlg.addEvent('select', func3c)
 	for i in range(1,10):
-		item = dlg.root.appendChild('Item '+str(i), i*100)
+		item = dlg.root.appendChild(text='Item '+str(i), value=i*100, checked=(i==1))
 		for j in range(1,10):
-			subitem = item.appendChild('Item ' + str(i) + '.' + str(j), 100*i+10*j)
+			subitem = item.appendChild('Item ' + str(i) + '.' + str(j), 100*i+10*j, checked=j==1)
 			for k in range(1,10):
-				subsubitem = subitem.appendChild('Item ' + str(i) + '.' + str(j) + '.' + str(k), 100*i+10*j+k)
+				subsubitem = subitem.appendChild('Item ' + str(i) + '.' + str(j) + '.' + str(k), 100*i+10*j+k, checked=k==1)
 
 def func2 ():
-	dlg = dlgs.TreeViewDialog.open(title='TreeViewDialog', hint='Example', modal=True, checkboxes=True, callback=func3)
+	dlg = dlgs.TreeViewDialog.open(title='TreeViewDialog', hint='Example', modal=True, multiple=True, editable=True, callback=func3)
+	print(dlg)
+
+def func6():
+	dlgs.test()
 
 #win.addAccelerator('F5', func)
-win.addAccelerator('Ctrl+E', func4)
+win.addAccelerator('Ctrl+E', func6)
 win.addAccelerator('Ctrl+0', func2)
 
 #win.menus.tools.add(label='Hello item', accelerator='Ctrl+E', specific=True, action=func)

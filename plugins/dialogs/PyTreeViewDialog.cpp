@@ -1,5 +1,6 @@
 #include "PyTreeViewDialog.h"
 #include "PyTreeViewItem.h"
+//#include "commctrlmsvc6.h"
 using namespace std;
 
 #include "PyTreeViewDialog.h"
@@ -29,7 +30,8 @@ PyDeclEnd
 #define Prop(x) PyAccessor(#x, &PyTreeViewDialog::get_##x, &PyTreeViewDialog::set_##x)
 #define RProp(x) PyReadOnlyAccessor(#x, &PyTreeViewDialog::get_##x)
 static PyGetSetDef PyTreeViewDialogAccessors[] = {
-RProp(root), RProp(selection),  RProp(closed),
+RProp(root), RProp(closed),
+RProp(selectedItem), RProp(selectedValue), RProp(selectedItems), RProp(selectedValues),
 Prop(title), Prop(text),
 PyDeclEnd
 };
@@ -99,6 +101,7 @@ return true;
 }
 
 bool PyTreeViewDialog::allowEdit (HTREEITEM item) {
+if (!(GetWindowLong(hDlg, GWL_USERDATA)&4)) return false;
 bool re = true;
 if (!signals->onedit.empty()) re = signals->onedit((PyObject*)this, (PyObject*)PyTreeViewItem::New(hTree, item));
 return re;
@@ -117,10 +120,59 @@ PyObject* PyTreeViewDialog::get_root () {
 return (PyObject*) PyTreeViewItem::New(hTree, TVI_ROOT);
 }
 
-PyObject* PyTreeViewDialog::get_selection () {
+PyObject* PyTreeViewDialog::get_selectedItem () {
 HTREEITEM selection = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_CARET, 0);
 if (selection) return (PyObject*) PyTreeViewItem::New(hTree, selection);
 else { Py_RETURN_NONE; }
+}
+
+PyObject* PyTreeViewDialog::get_selectedValue () {
+HTREEITEM selection = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_CARET, 0);
+if (selection) {
+TVITEM it;
+it.hItem = selection;
+it.mask = TVIF_PARAM;
+SendMessage(hTree, TVM_GETITEM, 0, &it);
+PyObject* val = (PyObject*)it.lParam;
+Py_XINCREF(val);
+return val;
+}
+else { Py_RETURN_NONE; }
+}
+
+template<class F> static void TVWalk (HWND hTree, HTREEITEM item, F func) {
+HTREEITEM cur = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_CHILD, item);
+while(cur){
+if (func(cur)) TVWalk(hTree, cur, func);
+cur = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_NEXT, cur);
+}}
+
+PyObject* PyTreeViewDialog::get_selectedItems () {
+PyObject* list = PyList_New(0);
+TVWalk(hTree, TVI_ROOT, [&](HTREEITEM item)mutable{
+int state = TVGetStateImage(hTree, item);
+if (state==2) PyList_Append(list, (PyObject*)PyTreeViewItem::New(hTree, item));
+return state!=2;
+});
+return list;
+}
+
+PyObject* PyTreeViewDialog::get_selectedValues () {
+PyObject* list = PyList_New(0);
+TVWalk(hTree, TVI_ROOT, [&](HTREEITEM item)mutable{
+int state = TVGetStateImage(hTree, item);
+if (state==2) {
+TVITEM it;
+it.hItem = item;
+it.mask = TVIF_PARAM;
+SendMessage(hTree, TVM_GETITEM, 0, &it);
+PyObject* val = (PyObject*)it.lParam;
+Py_XINCREF(val);
+PyList_Append(list, val);
+}
+return state!=2;
+});
+return list;
 }
 
 int PyTreeViewDialog::get_closed () {
@@ -133,11 +185,11 @@ if (!closed) SendMessage(hDlg, WM_COMMAND, IDCANCEL, 0);
 
 PyObject* PyTreeViewDialog::open (PyObject* unused, PyObject* args, PyObject* kwds) {
 const wchar_t *title=TEXT(""), *hint=TEXT(""), *okText=NULL, *cancelText=NULL;
-bool modal = false, checkboxes=false;
+BOOL modal = false, checkboxes=false, editable=false;
 PyObject* callback=NULL;
-static const char* KWLST[] = { "title", "hint", "modal", "callback", "okButtonText", "cancelButtonText", "checkboxes", NULL};
-if (!PyArg_ParseTupleAndKeywords(args, kwds, "|uupOuup", (char**)KWLST, &title, &hint, &modal, &callback, &okText, &cancelText, &checkboxes)) return NULL;
-TreeViewDialogInfo tvdi = { title, hint, okText?okText:msg("&OK"), cancelText?cancelText:msg("Ca&ncel"), modal, checkboxes, callback, NULL };
+static const char* KWLST[] = { "title", "hint", "modal", "callback", "okButtonText", "cancelButtonText", "multiple", "editable", NULL};
+if (!PyArg_ParseTupleAndKeywords(args, kwds, "|uupOuupp", (char**)KWLST, &title, &hint, &modal, &callback, &okText, &cancelText, &checkboxes, &editable)) return NULL;
+TreeViewDialogInfo tvdi = { title, hint, okText?okText:msg("&OK"), cancelText?cancelText:msg("Ca&ncel"), modal, checkboxes, editable, callback, NULL };
 if (modal) {
 bool cancelled;
 Py_BEGIN_ALLOW_THREADS
@@ -145,8 +197,8 @@ RunSync([&]()mutable{ cancelled = IDYES!=DialogBoxParam(hinstance, (checkboxes? 
 Py_END_ALLOW_THREADS
 PyTreeViewDialog& dlg = *tvdi.dlg;
 PyObject* re = NULL;
-if (cancelled) re = Py_BuildValue("(OO)", Py_None, Py_None);
-else re = Py_BuildValue("(uO)", dlg.signals->finalText.c_str(), *dlg.signals->finalValue );
+if (cancelled) re = Py_None;
+else re = *dlg.signals->finalValue;
 dlg.Delete();
 return re;
 } else {
@@ -182,7 +234,7 @@ int PyTreeViewDialog::addEvent (const string& type, const PySafeObject& cb) {
 connection con;
 if(false){}
 #define E(n) else if (type==#n) con = signals->on##n .connect(cb.asFunction<typename decltype(signals->on##n)::signature_type>());
-E(action) E(select) E(expand) E(contextMenu)
+E(action) E(select) E(expand) E(contextMenu) E(check)
 E(edit) E(edited) E(close) E(focus) E(blur)
 E(keyDown) E(keyUp)
 #undef E
@@ -197,6 +249,33 @@ con.disconnect();
 return re;
 }
 
+static void TVHandleCheckItem (HWND hTree, HTREEITEM item, bool checked, int flags=3) {
+if (flags&1) {
+// Check/uncheck recursively all subitems
+HTREEITEM cur = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_CHILD, item);
+while(cur){
+TVSetStateImage(hTree, cur, checked? 2 : 1);
+TVHandleCheckItem(hTree, cur, checked, 1);
+cur = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_NEXT, cur);
+}}
+if (flags&2) {
+HTREEITEM parent = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_PARENT, item);
+if (parent){
+int count=0, countChecked=0;
+HTREEITEM cur = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_CHILD, parent);
+while(cur){
+count++;
+if (TVGetStateImage(hTree, cur)>1) countChecked++;
+cur = (HTREEITEM)SendMessage(hTree, TVM_GETNEXTITEM, TVGN_NEXT, cur);
+}
+int state = 0;
+if (count==countChecked) state=2; // everything is checked
+else if (countChecked==0) state=1; // Nothing is checked
+else state=3; // Some items are checked
+TVSetStateImage(hTree, parent, state);
+TVHandleCheckItem(hTree, parent, checked, 2);
+}}}
+
 static LRESULT CALLBACK TreeViewSubclassProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR subclassId, PyTreeViewDialog* dlg) {
 switch(msg){
 case WM_KEYDOWN: case WM_SYSKEYDOWN: {
@@ -206,6 +285,22 @@ if (!dlg->signals->onkeyDown((PyObject*)dlg, kc)) return true;
 case WM_KEYUP: case WM_SYSKEYUP: {
 int kc = LOWORD(wp) | GetCurrentModifiers();
 if (!dlg->signals->onkeyUp((PyObject*)dlg, kc)) return true;
+if (kc==VK_SPACE) SendMessage(hwnd, WM_USER, 0, SendMessage(hwnd, TVM_GETNEXTITEM, TVGN_CARET, 0));
+}break;
+case WM_LBUTTONUP: {
+TVHITTESTINFO info;
+info.pt.x = HIWORD(lp);
+info.pt.y = LOWORD(lp);
+info.flags = 0;
+info.hItem = NULL;
+SendMessage(hwnd, TVM_HITTEST, 0, &info);
+if (info.hItem && (info.flags&TVHT_ONITEMSTATEICON)) SendMessage(hwnd, WM_USER, 0, info.hItem);
+}break;
+case WM_USER: {
+HTREEITEM item = (HTREEITEM)lp;
+int state = TVGetStateImage(hwnd, item), re=true;
+if (!dlg->signals->oncheck.empty()) re = dlg->signals->oncheck((PyObject*)dlg, (PyObject*)PyTreeViewItem::New(hwnd, item));
+if (re) TVHandleCheckItem(hwnd, item, state>1);
 }break;
 }
 return DefSubclassProc(hwnd, msg, wp, lp);
@@ -231,7 +326,7 @@ PyTreeViewDialog& dlg = *tvdi.dlg;
 dlg.hTree = hTree;
 Py_XINCREF(&dlg);
 SetWindowLong(hwnd, DWL_USER, (LONG)tvdi.dlg);
-SetWindowLong(hwnd, GWL_USERDATA, tvdi.modal);
+SetWindowLong(hwnd, GWL_USERDATA, (tvdi.modal?1:0) | (tvdi.checkboxes?2:0) | (tvdi.editable?4:0) );
 SetWindowText(hwnd, tvdi.title);
 SetDlgItemText(hwnd, 1001, tvdi.label);
 if (tvdi.okText.size()>0) SetDlgItemText(hwnd, IDYES, tvdi.okText);
@@ -249,17 +344,16 @@ switch(LOWORD(wp)) {
 case IDYES: {
 GIL_PROTECT
 PyTreeViewDialog& dlg = *(PyTreeViewDialog*)GetWindowLong(hwnd, DWL_USER);
-bool modal = !!GetWindowLong(hwnd, GWL_USERDATA), re = modal;
-auto selection = (PyTreeViewItem*)dlg.get_selection();
+int udw = GetWindowLong(hwnd, GWL_USERDATA);
+bool modal = udw&1, checkboxes = udw&2, re = modal;
+PyObject* selection = checkboxes? dlg.get_selectedValues() : dlg.get_selectedValue();
 if (!dlg.signals->onaction.empty()) re = dlg.signals->onaction((PyObject*)&dlg, (PyObject*)selection);
-dlg.signals->finalText = selection&&(PyObject*)selection!=Py_None? selection->get_text() :TEXT("");
-dlg.signals->finalValue = selection&&(PyObject*)selection!=Py_None? selection->get_value() :Py_None;
-Py_XDECREF((PyObject*)selection);
+dlg.signals->finalValue = selection;
 if (!re) break; 
 }
 case IDCANCEL: {
 PyTreeViewDialog& dlg = *(PyTreeViewDialog*)GetWindowLong(hwnd, DWL_USER);
-bool modal = !!GetWindowLong(hwnd, GWL_USERDATA), re = true;
+bool modal = GetWindowLong(hwnd, GWL_USERDATA)&1, re = true;
 if (!dlg.signals->onclose.empty()) re = dlg.signals->onclose((PyObject*)&dlg);
 if (!re) return true;
 if (modal) EndDialog(hwnd,LOWORD(wp));
@@ -282,7 +376,7 @@ case NM_RETURN:
 SendMessage(hwnd, WM_COMMAND, IDOK, 0);
 return true;
 case NM_RCLICK:
-if (!dlg.signals->oncontextMenu.empty()) dlg.signals->oncontextMenu((PyObject*)&dlg, dlg.get_selection());
+if (!dlg.signals->oncontextMenu.empty()) dlg.signals->oncontextMenu((PyObject*)&dlg, dlg.get_selectedItem());
 return true;
 case NM_RDBLCLK:
 break;
@@ -303,7 +397,10 @@ TVITEM& item = ((LPNMTREEVIEW)lp)->itemOld;
 }break;
 case TVN_BEGINLABELEDIT: {
 TVITEM& item = ((LPNMTVDISPINFO)lp)->item;
-if (!dlg.allowEdit(item.hItem)) return true;
+if (!dlg.allowEdit(item.hItem)) {
+MessageBeep(MB_OK);
+return true;
+}
 HWND hEdit = (HWND)SendMessage(nmh->hwndFrom, TVM_GETEDITCONTROL, 0, 0);
 if (hEdit) SetWindowSubclass(hEdit, (SUBCLASSPROC)EditingTreeLabelProc, 0, (DWORD_PTR)nmh->hwndFrom);
 return false;
@@ -327,7 +424,11 @@ case 0x5D: {
 NMHDR z = *(LPNMHDR)lp; z.code = NM_RCLICK;
 SendMessage(hwnd, WM_NOTIFY, 0, &z);
 }break;
-case VK_F2: SendMessage(nmh->hwndFrom, TVM_EDITLABEL, 0, SendMessage(nmh->hwndFrom, TVM_GETNEXTITEM, TVGN_CARET, NULL)); break;
+case VK_F2: {
+HTREEITEM item = (HTREEITEM)SendMessage(nmh->hwndFrom, TVM_GETNEXTITEM, TVGN_CARET, NULL);
+if (dlg.allowEdit(item)) SendMessage(nmh->hwndFrom, TVM_EDITLABEL, 0, item); 
+else MessageBeep(MB_OK);
+}break;
 }return false;}
 //other notifications
 }}}break;

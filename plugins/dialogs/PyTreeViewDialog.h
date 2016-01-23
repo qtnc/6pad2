@@ -7,10 +7,8 @@ struct TVDSignals {
 signal<void(PyObject*)> onfocus, onblur;
 signal<bool(PyObject*), BoolSignalCombiner> onclose;
 signal<bool(PyObject*, int), BoolSignalCombiner> onkeyDown, onkeyUp;
-signal<bool(PyObject*, PyObject*), BoolSignalCombiner> onaction, onselect, onexpand, oncheck, onedit, oncontextMenu;
-signal<void(PyObject*, PyObject*)> onchecked;
+signal<bool(PyObject*, PyObject*), BoolSignalCombiner> onaction, onselect, onexpand, onedit, oncheck, oncontextMenu;
 signal<var(PyObject*, PyObject*, const tstring&), VarSignalCombiner> onedited;
-tstring finalText=TEXT("");
 PySafeObject finalValue;
 };
 
@@ -31,7 +29,10 @@ int addEvent (const std::string& type, const PySafeObject& cb) ;
 int removeEvent (const std::string& type, int id);
 int get_closed ();
 PyObject* get_root();
-PyObject* get_selection ();
+PyObject* get_selectedItem ();
+PyObject* get_selectedValue ();
+PyObject* get_selectedItems ();
+PyObject* get_selectedValues ();
 tstring get_title ();
 tstring get_text  ();
 void set_title (const tstring& title);
@@ -40,7 +41,7 @@ void set_text (const tstring& text);
 
 struct TreeViewDialogInfo {
 tstring title, label, okText, cancelText;
-bool modal, checkboxes;
+bool modal, checkboxes, editable;
 PySafeObject callback;
 PyTreeViewDialog* dlg;
 };
