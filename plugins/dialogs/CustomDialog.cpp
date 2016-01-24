@@ -23,7 +23,7 @@ if (r&2) push<short>(0);
 if (r&4) push<int>(0);
 }
 
-void CustomDialog::setTitle (const tstring& title) {
+void export CustomDialog::setTitle (const tstring& title) {
 DLGTEMPLATE dlghdr = {
 DS_MODALFRAME | WS_CAPTION | WS_SYSMENU | WS_VISIBLE,
 0, 0, 10, 10, 0, 0
@@ -64,8 +64,5 @@ INT_PTR export CustomDialog::show (HWND parent, DLGPROC proc, void* udata) {
 DLGTEMPLATE& dlgtpl = *(DLGTEMPLATE*)buffer;
 return DialogBoxIndirectParam(hinstance, (LPCDLGTEMPLATE)buffer, parent, proc, (LPARAM)udata);
 }
-
-
-
 
 

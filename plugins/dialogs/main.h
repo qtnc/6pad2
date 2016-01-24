@@ -42,9 +42,8 @@ CustomDialog(const tstring& title): buffer(0), pos(0), length(0) { setTitle(titl
 void export setSize (int x, int y, int w, int h);
 void export addItem (const tstring& type, int id, const tstring& text, DWORD style, int x, int y, int w, int h, DWORD exstyle=0);
 INT_PTR export show (HWND hwndParent, DLGPROC proc, void* udata=0);
-private: void setTitle (const tstring& title);
+private: void export setTitle (const tstring& title);
 };
-
 
 
 #endif //__WINDRES
