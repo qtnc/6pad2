@@ -31,21 +31,23 @@ def func2 ():
 	print(dlg)
 
 def func6():
-	print(dlgs.taskDialog(
+	print(win.taskDialog(
 			title="Task dialog example",
 			heading="Do you want to save changes ?",
 			text="If you don't save, all modifications will be lost",
 			checkbox="Don't show this dialog again",
 			checked=False,
 			icon='warning',
-			buttons=('Yes', 'No', 'Maybe'),
+			buttons=("Save changes", "Don't save", "Randomly save"),
 			radioButtons=('One', 'Two', 'Three', 'Four'),
 			defaultRadioButton=2,
 			defaultButton=2,
 			footer='Footer text',
 			details="There is no detail to show !",
 			collapseButtonText='<< Details',
-			expandButtonText='Details >>'
+			expandButtonText='Details >>',
+			commandLinks=True,
+			commandLinksNoIcon=True
 	))
 
 #win.addAccelerator('F5', func)

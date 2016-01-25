@@ -35,6 +35,7 @@ shared_ptr<Page> PageAddEmpty (bool focus, const string& type);
 
 PyObject* PyMenuItem_GetMenuBar (void);
 int PyShowPopupMenu (PyObject*);
+PyObject* PyTaskDialog (PyObject*, PyObject*, PyObject*);
 
 static int PyAddAccelerator (const tstring& kn, PySafeObject cb, OPT, bool specific) {
 int k=0, kf=0;
@@ -327,6 +328,7 @@ PyDecl("warning", PyWarn),
 PyDecl("confirm", PyConfirm),
 {"choice", (PyCFunction)PyChoiceDlg, METH_VARARGS | METH_KEYWORDS, NULL},
 {"prompt", (PyCFunction)PyInputDlg, METH_VARARGS | METH_KEYWORDS, NULL},
+{"taskDialog", (PyCFunction)PyTaskDialog, METH_VARARGS | METH_KEYWORDS, NULL},
 {"openDialog", (PyCFunction)PyOpenFileDlg, METH_VARARGS | METH_KEYWORDS, NULL},
 {"saveDialog", (PyCFunction)PySaveFileDlg, METH_VARARGS | METH_KEYWORDS, NULL},
 {"chooseFolder", (PyCFunction)PyFolderDlg, METH_VARARGS | METH_KEYWORDS, NULL},

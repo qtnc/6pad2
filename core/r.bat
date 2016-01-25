@@ -1,4 +1,5 @@
 @echo off
+if not exist obj md obj
 del obj\*.o
 windres res.rc -o obj\rc.o -DRELEASE -DSPDLL
 for %%i in (*.cpp) do g++ -c -O3 -s  -std=gnu++11 %%i -w -o obj\%%~ni.o -DRELEASE -DSPDLL -fno-rtti

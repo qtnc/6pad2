@@ -1,5 +1,4 @@
 #include "main.h"
-#include "commctrlmsvc6.h"
 
 HINSTANCE hinstance = 0;
 SixpadData* sp = 0;
@@ -7,14 +6,12 @@ SixpadData* sp = 0;
 bool PyRegister_TreeViewItem (PyObject* m);
 bool PyRegister_TreeViewDialog (PyObject* m);
 bool PyRegister_ProgressDialog (PyObject* m);
-PyObject* PyTaskDialog (PyObject*, PyObject*, PyObject*);
 
 void test123 (void) { 
 Beep(800,120);
 }
 
 static PyMethodDef MainDefs [] = {
-{"taskDialog", (PyCFunction)PyTaskDialog, METH_VARARGS | METH_KEYWORDS, NULL},
 PyDecl("test", test123),
 {0, 0, 0, 0}
 }; 

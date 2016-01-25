@@ -1,4 +1,5 @@
 @echo off
+if not exist obj md obj
 del obj\*.o
 windres res.rc -o obj\rc.o
 for %%i in (*.cpp) do g++ -c -s -O3  -std=gnu++11 %%i -w -o obj\%%~ni.o -I../core -DRELEASE -fno-rtti

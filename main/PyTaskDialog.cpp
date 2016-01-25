@@ -1,8 +1,8 @@
-#include "main.h"
-#include "TaskDialog.h"
+#include "../core/TaskDialog.h"
+#include "../core/python34.h"
 
 PyObject* PyTaskDialog (PyObject* unused, PyObject* args, PyObject* kwds) {
-int button=0, radio=0, checkbox=0, expanded=0;
+int button=0, radio=0, checkbox=0, expanded=0, commandLinks=0, commandLinksNoIcon=0, expandInFooter=0;
 const TCHAR* icon = TEXT("info");
 PyObject *buttonList=nullptr, *radioList=nullptr;
 vector<TASKDIALOG_BUTTON> pButtons, pRadios;
@@ -10,10 +10,13 @@ TASKDIALOGCONFIG td;
 ZeroMemory(&td,sizeof(td));
 td.cbSize = sizeof(td);
 td.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
-static const char* KWLST[] = { "title", "heading", "text", "footer", "details", "checkbox", "checked", "collapseButtonText", "expandButtonText", "expanded", "icon", "buttons", "radioButtons", "defaultButton", "defaultRadioButton", NULL};
-if (!PyArg_ParseTupleAndKeywords(args, kwds, "|uuuuuupuupuOOii", (char**)KWLST, &td.pszWindowTitle, &td.pszMainInstruction, &td.pszContent, &td.pszFooter, &td.pszExpandedInformation, &td.pszVerificationText, &checkbox, &td.pszExpandedControlText, &td.pszCollapsedControlText, &expanded, &icon, &buttonList, &radioList, &button, &radio    )) return NULL;
+static const char* KWLST[] = { "title", "heading", "text", "footer", "details", "checkbox", "checked", "collapseButtonText", "expandButtonText", "expanded", "icon", "buttons", "radioButtons", "defaultButton", "defaultRadioButton", "expandInFooter", "commandLinks", "commandLinksNoIcon", NULL};
+if (!PyArg_ParseTupleAndKeywords(args, kwds, "|uuuuuupuupuOOiippp", (char**)KWLST, &td.pszWindowTitle, &td.pszMainInstruction, &td.pszContent, &td.pszFooter, &td.pszExpandedInformation, &td.pszVerificationText, &checkbox, &td.pszExpandedControlText, &td.pszCollapsedControlText, &expanded, &icon, &buttonList, &radioList, &button, &radio, &expandInFooter, &commandLinks, &commandLinksNoIcon     )) return NULL;
 if (expanded) td.dwFlags |= TDF_EXPANDED_BY_DEFAULT;
 if (checkbox) td.dwFlags |= TDF_VERIFICATION_FLAG_CHECKED;
+if (commandLinks) td.dwFlags  |= TDF_USE_COMMAND_LINKS;
+if (commandLinksNoIcon) td.dwFlags |= TDF_USE_COMMAND_LINKS_NO_ICON;
+if (expandInFooter) td.dwFlags |= TDF_EXPAND_FOOTER_AREA;
 if (icon) td.pszMainIcon = MAKEINTRESOURCEW(-1 -elt<tstring>(icon, 2, { TEXT("warning"), TEXT("error"), TEXT("info"), TEXT("shield") }));
 if (buttonList && PyLong_Check(buttonList)) {
 td.dwCommonButtons = PyLong_AsLong(buttonList);
