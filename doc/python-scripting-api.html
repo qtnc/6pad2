@@ -20,7 +20,7 @@
 <li><a href="#functions">Functions</a></li>
 <li><a href="#members">Members</a></li>
 </ul></li>
-<li><a href="#the-window-object">The window object</a><ul>
+<li><a href="#WindowObject">The window object</a><ul>
 <li><a href="#methods">Methods</a></li>
 <li><a href="#members-1">Members</a></li>
 <li><a href="#windowEvents">Events</a></li>
@@ -35,6 +35,11 @@
 <li><a href="#methods-2">Methods</a></li>
 <li><a href="#mappingindexing">Mapping, indexing and calling</a></li>
 <li><a href="#members-3">Members</a></li>
+</ul></li>
+<li><a href="#taskDialog">Task dialogs and TaskDialog class</a><ul>
+<li><a href="#methos">Methos</a></li>
+<li><a href="#members-4">Members</a></li>
+<li><a href="#the-task-dialog-callback">The task dialog callback</a></li>
 </ul></li>
 </ul>
 </nav>
@@ -63,7 +68,7 @@
 <dt>setConfig(key, value, multiple=False) -&gt; None:</dt>
 <dd>Set the value of a key in the configuration file. The multiple argument defines whether or not the key can be present multiple times. You can use keyword arguments ‘key’, ‘value’ and ‘multiple’.
 </dd>
-<dt>getConfig (key, defaultValue) -&gt; str:</dt>
+<dt>getConfig (key, defaultValue = ’’) -&gt; str:</dt>
 <dd>Return the value of a key from the configuration file. If the key has multiple values, the first value found is returned. If the key isn’t found, defaultValue is returned.
 </dd>
 <dt>getConfigAsList(key) -&gt; [str]:</dt>
@@ -81,26 +86,26 @@
 </dl>
 <h2 id="members">Members</h2>
 <dl>
-<dt>locale:</dt>
+<dt>str locale:</dt>
 <dd>The language of the application, e.g. <code>french</code>.
 </dd>
-<dt>appdir:</dt>
+<dt>str appdir:</dt>
 <dd>The application directory, e.g. <code>C:\6pad++\</code>.
 </dd>
-<dt>appname:</dt>
+<dt>st appname:</dt>
 <dd>The name of the application executable, e.g. <code>6pad++</code>.
 </dd>
-<dt>appfullpath:</dt>
+<dt>str appfullpath:</dt>
 <dd>The full path of 6pad++ executable, e.g. <code>C:\6pad++\6pad++.exe</code>.
 </dd>
-<dt>configfile:</dt>
+<dt>str configfile:</dt>
 <dd>The path of the main 6pad++ configuration file, e.g. <code>C:\6pad++\6pad++.ini</code>.
 </dd>
-<dt>window:</dt>
+<dt><a href="#WindowObject">Window</a> window:</dt>
 <dd>The window object (see below)
 </dd>
 </dl>
-<h1 id="the-window-object">The window object</h1>
+<h1 id="WindowObject">The window object</h1>
 <h2 id="methods">Methods</h2>
 <dl>
 <dt>open(filename) -&gt; Page:</dt>
@@ -141,6 +146,9 @@
 </dd>
 <dt>chooseFolder(folder=‘’, title=’‘, root=’’, showFiles=False) -&gt; str:</dt>
 <dd>Show a dialog box where the user can choose a folder in a tree view. If showFiles is set to True, the user can also select files, otherwise he can only select folders. Returns the item selected by the user, or None if he cancelled the dialog box. You can use keyword arguments.
+</dd>
+<dt>taskDialog(title=None, heading=None, text=None, details=None, footer=None, icon=None, buttons=None, radioButtons=None, checkbox=None, checked=False, collapseButtonText=None, expandButtonText=None, expanded=False, defaultButton=0, defaultRadioButton=0, expandInFooter=False, commandLinks=False, commandLinksNoIcon=False, progressBar=False, callback=None) -&gt; (button,radio,checkbox)|TaskDialog:</dt>
+<dd>Show a task dialog. Task dialogs offer a major evolution over old message boxes, allowing much more customization, flexibility and input controls. See the <a href="#taskDialog">dedicated chapter of this documentation</a> for more information about the use of task dialogs and the different possible parameters.
 </dd>
 <dt>focus () -&gt; None:</dt>
 <dd>Focus 6pad++ window.
@@ -268,7 +276,7 @@
 <dd>Return the character position corresponding to the true beginning of the given line number, where the first non-space character is found. First line is line 0.
 </dd>
 <dt>lineIndentLevel(lineNumber) -&gt; int:</dt>
-<dd>Return the indentation level of the given line.
+<dd>Return the indentation level of the given line, according to current indentation settings.
 </dd>
 <dt>substring(start, end) -&gt; str:</dt>
 <dd>Gets a substring of the whole text currently being edited.
@@ -308,6 +316,9 @@
 </dd>
 <dt>pushUndoState(UndoStateCompatibleObject) -&gt; None:</dt>
 <dd>Push an undoable operation on the top of the undo stack. The object passed must have the two methods undo(self,page) and redo(self,page).
+</dd>
+<dt>doteditorconfig(key, defaultValue = ’’) -&gt; str</dt>
+<dd>Get the value of a configuration key that can be found in .editorconfig files for the current file. If the key is not found, defaultValue is returned. Note that .editorconfig configuration directives are loaded/updated when the file is loaded, reloaded or saved.
 </dd>
 </dl>
 <h2 id="members-2">Members</h2>
@@ -513,6 +524,145 @@
 </dd>
 <dt>int radio:</dt>
 <dd>Whether or not the item is a radio button menu item.
+</dd>
+</dl>
+<h1 id="taskDialog">Task dialogs and TaskDialog class</h1>
+<p>Task dialogs offer a major evolution over old message boxes, allowing much more customization, flexibility and input controls. They are described <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/bb787471(v=vs.85).aspx">on the MSDN</a>. To show a task dialog, first call the <code>taskDialog</code> method of the window object. Its long list of parameters is explained below.</p>
+<p>taskDialog(title=None, heading=None, text=None, details=None, footer=None, icon=None, buttons=None, radioButtons=None, checkbox=None, checked=False, collapseButtonText=None, expandButtonText=None, expanded=False, defaultButton=0, defaultRadioButton=0, expandInFooter=False, commandLinks=False, commandLinksNoIcon=False, progressBar=False, callback=None) -&gt; (button,radio,checkbox)|TaskDialog</p>
+<dl>
+<dt>title:</dt>
+<dd>The title of the dialog box, as shown in the title bar
+</dd>
+<dt>heading:</dt>
+<dd>the main text of the dialog box, shortly explaining its purpose. referred as main instructions in the MSDN doc. Often telling a simple fact on which we would like the user to decide on what action to take. Example: : “foo.txt has changed since the last save”. The heading isn’t shown at all if it is unspecified or blank.
+</dd>
+<dt>text:</dt>
+<dd>additional text shown below the main text heading, explaing a bit more the main purpose of the dialog box. Referred as content in the MSDN doc. Often asking a question to the user, such as “Do you want to save changes to foo.txt?” or to give a little more important precisions than the heading. The content isn’t shown at all if it is unspecified or blank.
+</dd>
+<dt>details:</dt>
+<dd>One more additional detail text that the user can make visible by pressing on a “More details” button. Usually, this text isn’t displayed immediately when the dialog is open, unless by pressing on the expand button. Refered as expanded information in the MSDN. For example, you can put detailed error report in that place. If unspecified or blank, neither the details area nor the expand/collapse details button are displayed.
+</dd>
+<dt>footer:</dt>
+<dd>A text that appears underneath the buttons, in a smaller font. If None or blank, no space is reserved to display this text.
+</dd>
+<dt>icon:</dt>
+<dd>A string indicating which icon must illustrate the dialog box. This parameter can be one of the strings “none”, “info”, “warning”, “error” or “shield”, by default “none”, meaning no icon has to be displayed at all. This parameter also controls the sound emited when the dialog box is opened, i.e. asterisk, exclamation and critical stop for resp. “info”, “warning” and “error”. NO sound is produced when using “none” or “shield” icons.
+</dd>
+<dt>buttons:</dt>
+<dd>A list or tuple of one or more strings indicating the different buttons that will be present on the dialog box. If no button is specified, because the list/tuple is empty or if None is passed, the dialog box shows up with a single OK button.
+</dd>
+<dt>defaultButton:</dt>
+<dd>Index of the button selected by default when the dialog box initially pops-up. If unspecified, 0 is used, i.e. the first button is selected by default.
+</dd>
+<dt>radioButtons:</dt>
+<dd>A list or tuple of two or more strings specifying the different radio buttons to show in the dialog box. A task dialog can show a group of radio buttons, which the user can select an option from (as usual with radio buttons, a single option at a time). If this parameter is None or an empty list/tuple, no space is taken to display any radio buttons.
+</dd>
+<dt>defaultRadioButton:</dt>
+<dd>The index of the radio button initially selected when the dialog box pops-up. BY default, 0, i.e. the first radio button is preselected.
+</dd>
+<dt>checkbox:</dt>
+<dd>Text label of a verification checkbox. A task dialog can also display a single checkbox, often used to give options like “Don’t show this dialog again” or “Apply my choice to all following elements”. IF this isn’t specified or blank, no space is taken to display any checkbox.
+</dd>
+<dt>checked:</dt>
+<dd>Indicate whether the checkbox is initially checked or not when the dialog pops-up. BY default False (unchecked). No effect if no checkbox text has been defined.
+</dd>
+<dt>expandButtonText:</dt>
+<dd>Text of the expand button used to show the details. If None or blank, a default label such as “More details” will be used. No effect if no details text is defined, since expand/collapse button isn’t displayed in that case.
+</dd>
+<dt>collapseButtonText:</dt>
+<dd>Text of the expand button to hide the details. If None or blank, a default label such as “More details” will be used. No effect if no details text is defined, since expand/collapse button isn’t displayed in that case.
+</dd>
+<dt>expanded</dt>
+<dd>Indicates if detail text is initially displayed (expanded) when the dialog pops-up. By default FAlse (collapsed / details not shown). No effect if no details text is defined.
+</dd>
+<dt>expandInFooter:</dt>
+<dd>If this parameter is true, details are placed below the buttons when they are expanded, instead of above. By default False. No effect if no details text is defined.
+</dd>
+<dt>commandLinks:</dt>
+<dd>If this parameter is True, buttons are replaced by command links. They work the same, they just have the appearance of web links instead of classic buttons.
+</dd>
+<dt>commandLinksNoIcon:</dt>
+<dd>BY default when buttons are replaced by command links, there are small icons on their left. If this parameter is True, these icon are removed. By default False. This parameter has no effect if commandLinks=False.
+</dd>
+<dt>progressBar:</dt>
+<dd>When set to True, a progress bar is shown in the dialog box and a TaskDialog object is returned instead of a tuple of results. This allows to turn a task dialog into a monitor progress dialog. If this parameter is specified, the taskDialog method has to be called from a working thread, and not the main UI thread. Otherwise, the sript is blocked until the method returns and you have no way to update the progress bar as the task is making progress.
+</dd>
+<dt>callback:</dt>
+<dd>Define a callback to be called whenever an event occurs in the dialog box (see further down).
+</dd>
+</dl>
+<p>If the progressBar is unspecified or False, the <em>taskDialog</em> method returns a 3-tuple of integers indicating, in order:</p>
+<ul>
+<li>Which button has been pressed, as an index in the buttons list/tuple passed, or -1 if the user closed the dialog box by pressing escape or Alt+F4.</li>
+<li>Which radio button has been selected, as an index in the radio buttons list/tuple passed, or -1 if there was no radio buttons in the dialog box.</li>
+<li>1 or 0 depending on the state checked or unchecked of the verification checkbox, or -1 if there was no checkbox in the dialog.</li>
+</ul>
+<p>If progressBar was set to True however, the <em>taskDialog</em> method returns a TaskDialog object, which you can manipulate as long as the dialog remains open, typically until the task in progress finished or when the user cancelled it. This object has the properties and method described below.</p>
+<h2 id="methos">Methos</h2>
+<dl>
+<dt>close() -&gt; None:</dt>
+<dd>Close the dialog box by simulating a press on the <em>Cancel</em> button or the escape key. After this call, the dialog box is closed, and buttonClicked=-1.
+</dd>
+<dt>enableButton(buttonIndex, bEnable) -&gt; None:</dt>
+<dd>Enable or disable the specified button in the dialog box.
+</dd>
+<dt>enableRadioButton(radioButtonIndex, bEnable) -&gt; None:</dt>
+<dd>Enable or disable the specified radio button in the dialog box.
+</dd>
+</dl>
+<h2 id="members-4">Members</h2>
+<dl>
+<dt>int closed (read only):</dt>
+<dd>Indicate whether the dialog box is still open, or already closed. Any further modification of the other members after the dialog is closed has no effect.
+</dd>
+<dt>float value:</dt>
+<dd>The value of the progress bar, between 0 (nothing is done) to 1 (fully complete)
+</dd>
+<dt>str title:</dt>
+<dd>The title of the dialog box, as displayed on the title bar
+</dd>
+<dt>str heading:</dt>
+<dd>The dialog’s heading text
+</dd>
+<dt>str text:</dt>
+<dd>The dialog’s content text
+</dd>
+<dt>str details:</dt>
+<dd>The dialog’s details text, shown when clicking on the “More details” button.
+</dd>
+<dt>str footer:</dt>
+<dd>The dialog’s footer text
+</dd>
+<dt>int buttonClicked (read only):</dt>
+<dd>Once the dialog is closed, indicates the index of the button clicked by the user in the buttons list/tuple, or -1 if escape or Alt+F4 was used to close the dialog box. Since the close method simulates a click, buttonClicked always equals -1 after an explicit call to close.
+</dd>
+<dt>int radioChecked:</dt>
+<dd>Indicates the radio button currently selected by the user as an index in the radio buttons list/tuple, or -1 if the dialog doesn’t contain any radio button. You can modify this property to programmatically select another radio button.
+</dd>
+<dt>int checkboxChecked:</dt>
+<dd>Indicate if the verification checkbox is currently checked or not. You can change the state of the checkbox by modifying this property.
+</dd>
+</dl>
+<h2 id="the-task-dialog-callback">The task dialog callback</h2>
+<p>The task dialog callback is called when some particular events occurrs within a task dialog. The callback to be called is specified with the parameter <em>callback</em> of the <em>taskDialog</em> method. The callback obtain two arguments: an object TaskDialog representing the task dialog, and an int indicating which event occurred. Here are the different values you can receive and the events to which they correspond:</p>
+<dl>
+<dt>1000…1999:</dt>
+<dd>One of the button has been clicked. 1000 corresponds to button 0 in the list/tuple, 1001 to button 1, and so on. You can return True to close the task dialog, or False to keep it open. If you don’t return anything, any click on a button closes the dialog.
+</dd>
+<dt>2000…2999:</dt>
+<dd>One of the radio buttons has been selected. 2000 corresponds to the first radio button in the list/tuple, 2001 to the second, and so on.
+</dd>
+<dt>3000:</dt>
+<dd>The verification checkbox has been clicked and it is no unchecked
+</dd>
+<dt>3001:</dt>
+<dd>The verification checkbox has been clicked and it is no checked
+</dd>
+<dt>3002:</dt>
+<dd>The expand/collapse details button has been clicked and details are now hidden/collapsed
+</dd>
+<dt>3003:</dt>
+<dd>The expand/collapse details button has been clicked and details are now shown/expanded.
 </dd>
 </dl>
 </body>

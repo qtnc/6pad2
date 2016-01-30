@@ -35,7 +35,7 @@ shared_ptr<Page> PageAddEmpty (bool focus, const string& type);
 
 PyObject* PyMenuItem_GetMenuBar (void);
 int PyShowPopupMenu (PyObject*);
-PyObject* PyTaskDialog (PyObject*, PyObject*, PyObject*);
+PyObject* PyShowTaskDialog (PyObject*, PyObject*, PyObject*);
 
 static int PyAddAccelerator (const tstring& kn, PySafeObject cb, OPT, bool specific) {
 int k=0, kf=0;
@@ -106,7 +106,7 @@ return re;
 static void PyAlert (const tstring& str, OPT, const tstring& title) {
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
-MessageBox(win, str.c_str(), (title.size()>0?title:msg("Info")).c_str(), MB_OK | MB_ICONASTERISK);
+MessageBox(GetForegroundWindow(), str.c_str(), (title.size()>0?title:msg("Info")).c_str(), MB_OK | MB_ICONASTERISK);
 });//RunSync
 Py_END_ALLOW_THREADS
 }
@@ -114,7 +114,7 @@ Py_END_ALLOW_THREADS
 static void PyWarn (const tstring& str, OPT, const tstring& title) {
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
-MessageBox(win, str.c_str(), (title.size()>0?title:msg("Warning!")).c_str(), MB_OK | MB_ICONERROR);
+MessageBox(GetForegroundWindow(), str.c_str(), (title.size()>0?title:msg("Warning!")).c_str(), MB_OK | MB_ICONERROR);
 });//RunSync
 Py_END_ALLOW_THREADS
 }
@@ -123,7 +123,7 @@ static int PyConfirm (const tstring& str, OPT, const tstring& title) {
 bool re = false;
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
-re = (IDYES==MessageBox(win, str.c_str(), (title.size()>0?title:msg("Question")).c_str(), MB_YESNO | MB_ICONEXCLAMATION));
+re = (IDYES==MessageBox(GetForegroundWindow(), str.c_str(), (title.size()>0?title:msg("Question")).c_str(), MB_YESNO | MB_ICONEXCLAMATION));
 });//RunSync
 Py_END_ALLOW_THREADS
 return re;
@@ -146,7 +146,7 @@ options.push_back(str);
 int re = -1;
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
-re = ChoiceDialog(win, title, prompt, options, initialSelection);
+re = ChoiceDialog(GetForegroundWindow(), title, prompt, options, initialSelection);
 });//RunSync
 Py_END_ALLOW_THREADS
 return Py_BuildValue("i",re);
@@ -169,7 +169,7 @@ options.push_back(str);
 tstring text = pText?pText:TEXT("");
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
-text = InputDialog(win, title, prompt, text, options);
+text = InputDialog(GetForegroundWindow(), title, prompt, text, options);
 });//RunSync
 Py_END_ALLOW_THREADS
 if (text.size()<=0) { Py_RETURN_NONE; }
@@ -202,7 +202,7 @@ int z=0;
 tstring selection = TEXT("");
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
-selection = FileDialog(win, flags, file, title, filters, &initialFilter);
+selection = FileDialog(GetForegroundWindow(), flags, file, title, filters, &initialFilter);
 });//RunSync
 Py_END_ALLOW_THREADS
 PyObject* re = NULL;
@@ -237,7 +237,7 @@ if (!PyArg_ParseTupleAndKeywords(args, dic, "|uuup", (char**)KWLST, &cFolder, &c
 tstring re, folder = cFolder?cFolder:TEXT(""), title = cTitle?cTitle:TEXT(""), root = cRoot?cRoot:TEXT("");
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
-re = FolderDialog(win, folder, title, root, includeFiles);
+re = FolderDialog(GetForegroundWindow(), folder, title, root, includeFiles);
 });//RunSync
 Py_END_ALLOW_THREADS
 if (re.size()>0) return Py_BuildValue("u", re.c_str());
@@ -328,7 +328,7 @@ PyDecl("warning", PyWarn),
 PyDecl("confirm", PyConfirm),
 {"choice", (PyCFunction)PyChoiceDlg, METH_VARARGS | METH_KEYWORDS, NULL},
 {"prompt", (PyCFunction)PyInputDlg, METH_VARARGS | METH_KEYWORDS, NULL},
-{"taskDialog", (PyCFunction)PyTaskDialog, METH_VARARGS | METH_KEYWORDS, NULL},
+{"taskDialog", (PyCFunction)PyShowTaskDialog, METH_VARARGS | METH_KEYWORDS, NULL},
 {"openDialog", (PyCFunction)PyOpenFileDlg, METH_VARARGS | METH_KEYWORDS, NULL},
 {"saveDialog", (PyCFunction)PySaveFileDlg, METH_VARARGS | METH_KEYWORDS, NULL},
 {"chooseFolder", (PyCFunction)PyFolderDlg, METH_VARARGS | METH_KEYWORDS, NULL},

@@ -1,6 +1,7 @@
 #ifndef ___DIALOGS_H9
 #define ___DIALOGS_H9
 #include "global.h"
+#include "TaskDialog.h"
 
 #define FD_SAVE 0
 #define FD_OPEN 1

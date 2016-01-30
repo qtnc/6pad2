@@ -22,6 +22,7 @@ tstring msg (const char* name);
 bool PyRegister_Window (PyObject* m); 
 bool PyRegister_EditorTab(PyObject* m);
 bool PyRegister_MenuItem (PyObject* m);
+bool PyRegister_TaskDialog (PyObject* m);
 PyObject* CreatePyWindowObject ();
 
 static int PyInclude (const string& fn) {
@@ -143,6 +144,7 @@ PyObject* mod = PyModule_Create(&_6padMainMod);
 PyRegister_Window(mod);
 PyRegister_MenuItem(mod);
 PyRegister_EditorTab(mod);
+PyRegister_TaskDialog(mod);
 //PyRegister_MyObj(mod);
 PyModule_AddObject(mod, "window", CreatePyWindowObject() );
 PyModule_AddObject(mod, "locale", Py_BuildValue("u", appLocale.c_str()));

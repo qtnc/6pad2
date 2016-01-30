@@ -132,13 +132,13 @@ if (!IsModified()) {
 onclosed(shared_from_this());
 return true;
 }
-int re = MessageBox(sp->win, tsnprintf(512, msg("Save changes to %s?"), name.c_str()).c_str(), name.c_str(), MB_ICONEXCLAMATION  | MB_YESNOCANCEL);
-if (re==IDYES) {
+int re = MessageBox2(sp->win, name, tsnprintf(512, msg("%s has been modified."), name.c_str()), tsnprintf(512, msg("Save changes to %s?"), name.c_str()), {msg("&Save"), msg("Do&n't save"), msg("&Cancel")}, MB2_ICONEXCLAMATION);
+if (re==0) {
 bool result = Save();
 if (result) onclosed(shared_from_this());
 return result;
 }
-else if (re==IDNO) {
+else if (re==1) {
 onclosed(shared_from_this());
 return true;
 }

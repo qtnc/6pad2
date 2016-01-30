@@ -31,20 +31,20 @@ braille(text) -> None:
 :	If a screen reader is currently active and if a braille display is connected, the given message is displayed on the braille display.
 
 ## Members
-locale:
+str locale:
 :	The language of the application, e.g. `french`.
-appdir:
+str appdir:
 :	The application directory, e.g. `C:\6pad++\`.
-appname:
+st appname:
 :	The name of the application executable, e.g. `6pad++`.
-appfullpath:
+str appfullpath:
 :	The full path of 6pad++ executable, e.g. `C:\6pad++\6pad++.exe`.
-configfile:
+str configfile:
 :	The path of the main 6pad++ configuration file, e.g. `C:\6pad++\6pad++.ini`.
-window:
+[Window](#WindowObject) window:
 :	The window object (see below)
 
-# The window object
+# The window object {#WindowObject}
 ## Methods
 open(filename) -> Page:
 :	Open a file in the editor. If the file has been successfully opened in this instance, the page object is returned, otherwise None.
@@ -81,6 +81,8 @@ openDialog(file='', title='', filters=[], initialFilter=0, multiple=False) -> mu
 	You can use keyword arguments.
 chooseFolder(folder='', title='', root='', showFiles=False) -> str:
 :	Show a dialog box where the user can choose a folder in a tree view. If showFiles is set to True, the user can also select files, otherwise he can only select folders. Returns the item selected by the user, or None if he cancelled the dialog box. You can use keyword arguments.
+taskDialog(title=None, heading=None, text=None, details=None, footer=None, icon=None, buttons=None, radioButtons=None, checkbox=None, checked=False, collapseButtonText=None, expandButtonText=None, expanded=False, defaultButton=0, defaultRadioButton=0, expandInFooter=False, commandLinks=False, commandLinksNoIcon=False, progressBar=False, callback=None) -> (button,radio,checkbox)|TaskDialog:
+:	Show a task dialog. Task dialogs offer a major evolution over old message boxes, allowing much more customization, flexibility and input controls. See the [dedicated chapter of this documentation](#taskDialog) for more information about the use of task dialogs and the different possible parameters.
 focus () -> None:
 :	Focus 6pad++ window.
 showPopupMenu(listOfOptions) -> int:
@@ -356,3 +358,108 @@ int checked:
 :	The checked/unchecked state of the item.
 int radio:
 :	Whether or not the item is a radio button menu item.
+
+# Task dialogs and TaskDialog class {#taskDialog}
+Task dialogs offer a major evolution over old message boxes, allowing much more customization, flexibility and input controls. They are described [on the MSDN](https://msdn.microsoft.com/en-us/library/windows/desktop/bb787471(v=vs.85).aspx).
+To show a task dialog, first call the `taskDialog` method of the window object. Its long list of parameters is explained below.
+
+taskDialog(title=None, heading=None, text=None, details=None, footer=None, icon=None, buttons=None, radioButtons=None, checkbox=None, checked=False, collapseButtonText=None, expandButtonText=None, expanded=False, defaultButton=0, defaultRadioButton=0, expandInFooter=False, commandLinks=False, commandLinksNoIcon=False, progressBar=False, callback=None) -> (button,radio,checkbox)|TaskDialog
+
+title:
+:	The title of the dialog box, as shown in the title bar
+heading:
+:	the main text of the dialog box, shortly explaining its purpose. referred as main instructions in the MSDN doc. Often telling a simple fact on which we would like the user to decide on what action to take. Example: : "foo.txt has changed since the last save". The heading isn't shown at all if it is unspecified or blank.
+text:
+:	additional text shown below the main text heading, explaing a bit more the main purpose of the dialog box. Referred as content in the MSDN doc. Often asking a question to the user, such as "Do you want to save changes to foo.txt?" or to give a little more important precisions than the heading. The content isn't shown at all if it is unspecified or blank.
+details:
+:	One more additional detail text that the user can make visible by pressing on a "More details" button. Usually, this text isn't displayed immediately when the dialog is open, unless by pressing on the expand button. Refered as expanded information in the MSDN. For example, you can put detailed error report in that place. If unspecified or blank, neither the details area nor the expand/collapse details button are displayed.
+footer:
+:	A text that appears underneath the buttons, in a smaller font. If None or blank, no space is reserved to display this text.
+icon:
+:	A string indicating which icon must illustrate the dialog box. This parameter can be one of the strings "none", "info", "warning", "error" or "shield", by default "none", meaning no icon has to be displayed at all. This parameter also controls the sound emited when the dialog box is opened, i.e. asterisk, exclamation and critical stop for resp. "info", "warning" and "error". NO sound is produced when using "none" or "shield" icons.
+buttons:
+:	A list or tuple of one or more strings indicating the different buttons that will be present on the dialog box. If no button is specified, because the list/tuple is empty or if None is passed, the dialog box shows up with a single OK button.
+defaultButton:
+:	Index of the button selected by default when the dialog box initially pops-up. If unspecified, 0 is used, i.e. the first button is selected by default.
+radioButtons:
+:	A list or tuple of two or more strings specifying the different radio buttons to show in the dialog box. A task dialog can show a group of radio buttons, which the user can select an option from (as usual with radio buttons, a single option at a time). If this parameter is None or an empty list/tuple, no space is taken to display any radio buttons.
+defaultRadioButton:
+:	The index of the radio button initially selected when the dialog box pops-up. BY default, 0, i.e. the first radio button is preselected.
+checkbox:
+:	Text label of a verification checkbox. A task dialog can also display a single checkbox, often used  to give options like "Don't show this dialog again" or "Apply my choice to all following elements". IF this isn't specified or blank, no space is taken to display any checkbox.
+checked:
+:	Indicate whether the checkbox is initially checked or not when the dialog pops-up. BY default False (unchecked). No effect if no checkbox text has been defined.
+expandButtonText:
+:	Text of the expand button used to show the details. If None or blank, a default label such as "More details" will be used. No effect if no details text is defined, since expand/collapse button isn't displayed in that case.
+collapseButtonText:
+:	Text of the expand button to hide the details. If None or blank, a default label such as "More details" will be used. No effect if no details text is defined, since expand/collapse button isn't displayed in that case.
+expanded
+:	Indicates if detail text is initially displayed (expanded) when the dialog pops-up. By default FAlse (collapsed / details not shown). No effect if no details text is defined.
+expandInFooter:
+:	If this parameter is true, details are placed below the buttons when they are expanded, instead of above. By default False. No effect if no details text is defined.
+commandLinks:
+:	If this parameter is True, buttons are replaced by command links. They work the same, they just have the appearance of web links instead of classic buttons.
+commandLinksNoIcon:
+:	BY default when buttons are replaced by command links, there are small icons on their left. If this parameter is True, these icon are removed. By default False. This parameter has no effect if commandLinks=False.
+progressBar:
+:	When set to True, a progress bar is shown in the dialog box and a TaskDialog object is returned instead of a tuple of results. This allows to turn a task dialog into a monitor progress dialog.
+	If this parameter is specified, the taskDialog method has to be called from a working thread, and not the main UI thread. Otherwise, the sript is blocked until the method returns and you have no way to update the progress bar as the task is making progress.
+callback:
+:	Define a callback to be called whenever an event occurs in the dialog box (see further down).
+
+If the progressBar is unspecified or False, the *taskDialog* method returns a 3-tuple of integers indicating, in order:
+- Which button has been pressed, as an index in the buttons list/tuple passed, or -1 if the user closed the dialog box by pressing escape or Alt+F4.
+- Which radio button has been selected, as an index in the radio buttons list/tuple passed, or -1 if there was no radio buttons in the dialog box.
+- 1 or 0 depending on the state checked or unchecked of the verification checkbox, or -1 if there was no checkbox in the dialog.
+
+If progressBar was set to True however, the *taskDialog* method returns a TaskDialog object, which you can manipulate as long as the dialog remains open, typically until the task in progress finished or when the user cancelled it.
+This object has the properties and method described below.
+
+## Methos
+close() -> None:
+:	Close the dialog box by simulating a press on the *Cancel* button or the escape key. After this call, the dialog box is closed, and buttonClicked=-1.
+enableButton(buttonIndex, bEnable) -> None:
+:	Enable or disable the specified button in the dialog box.
+enableRadioButton(radioButtonIndex, bEnable) -> None:
+:	Enable or disable the specified radio button in the dialog box.
+
+## Members
+int closed (read only):
+:	Indicate whether the dialog box is still open, or already closed. Any further modification of the other members after the dialog is closed has no effect.
+float value:
+:	The value of the progress bar, between 0 (nothing is done) to 1 (fully complete)
+str title:
+:	The title of the dialog box, as displayed on the title bar
+str heading:
+:	The dialog's heading text
+str text:
+:	The dialog's content text
+str details:
+:	The dialog's details text, shown when clicking on the "More details" button.
+str footer:
+:	The dialog's footer text
+int buttonClicked (read only):
+:	Once the dialog is closed, indicates the index of the button clicked by the user in the buttons list/tuple, or -1 if escape or Alt+F4 was used to close the dialog box. Since the close method simulates a click, buttonClicked always equals -1 after an explicit call to close.
+int radioChecked:
+:	Indicates the radio button currently selected by the user as an index in the radio buttons list/tuple, or -1 if the dialog doesn't contain any radio button. You can modify this property to programmatically select another radio button.
+int checkboxChecked:
+:	Indicate if the verification checkbox is currently checked or not. You can change the state of the checkbox by modifying this property.
+
+
+## The task dialog callback
+The task dialog callback is called when some particular events occurrs within a task dialog. The callback to be called is specified with the parameter *callback* of the *taskDialog* method.
+The callback obtain two arguments: an object TaskDialog representing the task dialog, and an int indicating which event occurred. Here are the different values you can receive and the events to which they correspond:
+
+1000...1999:
+:	One of the button has been clicked. 1000 corresponds to button 0 in the list/tuple, 1001 to button 1, and so on.
+	You can return True to close the task dialog, or False to keep it open. If you don't return anything, any click on a button closes the dialog.
+2000...2999:
+:	One of the radio buttons has been selected. 2000 corresponds to the first radio button in the list/tuple, 2001 to the second, and so on.
+3000:
+:	The verification checkbox has been clicked and it is no unchecked
+3001:
+:	The verification checkbox has been clicked and it is no checked
+3002:
+:	The expand/collapse details button has been clicked and details are now hidden/collapsed
+3003:
+:	The expand/collapse details button has been clicked and details are now shown/expanded.

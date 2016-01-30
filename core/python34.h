@@ -253,12 +253,11 @@ R cResult = PyTypeSpec<R>::convert3(pyResult);
 Py_XDECREF(pyResult);
 return cResult;
 }
+inline PyCallback<R(A...)> (): func() {}
+inline PyCallback<R(A...)> (PyObject* o): func(o) {}
 inline PyCallback<R(A...)> (const PySafeObject& o): func(o) {}
 inline operator bool () const { return func; }
-inline bool operator== (const PyCallback<R(A...)>& x) const { 
-printf("operator==: %p, %p\r\n", func.o, x.func.o);
-return x.func==func; 
-}
+inline bool operator== (const PyCallback<R(A...)>& x) const {  return x.func==func;  }
 inline bool operator!= (const PyCallback<R(A...)>& x) const { return !operator==(x); }
 inline R operator() (A... args) { return call(*func, args...); }
 };

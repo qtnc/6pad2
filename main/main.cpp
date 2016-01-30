@@ -231,8 +231,15 @@ return shared_ptr<Page>( f? f() : 0);
 
 void PageSaved (shared_ptr<Page> p) {
 if (curPage==p) UpdateWindowTitle();
-if (p->file==configFileName) { config.clear(); config.load(configFileName); }
+if (p->file==configFileName) { 
+config.clear();
+recentFiles.clear(); 
+config.load(configFileName); 
+for (int i=0; config.contains("recentFile"+toString(i)); i++) {
+recentFiles.push_back(config.get<tstring>("recentFile"+toString(i), TEXT("") ));
 }
+UpdateRecentFilesMenu();
+}}
 
 void PageClosed (shared_ptr<Page> p) {
 if (curPage==p) { PageDeactivated(p); curPage=0; }
@@ -331,7 +338,7 @@ struct _tmp_{bool&b; _tmp_(bool&x):b(x){b=true;} ~_tmp_(){b=false;} } _tmp1_(on)
 onactivated();
 for (auto p: pages) {
 if (p->CheckFileModification()) {
-if (p->IsModified() && IDYES!=MessageBox(win, tsnprintf(512, msg("%s has been modified in another application. Do you want to reload it ?"), p->name.c_str()).c_str(), p->name.c_str(), MB_ICONEXCLAMATION | MB_YESNO) ) p->lastSave = GetCurTime();
+if (p->IsModified() && 0!=MessageBox2(win, p->name, msg("Concurrent modification in another application"), tsnprintf(512, msg("%s has been modified in another application. Do you want to reload it ?"), p->name.c_str()), {msg("&Reload"), msg("Do&n't reload")}, MB2_ICONEXCLAMATION ) ) p->lastSave = GetCurTime();
 else p->LoadFile(TEXT(""),false);
 }}}
 
@@ -445,7 +452,8 @@ if (line>0&&col>0) page->SetCurrentPositionLC(line -1, col -1);
 return true;
 }}
 if (1==config.get("instanceMode", 0)) {
-OpenFile(file);
+auto page = OpenFile(file);
+if (page && line>0&&col>0) page->SetCurrentPositionLC(line -1, col -1);
 return true;
 }
 return false;
@@ -787,12 +795,15 @@ SetForegroundWindow(nextPos==n? win : modlessWindows[nextPos]);
 static void AboutDlg () {
 string pyver = Py_GetVersion();
 pyver = pyver.substr(0, pyver.find(' '));
-MessageBox(win, tsnprintf(512,
+MessageBox2(win,
+msg("About"),
+msg("About 6pad++"),
+tsnprintf(512,
 TEXT("6pad++ %s\r\nCopyright \xA9 2015, Quentin Cosendey\r\nhttp://quentinc.net/\r\n\r\n") 
 + msg("This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License.")
 + TEXT("\r\n\r\n") + msg("This program embeds python %s from") + TEXT(" Guido van Rossum (http://www.python.org/)"),
 TEXT(SIXPAD_VERSION), toTString(pyver).c_str()
-).c_str(), msg("About").c_str(), MB_OK | MB_ICONINFORMATION);
+));
 }
 
 static void SelFontDlg () {

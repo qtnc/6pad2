@@ -7,13 +7,19 @@ import qc6paddlgs as dlgs
 
 def func(*args, **kwds):
 	win.beep(800,120)
+	return win.confirm('Etes-vous sur')
 
 def func5 () :
-	ppd = dlgs.ProgressDialog.open(title='Title', text='Text')
-	for i in range(1,100):
-		sleep(0.4)
-		ppd.value=i
-	ppd.close()
+	ptd = win.taskDialog(progressBar=True, title='ProgressBar Test', heading='Traitement en cours...', footer='Initialisation...', buttons=('Annuler',), callback=func )
+	value=0
+	for i in range(1, 1000):
+		if ptd.closed: break
+		sleep(0.05)
+		value=i
+		ptd.value=i/1000.0
+		ptd.footer = 'El\u00E9ment ' + str(i) + ' de 1000'
+	print(value, ptd.buttonClicked)
+	ptd.close()
 
 def func4 ():
 	Thread(target=func5) .start()
@@ -50,7 +56,7 @@ def func6():
 			commandLinksNoIcon=True
 	))
 
-#win.addAccelerator('F5', func)
+win.addAccelerator('F5', func4)
 win.addAccelerator('Ctrl+E', func6)
 win.addAccelerator('Ctrl+0', func2)
 
