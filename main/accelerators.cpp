@@ -1,9 +1,10 @@
 #include "global.h"
+#include "accelerators.h"
 #include<unordered_map>
 using namespace std;
 
 extern HWND win;
-extern unordered_map<int, function<void(void)>> userCommands, timers;
+extern unordered_map<int, UserFunction<void(void)>> userCommands, timers;
 
 extern tstring msg (const char* name);
 
@@ -89,7 +90,7 @@ key = KEYNAMES[toString(s)];
 return !!key;
 }
 
-int AddUserCommand (std::function<void(void)> f, int cmd) {
+int AddUserCommand (const UserFunction<void(void)>& f, int cmd) {
 if (cmd<=0) {
 cmd = IDM_USER_COMMAND;
 while(userCommands[cmd]) cmd++;
@@ -105,6 +106,12 @@ userCommands.erase(it);
 return true;
 }
 return false;
+}
+
+const UserFunction<void(void)>& findUserCommand (int cmd) {
+auto it = userCommands.find(cmd);
+if (it!=userCommands.end()) return it->second;
+else return UserFunction<void(void)>();
 }
 
 static void LoadAccelTable (HACCEL hAccel, vector<ACCEL>& accel) {
@@ -165,7 +172,7 @@ return true;
 return false;
 }
 
-int SetTimeout (const std::function<void(void)>& f, int time, bool repeat) {
+int SetTimeout (const UserFunction<void(void)>& f, int time, bool repeat) {
 int id = 0;
 if (!repeat) id |= 0x8000;
 while(timers[++id]);

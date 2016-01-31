@@ -16,7 +16,7 @@ LPCTSTR className;
 // Methods/functions
 tstring(*msg)(const char*);
 void(*RegisterPageFactory)(const string& name, const function<Page*()>& f);
-int(*AddUserCommand)(std::function<void(void)> f, int cmd) ;
+int(*AddUserCommand)(const std::function<void(void)>& f, int cmd) ;
 bool(*RemoveUserCommand)(int cmd);
 bool(*AddAccelerator)(HACCEL& hAccel, int flags, int key, int cmd);
 BOOL(*RemoveAccelerator)(HACCEL& hAccel, int cmd);

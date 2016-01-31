@@ -358,6 +358,8 @@ int checked:
 :	The checked/unchecked state of the item.
 int radio:
 :	Whether or not the item is a radio button menu item.
+callable action:
+:	The action function that has to be called when the item is clicked. This is None for submenus or built-in menu items (i.e. items that are natively managed).
 
 # Task dialogs and TaskDialog class {#taskDialog}
 Task dialogs offer a major evolution over old message boxes, allowing much more customization, flexibility and input controls. They are described [on the MSDN](https://msdn.microsoft.com/en-us/library/windows/desktop/bb787471(v=vs.85).aspx).
@@ -394,7 +396,7 @@ expandButtonText:
 collapseButtonText:
 :	Text of the expand button to hide the details. If None or blank, a default label such as "More details" will be used. No effect if no details text is defined, since expand/collapse button isn't displayed in that case.
 expanded
-:	Indicates if detail text is initially displayed (expanded) when the dialog pops-up. By default FAlse (collapsed / details not shown). No effect if no details text is defined.
+:	Indicates if detail text is initially displayed (expanded) when the dialog pops-up. By default False (collapsed / details not shown). No effect if no details text is defined.
 expandInFooter:
 :	If this parameter is true, details are placed below the buttons when they are expanded, instead of above. By default False. No effect if no details text is defined.
 commandLinks:

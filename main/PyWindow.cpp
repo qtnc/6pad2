@@ -27,9 +27,6 @@ extern vector<tstring> argv;
 tstring msg (const char* name);
 int AppAddEvent (const string&, const PySafeObject&);
 int AppRemoveEvent (const string&, int id);
-int AddUserCommand (std::function<void(void)> f, int cmd=0);
-int SetTimeout (const std::function<void(void)>& f, int time, bool repeat);
-void ClearTimeout (int id);
 shared_ptr<Page> OpenFile (tstring filename, int flags);
 shared_ptr<Page> PageAddEmpty (bool focus, const string& type);
 
@@ -261,7 +258,7 @@ SetWindowText(win, title);
 }
 
 static int PySetTimer1 (const PySafeObject& cb, int time) {
-return SetTimeout(cb.asFunction<void()>(), time, false);
+return SetTimeout(PyCallback<void(void)>(cb), time, false);
 }
 
 static int PySetTimer2 (const PySafeObject& cb, int time) {

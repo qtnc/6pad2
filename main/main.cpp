@@ -31,7 +31,7 @@ vector<int> encodings = { GetACP(), GetOEMCP(), CP_UTF8, CP_UTF8_BOM, CP_UTF16_L
 vector<tstring> argv;
 vector<shared_ptr<Page>> pages;
 vector<HWND> modlessWindows;
-unordered_map<int, function<void(void)>> userCommands, timers;
+unordered_map<int, UserFunction<void(void)>> userCommands, timers;
 unordered_map<string,function<Page*()>> pageFactories = { {"text", [](){return new Page();}} };
 
 signal<void()> onactivated, ondeactivated, onclosed, onresized;
@@ -1104,13 +1104,15 @@ break;
 return DefWindowProc(hwnd, msg, wp, lp);
 }
 
+static int AddUserCommandProxy (const std::function<void(void)>& f, int cmd) { return AddUserCommand(f,cmd); }
+static int SetTimeoutProxy (const std::function<void(void)>& f, int delay, bool repeat) { return SetTimeout(f,delay,repeat); }
 SixpadData sp = {
 SIXPAD_VERSION_ID, 0, 0, 0, 0, 0, CLASSNAME, 
 &msg, &RegisterPageFactory,
-&AddUserCommand, &RemoveUserCommand,
+&AddUserCommandProxy, &RemoveUserCommand,
 &AddAccelerator, &RemoveAccelerator, &FindAccelerator,
 &KeyCodeToName,  &KeyNameToCode,
-&SetTimeout, &ClearTimeout,
+&SetTimeoutProxy, &ClearTimeout,
 &AddModlessWindow, &RemoveModlessWindow, &GoToNextModlessWindow,
 &msgs, &config,
 hAccel, 0};
