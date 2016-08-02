@@ -788,7 +788,10 @@ return false;
 static bool EZHandleDel (Page* curPage, HWND hwnd, bool normal) {
 int selStart, selEnd;
 SendMessage(hwnd, EM_GETSEL, &selStart, &selEnd);
-if (selStart!=selEnd) curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selEnd, EditGetSubstring(hwnd, selStart, selEnd), true) ));
+if (selStart!=selEnd) {
+curPage->PushUndoState(shared_ptr<UndoState>(new TextDeleted(selStart, selEnd, EditGetSubstring(hwnd, selStart, selEnd), true) ));
+return false;
+}
 else if (selStart>=GetWindowTextLength(hwnd)) return false;
 tstring text = EditGetSubstring(hwnd, selStart, selStart+1);
 if (text==TEXT("\r")) {
@@ -1032,6 +1035,9 @@ HMENU menu = GetSubMenu(GetMenu(sp->win), 1);
 TrackPopupMenu(menu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_LEFTBUTTON, p.x, p.y, 0, hwnd, NULL);
 }
 return true;
+case WM_LBUTTONUP:
+curPage->UpdateStatusBar(sp->status);
+break;
 case WM_MOUSEWHEEL: {
 int delta = -GET_WHEEL_DELTA_WPARAM(wp);
 SendMessage(hwnd, EM_SCROLL, delta>0? SB_LINEDOWN : SB_LINEUP, 0);

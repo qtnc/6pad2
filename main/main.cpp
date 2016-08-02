@@ -502,7 +502,7 @@ ParseLineCol(file, line, col);
 File::normalizePath(file);
 if ((flags&OF_CHECK_OTHER_WINDOWS) && OpenFile_CheckOtherWindows(file, line, col)) return NULL;
 string type = "text";
-var vtype = onpageBeforeOpen(file);
+var vtype= onpageBeforeOpen(file) ;
 if (vtype.getType()==T_STR) type = toString(vtype.toTString());
 shared_ptr<Page> cp = curPage;
 shared_ptr<Page> p = PageCreate(type);
@@ -956,12 +956,14 @@ historyPtr = min(historyPtr+1, (int)history.size());
 if (historyPtr<history.size()) SetWindowText(hwnd, history[historyPtr]);
 else SetWindowText(hwnd, TEXT(""));
 SendMessage(hwnd, EM_SETSEL, 0, -1);
+return true;
 }
 else if (LOWORD(wp)==VK_UP) {
 historyPtr = max(min(historyPtr -1, (int)history.size()), -1);
 if (historyPtr>=0 && historyPtr<history.size()) SetWindowText(hwnd, history[historyPtr]);
 else SetWindowText(hwnd, TEXT(""));
 SendMessage(hwnd, EM_SETSEL, 0, -1);
+return true;
 }
 break;
 case WM_USER: {

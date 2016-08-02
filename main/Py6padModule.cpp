@@ -31,6 +31,7 @@ FILE* fp = fopen(fn.c_str(), "r");
 if (fp) {
 result = !PyRun_SimpleFile(fp, fn.c_str() );
 fclose(fp);
+if (!result) PyErr_Print();
 }
 return result;
 }
@@ -82,7 +83,7 @@ return true;
 static void PyLoadExtension (const string& name) {
 if (ends_with(name, ".py")) PyInclude(name);
 else if (ends_with(name, ".dll")) LoadDLLExtension(name);
-else PyImport_ImportModule(name.c_str());
+else if (!PyImport_ImportModule(name.c_str())) PyErr_Print();
 }
 
 static int PyLoadLang (const tstring& langfile) {

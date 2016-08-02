@@ -6,6 +6,7 @@ __pycache__/
 *.pyd
 *.a
 *.o
+*.k.txt
 *.ini
 *.zip
 *.pyc

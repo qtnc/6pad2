@@ -3,7 +3,7 @@
 6pad++ is a simple and lightweight, yet powerful text editor for windows.
 Its main goal is to keep the accessibility and responsiveness of standard notepad, while providing a few not especially spectacular but useful features.
 
-Latest version is beta 1.
+Latest version is alpha 7.
 If you have an improvement to suggest, if you found a bug, or if you have any question, feel free to contact me or post on the issue tracker.
 
 Have fun !
