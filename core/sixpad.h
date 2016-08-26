@@ -38,6 +38,7 @@ LPVOID reserved;
 HFONT font;
 bool headless;
 DWORD uiThreadId;
+bool nacked;
 };
 
 extern "C" BOOL export SixpadDLLInit (SixpadData*);

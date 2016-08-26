@@ -10,6 +10,8 @@ using boost::to_lower;
 using boost::to_lower_copy;
 using boost::to_upper;
 using boost::to_upper_copy;
+using boost::replace_all;
+using boost::replace_all_copy;
 using boost::ends_with;
 using boost::starts_with;
 using boost::trim;
@@ -26,7 +28,6 @@ export bool preg_check (const tstring& regex, bool rethrow=false);
 
 void export ParseLineCol (tstring& file, int& line, int& col);
 tstring export str_replace (const tstring& str, const std::vector<std::pair<tstring,tstring>>& pairs);
-inline tstring str_replace (const tstring& str, const tstring& needle, const tstring& repl, bool icase = false) { return preg_replace(str, needle, repl, icase, true); }
 
 template<class T> std::vector<std::basic_string<T>> split (const std::basic_string<T>& str, const std::basic_string<T>& delims) {
 std::vector<std::basic_string<T>> v;

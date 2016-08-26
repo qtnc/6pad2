@@ -23,5 +23,11 @@ Load the extension specified, as if the corresponding directive was present in t
 ## /run=script.py
 Run the specified script, immediately after the load of all extensions and the implicit initialization script (6pad++.py).
 
+## /configfile=file.ini
+Load the specified configuration file in place of the default one. You can type `/configfile=-` to open 6pad++ without any configuration file.
+
+## /nacked
+Load 6pad++ without any extension, i.e. ignore all extensions specified in the configuration file. Only extensions specified in the command line with `/extension` are loaded.
+
 ## /headless
 Run 6pad++ in headless mode, i.e. no window is displayed on screen. This can be useful to batch process many files with a script, or perform other operations that can be run rather quickly and without needing any user interaction.

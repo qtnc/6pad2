@@ -18,6 +18,7 @@ void ConsolePrint (const tstring& str, bool say);
 void SetClipboardText (const tstring&);
 tstring GetClipboardText (void);
 tstring msg (const char* name);
+void ReloadConfig();
 
 bool PyRegister_Window (PyObject* m); 
 bool PyRegister_EditorTab(PyObject* m);
@@ -110,6 +111,7 @@ PyDecl("msg", msg),
 PyDecl("getConfig", PyGetConfig),
 {"setConfig", (PyCFunction)PySetConfig, METH_VARARGS | METH_KEYWORDS, NULL},
 PyDecl("getConfigAsList", PyGetConfigMulti),
+PyDecl("reloadConfig", ReloadConfig),
 
 // Clipboard management
 PyDecl("setClipboardText", SetClipboardText),
@@ -178,7 +180,9 @@ bool failed = !!PyRun_SimpleString(&code[0]);
 if (failed) exit(1);
 }
 RunSync([](){});//Barrier to wait for the main loop to start
-{auto p=config.equal_range("extension"); for(auto it=p.first; it!=p.second; ++it) {
+if (!sp.nacked) {
+auto p=config.equal_range("extension"); 
+for(auto it=p.first; it!=p.second; ++it) {
 string name = it->second;
 PyLoadExtension(name);
 }}

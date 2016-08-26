@@ -136,6 +136,16 @@ InsertMenu(menuEncoding, i, MF_STRING | MF_BYPOSITION, IDM_ENCODING+i, msg(("Enc
 return i;
 }
 
+void ReloadConfig () {
+config.clear();
+recentFiles.clear(); 
+config.load(configFileName); 
+for (int i=0; config.contains("recentFile"+toString(i)); i++) {
+recentFiles.push_back(config.get<tstring>("recentFile"+toString(i), TEXT("") ));
+}
+UpdateRecentFilesMenu();
+}
+
 void PageNoneActive (void) {
 EnableMenuItem2(menu, IDM_SAVE, MF_BYCOMMAND, false);
 EnableMenuItem2(menu, IDM_SAVE_AS, MF_BYCOMMAND, false);
@@ -231,15 +241,8 @@ return shared_ptr<Page>( f? f() : 0);
 
 void PageSaved (shared_ptr<Page> p) {
 if (curPage==p) UpdateWindowTitle();
-if (p->file==configFileName) { 
-config.clear();
-recentFiles.clear(); 
-config.load(configFileName); 
-for (int i=0; config.contains("recentFile"+toString(i)); i++) {
-recentFiles.push_back(config.get<tstring>("recentFile"+toString(i), TEXT("") ));
+if (p->file==configFileName) ReloadConfig();
 }
-UpdateRecentFilesMenu();
-}}
 
 void PageClosed (shared_ptr<Page> p) {
 if (curPage==p) { PageDeactivated(p); curPage=0; }
@@ -389,7 +392,7 @@ vector<int> encvals;
 int curenc = (curPage? curPage->encoding : -1);
 for (int enc: getAllAvailableEncodings()) {
 if (enc==20127 || enc==21027) continue;
-tstring name = str_replace(msg(("Encoding" + toString(enc)).c_str()), TEXT("&"), TEXT(""));
+tstring name = replace_all_copy(msg(("Encoding" + toString(enc)).c_str()), TEXT("&"), TEXT(""));
 encmap.insert(pair<tstring,int>( name, enc));
 }
 for (auto it: encmap) {
@@ -441,6 +444,16 @@ if (!consoleWin ) RunSync(OpenConsoleWindow);
 if (say) speechSay(s2.c_str(), false);
 }
 if (consoleWin) SendMessage(consoleWin, WM_COMMAND, 999, &s);
+}
+
+static void AddToRecentFiles (const tstring& file) {
+if (file.empty()) return;
+auto itrf = std::find(recentFiles.begin(), recentFiles.end(), file);
+if (itrf==recentFiles.begin()) return;
+if (itrf!=recentFiles.end()) recentFiles.erase(itrf);
+recentFiles.push_front(file);
+if (recentFiles.size()>config.get("maxRecentFiles", 10)) recentFiles.pop_back();
+UpdateRecentFilesMenu();
 }
 
 static inline bool OpenFile_CheckOpenTabs  (const tstring& file, int line, int col) {
@@ -511,11 +524,7 @@ p->file = file;
 if (!PageAdd(p)) return NULL;
 if (line>0&&col>0) p->SetCurrentPositionLC(line -1, col -1);
 if (cp&&cp->IsEmpty()) cp->Close();
-auto itrf = std::find(recentFiles.begin(), recentFiles.end(), file);
-if (itrf!=recentFiles.end()) recentFiles.erase(itrf);
-recentFiles.push_front(file);
-if (recentFiles.size()>config.get("maxRecentFiles", 10)) recentFiles.pop_back();
-UpdateRecentFilesMenu();
+AddToRecentFiles(file);
 return p;
 }
 
@@ -613,8 +622,6 @@ if (i>=0&&i<appLocale.size()) appLocale = appLocale.substr(0,i);
 to_lower(appLocale);
 appName = fnBs+1;
 appDir = fn;
-configFileName = appDir + TEXT("\\") + appName + TEXT(".ini");
-config.load(configFileName);
 if (!msgs.load(appDir + TEXT("\\") + appName + TEXT("-") + appLocale + TEXT(".lng") )) msgs.load(appDir + TEXT("\\") + appName + TEXT("-english.lng") );
 }
 
@@ -631,6 +638,8 @@ if (arg.size()<=0) continue;
 else if (arg[0]=='-' || arg[0]=='/') { // options
 arg[0]='/';
 if (arg==TEXT("/headless")) sp.headless=headless=true;
+else if (arg==TEXT("/nacked")) sp.nacked=true;
+else if (starts_with(arg, TEXT("/configfile="))) configFileName = arg.substr(12);
 continue; 
 } 
 if (OpenFile_StartupCheck(arg)) return 0;
@@ -644,6 +653,11 @@ File f(TEXT("&in:"));
 dataFromStdin = f.readFully();
 }
 firstInstance = !FindWindow(CLASSNAME,NULL);
+
+{//Load config
+if (configFileName.empty()) configFileName = appDir + TEXT("\\") + appName + TEXT(".ini");
+if (configFileName!=TEXT("-")) config.load(configFileName);
+}
 
 {//Register class and controls block
     WNDCLASSEX wincl;
@@ -885,8 +899,8 @@ if (1==config.get("instanceMode",0)) OpenFileDialog(OF_CHECK_OTHER_WINDOWS);
 else OpenFileDialog(OF_NEW_INSTANCE); 
 return true;
 case IDM_REOPEN: PageReopen(curPage); return true;
-case IDM_SAVE: if (curPage) curPage->Save(); return true;
-case IDM_SAVE_AS: if (curPage) curPage->Save(true);  return true;
+case IDM_SAVE: if (curPage) { curPage->Save(); AddToRecentFiles(curPage->file); } return true;
+case IDM_SAVE_AS: if (curPage) { curPage->Save(true);  AddToRecentFiles(curPage->file); } return true;
 case IDM_NEW: PageAddEmpty(true); return true;
 case IDM_CLOSE: if (curPage) curPage->Close(); return true;
 case IDM_SELECTALL: if (curPage) curPage->SelectAll(); return true;

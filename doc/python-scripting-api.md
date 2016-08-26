@@ -23,6 +23,8 @@ getConfig (key, defaultValue = '') -> str:
 :	Return the value of a key from the configuration file. If the key has multiple values, the first value found is returned. If the key isn't found, defaultValue is returned.
 getConfigAsList(key) -> [str]:
 :	Return a list containing all the values associated with the given key in the configuration file.
+reloadConfig():
+:	Reload the configuration file
 say(text, interrupt=False) -> None:
 :	IF a scren reader is active, speak the specified string. IF interrupt is True, the message is spoken immediately, possibly stopping any other speech; if interrupt is False (by default), the message is spoken as soon as possible once all other currently spoken messages are finished.
 stopSpeech() -> None:

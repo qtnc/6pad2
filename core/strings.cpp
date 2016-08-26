@@ -199,12 +199,30 @@ text = preg_replace(text, TEXT("\r\n|\n|\r"), TEXT("\r\n") );
 bool preg_check (const tstring& regex, bool rethrow) {
 using namespace boost;
 try {
-tregex reg(regex, regex_constants::perl | regex_constants::mod_s | regex_constants::collate | regex_constants::nosubs);
+tregex reg(regex, regex_constants::perl | regex_constants::mod_s | regex_constants::collate);
 return true;
 } catch (const std::exception& e) {
 if (rethrow) throw;
 else return false;
 }}
+
+static tstring preg_needle_mod (const tstring& s, bool lit) {
+if (!lit) return s;
+return str_replace(s, {
+{ TEXT("^t"), TEXT("\t") },
+{ TEXT("^f"), TEXT("\f") },
+{ TEXT("^v"), TEXT("\v") },
+{ TEXT("^b"), TEXT("\b") },
+{ TEXT("^n"), TEXT("\n") },
+{ TEXT("^r"), TEXT("\r") },
+{ TEXT("^e"), TEXT("\x1B") },
+{ TEXT("^^"), TEXT("^") }
+});
+}
+
+static inline tstring preg_repl_mod (const tstring& s, bool lit) {
+return preg_needle_mod(s,lit);
+}
 
 pair<int,int> preg_search (const tstring& text, const tstring& needle, int pos, bool icase, bool literal) {
 try {
@@ -213,7 +231,7 @@ int options = 0;
 if (literal) options |= regex_constants::literal;
 else options |= regex_constants::perl | regex_constants::mod_s | regex_constants::collate | regex_constants::nosubs;
 if (icase) options |= regex_constants::icase;
-tregex reg(needle, options);
+tregex reg(preg_needle_mod(needle, literal), options);
 tcmatch m;
 match_flag_type mtype = match_flag_type::match_default;
 if (pos>0) mtype |= match_flag_type::match_prev_avail;
@@ -231,7 +249,7 @@ int lastStart=-1, lastEnd=-1, options = 0;
 if (literal) options |= regex_constants::literal;
 else options |= regex_constants::perl | regex_constants::mod_s | regex_constants::collate | regex_constants::nosubs;
 if (icase) options |= regex_constants::icase;
-tregex reg(needle, options);
+tregex reg(preg_needle_mod(needle, literal), options);
 match_flag_type mtype = match_flag_type::match_default;
 //if (pos>0) mtype |= match_flag_type::match_prev_avail;
 //printf("Rsearch: text=[%ls], needle=[%ls], pos=%d\r\n", text.c_str(), needle.c_str(), pos);
@@ -259,14 +277,14 @@ if (icase) options |= regex_constants::icase;
 match_flag_type flags = 
 (literal? match_flag_type::format_literal :
 (match_flag_type::match_default | match_flag_type::format_perl) );
-tregex reg(needle, options);
-return regex_replace(str, reg, repl, flags);
+tregex reg(preg_needle_mod(needle, literal), options);
+return regex_replace(str, reg, preg_repl_mod(repl, literal), flags);
 } catch (const exception& e) { return str; }
 }
 
 tstring str_replace (const tstring& str, const std::vector<std::pair<tstring,tstring>>& pairs) {
 tstring re = str;
-for (auto p: pairs) re = str_replace(re, p.first, p.second);
+for (auto p: pairs) re = replace_all_copy(re, p.first, p.second);
 return re;
 }
 
