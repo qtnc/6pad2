@@ -366,7 +366,7 @@ return file.substr(1+pos);
 
 static bool GlobMatches (const tstring& file, const tstring& iniglob) {
 wostringstream out;
-tstring glob = str_replace(iniglob, TEXT("**"), TEXT("\x1F"));
+tstring glob = replace_all_copy(iniglob, TEXT("**"), TEXT("\x1F"));
 bool ignore=false;
 for (int i=0, n=glob.size(); i<n; i++) {
 wchar_t ch = glob[i];
@@ -382,7 +382,7 @@ case '{': {
 int j = glob.find('}', i+1);
 tstring lst = glob.substr(i+1, j-i-1);
 i = j;
-out << TEXT("(?:") << str_replace(lst, TEXT(","), TEXT("|")) << TEXT(")");
+out << TEXT("(?:") << replace_all_copy(lst, TEXT(","), TEXT("|")) << TEXT(")");
 }break;
 case '#': case '|': case '&': case '<': case '>': break; // forbidden characters in file names
 case '(': case ')': case '+': case '$': case '^': out << '\\' << ch; break;
@@ -423,10 +423,10 @@ string Page::SaveData () {
 tstring str = GetText();
 var re = onsave(shared_from_this(), str);
 if (re.getType()==T_STR) str = re.toTString();
-if (lineEnding==LE_UNIX) str = str_replace(str, TEXT("\r\n"), TEXT("\n"));
-else if (lineEnding==LE_MAC) str = str_replace(str, TEXT("\r\n"), TEXT("\r"));
-else if (lineEnding==LE_RS) str = str_replace(str, TEXT("\r\n"), TEXT("\x1E"));
-else if (lineEnding==LE_LS) str = str_replace(str, TEXT("\r\n"), TEXT("\x2028"));
+if (lineEnding==LE_UNIX) str = replace_all_copy(str, TEXT("\r\n"), TEXT("\n"));
+else if (lineEnding==LE_MAC) str = replace_all_copy(str, TEXT("\r\n"), TEXT("\r"));
+else if (lineEnding==LE_RS) str = replace_all_copy(str, TEXT("\r\n"), TEXT("\x1E"));
+else if (lineEnding==LE_LS) str = replace_all_copy(str, TEXT("\r\n"), TEXT("\x2028"));
 string cstr = ConvertToEncoding(str, encoding);
 return cstr;
 }
@@ -518,12 +518,12 @@ if (guessFormat) { encoding=-1; lineEnding=-1; indentationMode=-1; tabWidth=-3; 
 if (encoding<0) encoding = guessEncoding( (const unsigned char*)(str.data()), str.size(), sp->config->get("defaultEncoding", (int)GetACP()) );
 text = ConvertFromEncoding(str, encoding);
 if (lineEnding<0) lineEnding = guessLineEnding(text.data(), text.size(), sp->config->get("defaultLineEnding", LE_DOS)  );
-if (lineEnding==LE_UNIX) text = str_replace(text, TEXT("\n"), TEXT("\r\n"));
-else if (lineEnding==LE_MAC) text = str_replace(text, TEXT("\r"), TEXT("\r\n"));
-else if (lineEnding==LE_RS) text = str_replace(text, TEXT("\x1E"), TEXT("\r\n"));
+if (lineEnding==LE_UNIX) text = replace_all_copy(text, TEXT("\n"), TEXT("\r\n"));
+else if (lineEnding==LE_MAC) text = replace_all_copy(text, TEXT("\r"), TEXT("\r\n"));
+else if (lineEnding==LE_RS) text = replace_all_copy(text, TEXT("\x1E"), TEXT("\r\n"));
 else if (lineEnding==LE_LS) {
-text = str_replace(text, TEXT("\x2028"), TEXT("\r\n"));
-text = str_replace(text, TEXT("\x2029"), TEXT("\r\n\r\n"));
+text = replace_all_copy(text, TEXT("\x2028"), TEXT("\r\n"));
+text = replace_all_copy(text, TEXT("\x2029"), TEXT("\r\n\r\n"));
 }
 if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), sp->config->get("defaultIndentationMode", 0)  );
 if (indentationMode>0) tabWidth = indentationMode;

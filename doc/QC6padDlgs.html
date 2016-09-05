@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>6pad++ Additional dialogs plugin</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header>
+<h1 class="title">6pad++ Additional dialogs plugin</h1>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#tvddef1">TreeViewDialog class</a><ul>
+<li><a href="#static-methods">Static methods</a></li>
+<li><a href="#methods">Methods</a></li>
+<li><a href="#members">Members</a></li>
+<li><a href="#tvdEvents">Events</a></li>
+</ul></li>
+<li><a href="#tvddef">TreeViewItem class</a><ul>
+<li><a href="#methods-1">Methods</a></li>
+<li><a href="#members-1">Members</a></li>
+</ul></li>
+</ul>
+</nav>
+<p>Note: Import module <code>qc6paddlgs</code> in your scripts to get all functions and objects.</p>
+<h1 id="tvddef1">TreeViewDialog class</h1>
+<p>The TreeViewDialog allows you to create modal and modless dialogs containing a tree view as their main control. The tree view can be used to display hierarchical data such as files/directories, XML-like structures, etc. To open a new tree view dialog and create an object, you must use the <code>open</code> static method described below.</p>
+<h2 id="static-methods">Static methods</h2>
+<dl>
+<dt>open(title=‘’, hint=’‘, modal=False, multiple=False, editable=False, okButtonText=’‘, cancelButtonText=’’, callback=None) -&gt; multiple possible return types:</dt>
+<dd><p>Create and open a new tree view dialog. Returns the value(s) of the item(s) selected by the user if modal=True, or a TreeViewDialog object if modal=False. Use keywords to set the different options of the dialog box:</p>
+<ul>
+<li>title = The title text of the dialog box, shown on the dialog box title bar</li>
+<li>hint = a little text hint, placed above the tree view</li>
+<li>modal = whether or not the dialog has to be modal. If modal is True, the function returns the selected item value chosen by the user, or a list of item values if multiple=True. If modal=False, then a TreeViewDialog object is returned, allowing further updates of the tree view’s contents as long as the dialog remains open, including while being in background (not focused).</li>
+<li>multiple = whether the user can choose one or several items at the same time. If multiple is True, a checkbox is placed on the left of each item, allowing the user to independently selectt items. When the user checks or unchecks an item that has children, all children are automatically checked or unchecked recursively. An item become partially checked if one or more, but not all of its children are checked.</li>
+<li>editable = whether or not the user is able to edit the text of the items, by pressing F2 or double-clicking slowly on an item.</li>
+<li>okButtonText = the text of the OK button. If None, then the button isn’t shown. If the empty string, then a default localized text is set.</li>
+<li>cancelButtonText = the text of the Cancel button. If None, then the button isn’t shown. If the empty string, then a default localized text is set.</li>
+</ul>
+- callback = a function that is going to be called when the dialog box is initialized. You can use this callback to populate the tree. It receives the TreeViewDialog object just created as its only parameter.
+</dd>
+</dl>
+<h2 id="methods">Methods</h2>
+<dl>
+<dt>addEvent(eventName, callbackFunction) -&gt; int:</dt>
+<dd>Install a callback function to be called when the given event occurs. See the <a href="#tvdEvents">list of supported events for TreeViewDialogw</a>. ON success, return a non-zero identifier used to unregister this event.
+</dd>
+<dt>removeEvent(eventName, eventID) -&gt; int:</dt>
+<dd>Remove an event previously registered. You must pass in the event ID previously returned by addEvent. Returns a non-zero value if the event has successfully been unregistered.
+</dd>
+<dt>focus() -&gt; None:</dt>
+<dd>If the dialog is non-modal, it is made visible and focused if it isn’t already the case.
+</dd>
+<dt>close() -&gt; None:</dt>
+<dd>If the dialog is non-modal, close it.
+</dd>
+</dl>
+<h2 id="members">Members</h2>
+<dl>
+<dt>closed</dt>
+<dd>Whether or not the dialog is closed.
+</dd>
+<dt>title:</dt>
+<dd>The title text of the dialog box
+</dd>
+<dt>text:</dt>
+<dd>The hint text placed above the tree view.
+</dd>
+<dt>root:</dt>
+<dd>The <a href="#tvddef">TreeViewItem</a> object representing the root element of the tree.
+</dd>
+<dt>selectedItem (read only):</dt>
+<dd>The <a href="#tvddef">TreeViewItem</a> currently selected by the user, i.e. the one that has focus.
+</dd>
+<dt>selectedValue (read only):</dt>
+<dd>The value associated with the currently selected item. This is a shortcut for <code>selectedItem.value</code>.
+</dd>
+<dt>selectedItems (read only):</dt>
+<dd>In case the tree view allows multiple selection with checkboxes, give a list of currently checked items.
+</dd>
+<dt>selectedValues (Read only):</dt>
+<dd>In case the tree view allows multiple selection with checkboxes, gives a lisf containing the values associated with checked items. Can be a shortcut for <code>[x.value for x in selectedItems]</code>.
+</dd>
+</dl>
+<h2 id="tvdEvents">Events</h2>
+<p>The following events can be passed to addEvent/removeEvent for the TreeViewDialog. In parenthesis are the arguments passed to the callback function.</p>
+<dl>
+<dt>action (dialog, item):</dt>
+<dd>Called when the user pressed enter or double-clicked an item.
+</dd>
+<dt>contextMenu (dialog, item):</dt>
+<dd>Called when the user requests the context menu for an item, i.e. when he pressed the application key or Shift+F10, or right-clicked an item
+</dd>
+<dt>select (dialog, item):</dt>
+<dd>Called each time another item is selected (focused).
+</dd>
+<dt>check (dialog, item):</dt>
+<dd>For a multiple selection tree view with checkboxes only, called each time the user checks or unchecks an item by clicking on the checkbox or pressing space.
+</dd>
+<dt>expand (dialog, item):</dt>
+<dd>Called when an item is about to be expanded. You can return True to accept the expansion, or False to refuse it (the item will stay collapsed in this case).
+</dd>
+<dt>edit (dialog, item):</dt>
+<dd>Called when the user wants to edit the text content of an item, before entering in edition mode. You can return True to accept the edition, or False to refuse.
+</dd>
+<dt>edited (dialog, item, text):</dt>
+<dd>Called when the user finished editing an item. You can return True to accept the change, False to refuse it, or an str to overwrite the label which is about to be changed.
+</dd>
+<dt>close (dialog):</dt>
+<dd>Called when the user is about to close the dialog box. You can return True to accept closing it, or False to keep it open.
+</dd>
+<dt>focus (dialog):</dt>
+<dd>Called when the tree view is focused.
+</dd>
+<dt>blur (dialog):</dt>
+<dd>Called when the tree view loses focus.
+</dd>
+</dl>
+<h1 id="tvddef">TreeViewItem class</h1>
+<p>A TreeViewItem represents an item within a tree view managed by a <a href="#tvddef1">TreeViewDialog</a>.</p>
+<h2 id="methods-1">Methods</h2>
+<dl>
+<dt>appendChild(text, value, checked=False, partiallyChecked=False, selected=False, expanded=False):</dt>
+<dd>Append a new item at the end of this item’s children list. Text and value are mandatory. You can use keyword arguments to set other flags.
+</dd>
+<dt>insertBefore(reference, text, value, checked=False, partiallyChecked=False, selected=False, expanded=False):</dt>
+<dd>Insert a new item in this item’s children list, before the element specified as reference. Text and value are mandatory. You can use keyword arguments to set other flags.
+</dd>
+<dt>removeChild(child):</dt>
+<dd>Remove the child item specified from this item’s children list. The item speicified must be a direct child of this item.
+</dd>
+<dt>select():</dt>
+<dd>Select this item, i.e. give it focus.
+</dd>
+</dl>
+<h2 id="members-1">Members</h2>
+<dl>
+<dt>text:</dt>
+<dd>The text label of the item, as displayed in the tree view of the dialog box
+</dd>
+<dt>value:</dt>
+<dd>The value associated with this item. This value is never displayed; it is used to easily recognize this item, and is also returned when requesting the currently selected value(s). It can be any python object, but it shouldn’t be None (otherwise you won’t be able to make the difference between when this item is selected and when nothing is selected).
+</dd>
+<dt>checked:</dt>
+<dd>For multi-selection tree views with checkboxes, indicate whether or not this item is currently checked.
+</dd>
+<dt>partiallyChecked:</dt>
+<dd>For multi-selection tree views with checkboxes, indicate whether or not this item is partially checked.
+</dd>
+<dt>expanded:</dt>
+<dd>Indicates if this item is currently expanded (True) or collapsed (False).
+</dd>
+<dt>hasChildNodes (read only):</dt>
+<dd>Indicates if this item has one or more child nodes (True) or if it is a leaf node (False).
+</dd>
+<dt>parentNode (read only):</dt>
+<dd>Contains a reference to the parent of this item. This member is None only for the root element.
+</dd>
+<dt>childNodes (read only):</dt>
+<dd>Give a list of all children under this item. If this node has no children, the list is empty (and never None).
+</dd>
+<dt>firstChild (read only):</dt>
+<dd>Contains a reference to the first child node of this item, or None if this item has no children.
+</dd>
+<dt>lastChild (read only):</dt>
+<dd>Contains a reference to the last child node of this item, or None if this item has no children.
+</dd>
+<dt>nextSibling (read only):</dt>
+<dd>Contains a reference to the next sibling item of this item, i.e. the next brother; or None if this item is the last of its brotherhood.
+</dd>
+<dt>previousSibling (read only):</dt>
+<dd>Contains a reference to the previous sibling item of this item, i.e. the previous brother; or None if this item is the first of its brotherhood.
+</dd>
+</dl>
+</body>
+</html>

@@ -21,6 +21,8 @@
 <li><a href="#command-line-options">Command-line options</a><ul>
 <li><a href="#extensionname">/extension=name</a></li>
 <li><a href="#runscript.py">/run=script.py</a></li>
+<li><a href="#configfilefile.ini">/configfile=file.ini</a></li>
+<li><a href="#nacked">/nacked</a></li>
 <li><a href="#headless">/headless</a></li>
 </ul></li>
 </ul>
@@ -37,6 +39,10 @@
 <p>Load the extension specified, as if the corresponding directive was present in the configuration file (6pad++.ini).</p>
 <h2 id="runscript.py">/run=script.py</h2>
 <p>Run the specified script, immediately after the load of all extensions and the implicit initialization script (6pad++.py).</p>
+<h2 id="configfilefile.ini">/configfile=file.ini</h2>
+<p>Load the specified configuration file in place of the default one. You can type <code>/configfile=-</code> to open 6pad++ without any configuration file.</p>
+<h2 id="nacked">/nacked</h2>
+<p>Load 6pad++ without any extension, i.e. ignore all extensions specified in the configuration file. Only extensions specified in the command line with <code>/extension</code> are loaded.</p>
 <h2 id="headless">/headless</h2>
 <p>Run 6pad++ in headless mode, i.e. no window is displayed on screen. This can be useful to batch process many files with a script, or perform other operations that can be run rather quickly and without needing any user interaction.</p>
 </body>

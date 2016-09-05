@@ -5,8 +5,6 @@ from time import sleep
 from threading import Thread
 import qc6paddlgs as dlgs
 
-print('Running a.py')
-
 def func(*args, **kwds):
 	win.beep(800,120)
 	return win.confirm('Etes-vous sur')
