@@ -5,8 +5,8 @@ class SimpleIniProject (Project):
 	def __init__ (self, id, dir, file):
 		Project.__init__(self, id, dir)
 		self.file = file
-		print(file)
-	
+
+
 	def deploy ():
 		pass
 

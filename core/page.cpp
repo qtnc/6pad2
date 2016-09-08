@@ -70,13 +70,27 @@ else sp->RemoveUserCommand(id);
 DestroyMenu(hMenu);
 }
 
-Page::~Page () {
-if (hPageAccel) DestroyAcceleratorTable(hPageAccel);
+PageSharedMenu::~PageSharedMenu(){
 for (auto itr = specificMenus.rbegin(); itr!=specificMenus.rend(); ++itr) {
 auto& item = *itr;
 if (item.flags&MF_POPUP) RecursiveDestroyMenuAndUserCommands((HMENU)item.id);
 else sp->RemoveUserCommand(item.id);
 }}
+
+void PageSharedMenu::InsertMenu () {
+InsertMenu(menu, pos, MF_BYPOSITION | MF_STRING | flags, id, label.c_str() );
+if (name.size()>0) SetMenuName(menu, id, FALSE, name.c_str());
+}
+
+void PageSharedMenu::RemoveMenu () {
+label = GetMenuString(menu, id, MF_BYCOMMAND);
+name = GetMenuName(menu, id, FALSE);
+RemoveMenu(menu, id, MF_BYCOMMAND);
+}
+
+Page::~Page () {
+if (hPageAccel) DestroyAcceleratorTable(hPageAccel);
+}
 
 void Page::SetName (const tstring& n) { 
 name = n;
@@ -1075,17 +1089,9 @@ zone=hEdit;
 void Page::HideZone () {
 ShowWindow(zone, SW_HIDE);
 EnableWindow(zone, FALSE);
-for (auto& item: specificMenus) {
-item.label = GetMenuString(item.menu, item.id, MF_BYCOMMAND);
-item.name = GetMenuName(item.menu, item.id, FALSE);
-RemoveMenu(item.menu, item.id, MF_BYCOMMAND);
-}}
+}
 
 void Page::ShowZone (const RECT& r) {
-for (auto& item: specificMenus) {
-InsertMenu(item.menu, item.pos, MF_BYPOSITION | MF_STRING | item.flags, item.id, item.label.c_str() );
-if (item.name.size()>0) SetMenuName(item.menu, item.id, FALSE, item.name.c_str());
-}
 DrawMenuBar(sp->win);
 EnableWindow(zone, TRUE);
 SetWindowPos(zone, NULL,
@@ -1110,18 +1116,32 @@ void Page::SetFont (HFONT font) {
 if (zone) SendMessage(zone, WM_SETFONT, font, true);
 }
 
-void Page::AddSpecificMenu (HMENU menu, UINT id, UINT pos, UINT flags) {
-specificMenus.push_back(PageSpecificMenu(menu, id, pos, flags));
+void Page::AddSharedMenu (HMENU menu, UINT id, UINT pos, UINT flags) {
+AddSharedMenu(shared_ptr<PageSharedMenu>(new PageSharedMenu(menu, id, pos, flags)));
 }
 
-void Page::RemoveSpecificMenu (HMENU menu, UINT id) {
-auto it = std::find_if(specificMenus.begin(), specificMenus.end(), [&](const PageSpecificMenu& m){ return m.menu==menu && m.id==id; });
-if (it!=specificMenus.end()) specificMenus.erase(it);
+void Page::AddSharedMenu (shared_ptr<PageSharedMenu>& p) {
+sharedMenus.push_back(p);
 }
 
-bool Page::IsSpecificMenu (HMENU menu, UINT id) {
-auto it = std::find_if(specificMenus.begin(), specificMenus.end(), [&](const PageSpecificMenu& m){ return m.menu==menu && m.id==id; });
-return it!=specificMenus.end();
+void Page::RemoveSharedMenu (shared_ptr<PageSharedMenu>& p) {
+auto it = std::find(sharedMenus.begin(), sharedMenus.end(), p);
+if (it!=sharedMenus.end()) sharedMenus.erase(it);
+}
+
+void Page::RemoveSharedMenu (HMENU menu, UINT id) {
+auto it = std::find_if(sharedMenus.begin(), sharedMenus.end(), [&](const PageSharedMenu& m){ return m.menu==menu && m.id==id; });
+if (it!=sharedMenus.end()) sharedMenus.erase(it);
+}
+
+bool Page::ContainsSharedMenu (shared_ptr<PageSharedMenu>& p) {
+auto it = std::find(sharedMenus.begin(), sharedMenus.end(), p);
+return it!=sharedMenus.end();
+}
+
+bool Page::IsSharedMenu (HMENU menu, UINT id) {
+auto it = std::find_if(sharedMenus.begin(), sharedMenus.end(), [&](const PageSharedMenu& m){ return m.menu==menu && m.id==id; });
+return it!=sharedMenus.end();
 }
 
 void Page::PushUndoState (shared_ptr<UndoState> u, bool tryToJoin) {

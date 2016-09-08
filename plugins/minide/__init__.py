@@ -1,5 +1,5 @@
 # Minide for 6pad++
-import os, importlib, sixpad as sp
+import re, os, importlib, sixpad as sp
 from sixpad import msg, window as win
 from os import path
 
@@ -9,6 +9,23 @@ pluginpath = sp.appdir + '\\plugins\\minide\\'
 for lang in (sp.locale, 'english'):
 	langfile = pluginpath + lang + '.lng'
 	if path.isfile(langfile) and sp.loadTranslation(langfile): break
+
+class FileType:
+	detectors = []
+	
+	def __init__ (self, file):
+		self.file=file
+	
+	def detector (d):
+		FileType.detectors.append(d); return d
+	
+	def ext (file):
+		return file[1+file.rfind('.'):].lower() if file.find('.')>0 else ''
+	
+	def extensions (cls, exts, *args, **kwargs):
+		def f(file):
+			if FileType.ext(file) in exts: return cls(file, *args, **kwargs)
+		return FileType.detector(f)
 
 class Project:
 	detectors = []
@@ -20,6 +37,37 @@ class Project:
 	def __init__ (self, id, dir):
 		self.id=id; self.dir=dir
 
+def quickJump (s):
+	m = re.match(r'^(.*?)(::|[/:@# ])(.*)$', s)
+	if m:
+		file, cmd, arg = m.group(1, 2, 3)
+		if cmd in quickJumpCommands: return quickJumpCommands[cmd](arg)
+	m = re.match('^([-+!])(.*)$', s)
+	if m:
+		cmd, arg = m.group(1,2)
+		if cmd in quickJumpCommands: return quickJumpCommands[cmd](arg)
+	win.warning('Unknown command: '+s)
+
+def qjGoToLineColumn (arg):
+	p = win.curPage
+	m = re.match(r'^(\d+)(?::(\d+))?$', arg)
+	if not m: win.warning('Syntax error')
+	line, column = (int(x)-1 for x in m.groups(0))
+	if column<0: p.position = p.lineSafeStartOffset(line)
+	else: p.position = p.lineStartOffset(line) + column
+
+def qjIncLineNum (arg):
+	win.curPage.curLine += int(arg)
+
+def qjDecLineNum (arg):
+	win.curPage.curLine -= int(arg)
+
+def qjFindLit (arg):
+	win.curPage.find(arg, stealthty=True)
+
+def qjFindReg (arg):
+	win.curPage.find(arg, regex=True, stealthty=True)
+	
 def detectProjectType (dir):
 	for pd in Project.detectors:
 		project = pd(dir)
@@ -28,9 +76,15 @@ def detectProjectType (dir):
 		Project.projects[project.id] = project
 		return project
 
+def pageDetectFileType (file):
+	for ftd in FileType.detectors:
+		ft = ftd(file)
+		if ft is not None: return ft
+
 def pageDetectType (page):
 	global typeAliases, pluginpath
 	page.lastFile = page.file
+	page.fileType = pageDetectFileType(page.file)
 	dir = path.dirname(path.realpath(page.file))
 	while (not hasattr(page, 'project') or page.project is None) and len(dir)>3:
 		page.project = detectProjectType(dir)
@@ -69,10 +123,20 @@ for item in (
 		getattr(win.curPage.project, item['name'])()
 	items.append( menuProject.add(action=f, **item) )
 
+quickJumpCommands = {
+	':': qjGoToLineColumn,
+	'+': qjIncLineNum,
+	'-': qjDecLineNum,
+	'/': qjFindReg,
+	' ': qjFindLit,
+}
+
 __all__ = [x[:-3] for x in os.listdir(pluginpath) if x[-3:]=='.py' and x!='__init__.py']
 from . import *
 
+win.addEvent('quickJump', quickJump)
 win.addEvent('pageOpened', pageOpened)
 for page in win.pages: pageOpened(page)
 pageActivated(win.curPage)
+
 

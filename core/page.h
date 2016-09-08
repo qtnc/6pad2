@@ -50,11 +50,12 @@ virtual int GetTypeId () { return 0; }
 virtual ~UndoState(){}
 };
 
-struct PageSpecificMenu {
+struct PageSharedMenu {
 HMENU menu;
 UINT id, pos, flags;
 tstring label, name;
-inline PageSpecificMenu (HMENU h, UINT i, UINT p, UINT f): menu(h), id(i), pos(p), flags(f), label(), name() {}
+inline PageSharedMenu (HMENU h, UINT i, UINT p, UINT f): menu(h), id(i), pos(p), flags(f), label(), name() {}
+~PageSharedMenu();
 };
 
 struct export Page: std::enable_shared_from_this<Page>  {
@@ -66,7 +67,7 @@ HACCEL hPageAccel=0;
 PySafeObject pyData;
 IniFile dotEditorConfig;
 std::vector<shared_ptr<UndoState>> undoStates;
-std::vector<PageSpecificMenu> specificMenus;
+std::vector<shared_ptr<PageSharedMenu>> sharedMenus;
 
 signal<void(shared_ptr<Page>)> ondeactivated, onactivated, onclosed, onsaved;
 signal<void(shared_ptr<Page>, int,var)> onattrChange;
@@ -89,9 +90,9 @@ virtual bool IsModified () ;
 virtual void SetModified (bool);
 virtual bool IsReadOnly ();
 virtual void SetReadOnly (bool);
-virtual void AddSpecificMenu (HMENU menu, UINT id, UINT pos, UINT flags);
-virtual void RemoveSpecificMenu (HMENU menu, UINT id);
-virtual bool IsSpecificMenu (HMENU menu, UINT id);
+virtual void AddSharedMenu (HMENU menu, UINT id, UINT pos, UINT flags);
+virtual void RemoveSharedMenu (HMENU menu, UINT id);
+virtual bool IsSharedMenu (HMENU menu, UINT id);
 virtual void CreateZone (HWND parent, bool useEditFieldSubclass=true);
 virtual void ResizeZone (const RECT&);
 virtual void HideZone ();
