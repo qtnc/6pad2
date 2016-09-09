@@ -1,41 +1,18 @@
 # Minide for 6pad++
-import re, os, importlib, sixpad as sp
-from sixpad import msg, window as win
+import re, sixpad as sp
+from importlib import import_module
 from os import path
+from glob import glob
+from sixpad import msg, window as win
+from .FileType import FileType
+from .Project import Project
 
-pluginpath = sp.appdir + '\\plugins\\minide\\'
 
+pluginpath = path.dirname(__file__)
 
 for lang in (sp.locale, 'english'):
 	langfile = pluginpath + lang + '.lng'
 	if path.isfile(langfile) and sp.loadTranslation(langfile): break
-
-class FileType:
-	detectors = []
-	
-	def __init__ (self, file):
-		self.file=file
-	
-	def detector (d):
-		FileType.detectors.append(d); return d
-	
-	def ext (file):
-		return file[1+file.rfind('.'):].lower() if file.find('.')>0 else ''
-	
-	def extensions (cls, exts, *args, **kwargs):
-		def f(file):
-			if FileType.ext(file) in exts: return cls(file, *args, **kwargs)
-		return FileType.detector(f)
-
-class Project:
-	detectors = []
-	projects = {}
-	
-	def detector (d):
-		Project.detectors.append(d); return d
-	
-	def __init__ (self, id, dir):
-		self.id=id; self.dir=dir
 
 def quickJump (s):
 	m = re.match(r'^(.*?)(::|[/:@# ])(.*)$', s)
@@ -72,8 +49,8 @@ def detectProjectType (dir):
 	for pd in Project.detectors:
 		project = pd(dir)
 		if project is None: continue
-		if project.id in Project.projects: return Project.projects[project.id]
-		Project.projects[project.id] = project
+		if project.file in Project.projects: return Project.projects[project.file]
+		Project.projects[project.file] = project
 		return project
 
 def pageDetectFileType (file):
@@ -89,6 +66,8 @@ def pageDetectType (page):
 	while (not hasattr(page, 'project') or page.project is None) and len(dir)>3:
 		page.project = detectProjectType(dir)
 		if not page.project: dir = path.dirname(dir[:-1])
+	print('FileType = ', page.fileType)
+	print('Project = ', page.project)
 
 def pageBeforeSave (page, file):
 	if file!=page.lastFile: pageDetectType(page)
@@ -131,8 +110,9 @@ quickJumpCommands = {
 	' ': qjFindLit,
 }
 
-__all__ = [x[:-3] for x in os.listdir(pluginpath) if x[-3:]=='.py' and x!='__init__.py']
-from . import *
+for file in glob(pluginpath + '/ProjectTypes/*.py') + glob(pluginpath + '/FileTypes/*.py'):
+	if file.endswith('__init__.py'): continue
+	import_module('.' + path.relpath(file, pluginpath) .replace('\\', '.') [:-3], __name__)
 
 win.addEvent('quickJump', quickJump)
 win.addEvent('pageOpened', pageOpened)
