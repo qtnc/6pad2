@@ -37,6 +37,8 @@ inline void SetDlgItemFocus (HWND hwnd, int id) { SetFocus(GetDlgItem(hwnd, id))
 
 tstring export GetWindowText (HWND);
 tstring export GetDlgItemText (HWND, int);
+tstring export GetListBoxItemText (HWND, int);
+//tstring export GetComboBoxItemText (HWND, int);
 
 tstring export EditGetLine (HWND hEdit) ;
 tstring export EditGetLine (HWND hEdit, int line, int lineindex=-1);

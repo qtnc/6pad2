@@ -14,6 +14,20 @@ GetDlgItemText(hwnd, id, (TCHAR*)text.data(), len+1);
 return text;
 }
 
+tstring export GetListBoxItemText (HWND hwnd, int index) {
+int len = SendMessage(hwnd, LB_GETTEXTLEN, index, 0);
+tstring text = tstring(len,(TCHAR)0);
+SendMessage(hwnd, LB_GETTEXT, index, (TCHAR*)text.data());
+return text;
+}
+
+/*tstring export GetComboBoxItemText (HWND hwnd, int index) {
+int len = SendMessage(hwnd, CB_GETTEXTLEN, index, 0);
+tstring text = tstring(len,(TCHAR)0);
+SendMessage(hwnd, CB_GETTEXT, index, (TCHAR*)text.data());
+return text;
+}*/
+
 tstring export EditGetLine (HWND hEdit, int sLine, int sPos) {
 if (sPos<0) sPos = SendMessage(hEdit, EM_LINEINDEX, sLine, 0);
 int length = SendMessage(hEdit, EM_LINELENGTH, sPos, 0);

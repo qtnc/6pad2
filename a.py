@@ -22,7 +22,12 @@ def func5 () :
 	ptd.close()
 
 def func4 ():
-	Thread(target=func5) .start()
+	lb = dlgs.ListBoxDialog.open('Some text 1', 'Some text 2', searchField=True)
+	def action(*args, **kwargs):
+		print(args, kwargs)
+	for i in ('One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'): lb.append(i)
+	lb.addEvent('action', action)
+
 
 def func3 (dlg):
 	for i in range(1,10):
