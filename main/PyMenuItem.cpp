@@ -42,9 +42,12 @@ int get_length (void);
 PyObject* getItem (int n);
 PyObject* getItemByName (const tstring&);
 PyObject* get_parent (void) { return parent; }
-PyObject* addItem (tstring label, PySafeObject action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator, int isSpecific);
+PyObject* addItem (tstring label, OPT, PySafeObject action, int pos, const tstring& accelerator, const tstring& name, int isSubmenu, int isSeparator, int isSpecific);
+PyObject* removeItem (OPT, PyObject*, PyObject*);
 void remove (void);
 };
+static constexpr const char* addItem_KWLST[] = {"label", "action", "index", "accelerator", "name", "submenu", "separator", "specific", NULL};
+static constexpr const char* removeItem_KWLST[] = { "name", "index", NULL};
 
 static void PyMenuItemDealloc (PyObject* pySelf) {
 PyMenuItem* self = (PyMenuItem*)pySelf;
@@ -88,40 +91,23 @@ PyErr_SetString(PyExc_TypeError, "key must be int or str");
 return NULL;
 }}
 
-static PyObject* PyMenuItem_AddItem (PyObject* o, PyObject* args, PyObject* dic) {
-static const char* KWLST[] = {"label", "action", "index", "accelerator", "name", "submenu", "separator", "specific", NULL};
-PyMenuItem& self = *(PyMenuItem*)o;
-const wchar_t *label=0, *accelerator=0, *name=0;
-int setsub=0, setsep=0, specific=0, index=-1, length = self.get_length();
-PyObject* action = NULL;
-if (!self.submenu) { PyErr_SetString(PyExc_ValueError, "not a submenu"); return NULL; }
-if (!PyArg_ParseTupleAndKeywords(args, dic, "|uOiuuiii", (char**)KWLST, &label, &action, &index, &accelerator, &name, &setsub, &setsep, &specific)) return NULL;
-if (action && action!=Py_None && !setsub && !PyCallable_Check(action)) { PyErr_SetString(PyExc_ValueError, "action must be callable"); return NULL; }
-if (index<0) index+=length+1;
-if (index>length) { PyErr_SetString(PyExc_ValueError, "index out of range"); return NULL; }
-return self.addItem(toTString(label), action, toTString(accelerator), toTString(name), index, setsub, setsep, specific);
-}
-
-static PyObject* PyMenuItem_RemItem (PyObject* o, PyObject* args, PyObject* dic) {
-static const char* KWLST[] = { "name", "index", NULL};
-PyMenuItem& self = *(PyMenuItem*)o;
-PyObject* arg = NULL, *arg2=NULL;
-if (!PyArg_ParseTupleAndKeywords(args, dic, "|OO", (char**)KWLST, &arg, &arg2)) return NULL;
+PyObject* PyMenuItem::removeItem (OPT, PyObject* arg, PyObject* arg2) {
 if (arg&&arg2) { PyErr_SetString(PyExc_ValueError, "only whether name or index may be specified"); return NULL; }
 if (!arg) arg=arg2;
-if (arg && !self.submenu) { PyErr_SetString(PyExc_ValueError, "not a submenu"); return NULL; }
+if (arg && !submenu) { PyErr_SetString(PyExc_ValueError, "not a submenu"); return NULL; }
 if (arg) {
-PyMenuItem* item = (PyMenuItem*)PyMenuItem_MapGetItem(o,arg);
+PyMenuItem* item = (PyMenuItem*)PyMenuItem_MapGetItem((PyObject*)this,arg);
 if (!item) return NULL;
 item->remove();
+return (PyObject*)this;
 }
-else self.remove();
+else remove();
 Py_RETURN_NONE;
 }
 
 static PyMethodDef PyMenuItemMethods[] = {
-{"add", (PyCFunction)PyMenuItem_AddItem, METH_VARARGS | METH_KEYWORDS, NULL},
-{"remove", (PyCFunction)PyMenuItem_RemItem, METH_VARARGS | METH_KEYWORDS, NULL},
+PyDeclKW("add", PyMenuItem::addItem, addItem_KWLST),
+PyDeclKW("remove", &PyMenuItem::removeItem, removeItem_KWLST),
 PyDeclEnd
 };
 
@@ -377,7 +363,7 @@ RemoveAccelerator(hAccel, cmd);
 });//RunSync
 }
 
-PyObject* PyMenuItem::addItem (tstring  label, PySafeObject action, const tstring& accelerator, const tstring& name, int pos, int isSubmenu, int isSeparator, int isSpecific) {
+PyObject* PyMenuItem::addItem (tstring  label, OPT, PySafeObject action, int pos, const tstring& accelerator, const tstring& name, int isSubmenu, int isSeparator, int isSpecific) {
 if (!submenu) { Py_RETURN_NONE; }
 int cmd = pos+1, kf=0, key= 0;
 HACCEL& hAccel = (isSpecific||specific)&&curPage? curPage->hPageAccel : sp.hAccel;
@@ -409,17 +395,8 @@ DestroyMenu(menu);
 return itemID;
 }
 
-int PyShowPopupMenu (PyObject* pOptions) {
-vector<tstring> items;
-int result;
-if (!PySequence_Check(pOptions)) return NULL;
-for (int i=0, n=PySequence_Size(pOptions); i<n; i++) {
-PyObject* item = PySequence_GetItem(pOptions,i);
-if (!item || !PyUnicode_Check(item)) return NULL;
-const wchar_t* str = PyUnicode_AsUnicode(item);
-if (!str) return NULL;
-items.push_back(str);
-}
+int PyShowPopupMenu (const vector<tstring>& items) {
+int result = -1;
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
 result = ShowContextMenu(items);

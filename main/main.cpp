@@ -447,9 +447,10 @@ if (consoleWin) SendMessage(consoleWin, WM_COMMAND, 999, &s);
 }
 
 static void AddToRecentFiles (const tstring& file) {
+printf("AddToRecentFiles: <%ls>\n", file.c_str());
 if (file.empty()) return;
 auto itrf = std::find(recentFiles.begin(), recentFiles.end(), file);
-if (itrf==recentFiles.begin()) return;
+if (itrf==recentFiles.begin() && !recentFiles.empty()) return;
 if (itrf!=recentFiles.end()) recentFiles.erase(itrf);
 recentFiles.push_front(file);
 if (recentFiles.size()>config.get("maxRecentFiles", 10)) recentFiles.pop_back();

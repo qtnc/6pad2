@@ -60,8 +60,8 @@ int addEvent (const string& type, const PySafeObject& cb) {  return page()->AddE
 int removeEvent (const string& type, int id) { return page()->RemoveEvent(type, id); }
 void focus () { page()->Focus(); }
 void close () { page()->Focus(); page()->Close(); }
-bool find (const tstring& term, bool scase, bool regex, bool up, bool stealthty) {  RunSync([&]()mutable{  page()->Find(term, scase, regex, up, stealthty); });  }
-void searchReplace (const tstring& sText, const tstring& rText, bool scase, bool regex, bool stealthty) {  RunSync([&]()mutable{ page()->FindReplace(sText, rText, scase, regex, stealthty); });  }
+int find (const tstring& term, OPT, bool scase, bool regex, bool up, bool stealthty) {  RunSync([&]()mutable{  page()->Find(term, scase, regex, up, stealthty); });  }
+void searchReplace (const tstring& sText, const tstring& rText, OPT, bool scase, bool regex, bool stealthty) {  RunSync([&]()mutable{ page()->FindReplace(sText, rText, scase, regex, stealthty); });  }
 int findNext () { bool re; RunSync([&]()mutable{ re = page()->FindNext(); });  return re; }
 int findPrev () { bool re; RunSync([&]()mutable{ re = page()->FindPrev(); }); return re; }
 void undo () { RunSync([&]()mutable{ page()->Undo(); }); }
@@ -119,28 +119,6 @@ return self;
 static int PyEditorTabInit (PyEditorTab* self, PyObject* args, PyObject* kwds) {
 return 0;
 }
-
-static PyObject* PyPageFind (PyEditorTab* self, PyObject* args, PyObject* dic) {
-const wchar_t *findText=0;
-bool scase=false, regex=false, up=false, stealthty=false;
-static const char* KWLST[] = {"term", "scase", "regex", "up", "stealthty", NULL};
-if (!PyArg_ParseTupleAndKeywords(args, dic, "u|pppp", (char**)KWLST, &findText, &scase, &regex, &up, &stealthty)) return NULL;
-bool re=false;
-if(self) re = self->find(findText, scase, regex, up, stealthty);
-PyObject* re2 = re? Py_True : Py_False;
-Py_INCREF(re2);
-return re2;
-}
-
-static PyObject* PyPageFindReplace (PyEditorTab* self, PyObject* args, PyObject* dic) {
-const wchar_t *findText=0, *replaceText=0;
-bool scase=false, regex=false, stealthty=false;
-static const char* KWLST[] = {"search", "replacement", "scase", "regex", "stealthty", NULL};
-if (!PyArg_ParseTupleAndKeywords(args, dic, "uu|ppp", (char**)KWLST, &findText, &replaceText, &scase, &regex, &stealthty)) return NULL;
-if(self) self->searchReplace(findText, replaceText, scase, regex, stealthty);
-Py_RETURN_NONE;
-}
-
 
 static int PyMapLen (PyObject* o) {
 PyEditorTab& t = *(PyEditorTab*)o;
@@ -206,6 +184,9 @@ PyErr_SetString(PyExc_TypeError, "int or slice expected");
 return -1;
 }
 
+static constexpr const char* PyEditorTab_find_KWLST[] = {"term", "scase", "regex", "up", "stealthty", NULL};
+static constexpr const char* PyEditorTab_searchReplace_KWLST[] = {"search", "replacement", "scase", "regex", "stealthty", NULL};
+
 static PyMappingMethods PyEditorTabMapping = {
 PyMapLen, // length
 PyMapGet, // Get
@@ -235,10 +216,10 @@ PyDecl("undo", &PyEditorTab::undo),
 PyDecl("redo", &PyEditorTab::redo),
 PyDecl("save", &PyEditorTab::save),
 PyDecl("reload", &PyEditorTab::reload),
-{"find", (PyCFunction)PyPageFind, METH_VARARGS | METH_KEYWORDS, NULL},
+PyDeclKW("find", &PyEditorTab::find, PyEditorTab_find_KWLST),
 PyDecl("findNext", &PyEditorTab::findNext),
 PyDecl("findPrevious", &PyEditorTab::findPrev),
-{"searchReplace", (PyCFunction)PyPageFindReplace, METH_VARARGS | METH_KEYWORDS, NULL},
+PyDeclKW("searchReplace", &PyEditorTab::searchReplace, PyEditorTab_searchReplace_KWLST),
 PyDecl("doteditorconfig", &PyEditorTab::getDotEditorConfigValue),
 PyDeclEnd
 };

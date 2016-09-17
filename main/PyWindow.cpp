@@ -31,7 +31,7 @@ shared_ptr<Page> OpenFile (tstring filename, int flags);
 shared_ptr<Page> PageAddEmpty (bool focus, const string& type);
 
 PyObject* PyMenuItem_GetMenuBar (void);
-int PyShowPopupMenu (PyObject*);
+int PyShowPopupMenu (const vector<tstring>&);
 PyObject* PyShowTaskDialog (PyObject*, PyObject*, PyObject*);
 
 static int PyAddAccelerator (const tstring& kn, PySafeObject cb, OPT, bool specific) {
@@ -126,52 +126,27 @@ Py_END_ALLOW_THREADS
 return re;
 }
 
-static PyObject* PyChoiceDlg (PyObject* unused, PyObject* args, PyObject* dic) {
-int initialSelection = 0;
-PyObject* pOptions = NULL;
-const wchar_t *prompt=0, *title=0;
-static const char* KWLST[] = {"prompt", "title", "options", "initialSelection", NULL};
-if (!PyArg_ParseTupleAndKeywords(args, dic, "uuO|i", (char**)KWLST, &prompt, &title, &pOptions, &initialSelection) || !PySequence_Check(pOptions)) return NULL;
-vector<tstring> options;
-for (int i=0, n=PySequence_Size(pOptions); i<n; i++) {
-PyObject* item = PySequence_GetItem(pOptions,i);
-if (!item || !PyUnicode_Check(item)) return NULL;
-const wchar_t* str = PyUnicode_AsUnicode(item);
-if (!str) return NULL;
-options.push_back(str);
-}
+static int PyChoiceDlg (const tstring& prompt, const tstring& title, const vector<tstring>& options, OPT, int initialSelection) {
 int re = -1;
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
 re = ChoiceDialog(GetForegroundWindow(), title, prompt, options, initialSelection);
 });//RunSync
 Py_END_ALLOW_THREADS
-return Py_BuildValue("i",re);
+return re;
 }
+static constexpr const char* PyChoiceDlgKWLST[] = {"prompt", "title", "options", "initialSelection", NULL};
 
-static PyObject* PyInputDlg (PyObject* unused, PyObject* args, PyObject* dic) {
-PyObject* pOptions = NULL;
-const wchar_t *prompt=0, *title=0, *pText=0;
-static const char* KWLST[] = {"prompt", "title", "text", "list", NULL};
-if (!PyArg_ParseTupleAndKeywords(args, dic, "uu|uO", (char**)KWLST, &prompt, &title, &pText, &pOptions)) return NULL;
-if (pOptions && pOptions!=Py_None && !PySequence_Check(pOptions)) return NULL;
-vector<tstring> options;
-if (pOptions&&pOptions!=Py_None) for (int i=0, n=PySequence_Size(pOptions); i<n; i++) {
-PyObject* item = PySequence_GetItem(pOptions,i);
-if (!item || !PyUnicode_Check(item)) return NULL;
-const wchar_t* str = PyUnicode_AsUnicode(item);
-if (!str) return NULL;
-options.push_back(str);
-}
-tstring text = pText?pText:TEXT("");
+static tstring PyInputDlg (const tstring& prompt, const tstring& title, OPT, const tstring& text, const vector<tstring>& options) {
+tstring result;
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
-text = InputDialog(GetForegroundWindow(), title, prompt, text, options);
+result = InputDialog(GetForegroundWindow(), title, prompt, text, options);
 });//RunSync
 Py_END_ALLOW_THREADS
-if (text.size()<=0) { Py_RETURN_NONE; }
-else return Py_BuildValue("u",text.c_str() );
+return result;
 }
+static constexpr const char* PyInputDlgKWLST[] = {"prompt", "title", "text", "list", NULL};
 
 static PyObject* PyFileDlg (PyObject* args, PyObject* dic, int flags) {
 bool multiple=false;
@@ -305,6 +280,7 @@ static int PyWindowInit (PyWindow* self, PyObject* args, PyObject* kwds) {
 return 0;
 }
 
+constexpr const char* test123kw[] = { "one", "two", NULL };
 static string test123 (int a, OPT, string b) {
 return b+toString(a);
 }
@@ -323,8 +299,8 @@ PyDecl("messageBox", PyMsgBox),
 PyDecl("alert", PyAlert),
 PyDecl("warning", PyWarn),
 PyDecl("confirm", PyConfirm),
-{"choice", (PyCFunction)PyChoiceDlg, METH_VARARGS | METH_KEYWORDS, NULL},
-{"prompt", (PyCFunction)PyInputDlg, METH_VARARGS | METH_KEYWORDS, NULL},
+PyDeclKW("choice", PyChoiceDlg, PyChoiceDlgKWLST),
+PyDeclKW("prompt", PyInputDlg, PyInputDlgKWLST),
 {"taskDialog", (PyCFunction)PyShowTaskDialog, METH_VARARGS | METH_KEYWORDS, NULL},
 {"openDialog", (PyCFunction)PyOpenFileDlg, METH_VARARGS | METH_KEYWORDS, NULL},
 {"saveDialog", (PyCFunction)PySaveFileDlg, METH_VARARGS | METH_KEYWORDS, NULL},
@@ -345,7 +321,7 @@ PyDecl("setInterval", PySetTimer2),
 PyDecl("clearTimeout", ClearTimeout),
 PyDecl("clearInterval", ClearTimeout),
 
-PyDecl("test", test123),
+PyDeclKW("test", test123, test123kw),
 PyDeclEnd
 };
 

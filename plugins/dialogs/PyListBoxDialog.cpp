@@ -13,6 +13,70 @@ static int PyListBoxDialogInit (PyListBoxDialog* self, PyObject* args, PyObject*
 return 0;
 }
 
+static int PyMapLen (PyObject* o) {
+PyListBoxDialog& t = *(PyListBoxDialog*)o;
+return t.getItemCount();
+}
+
+static PyObject* PyMapGet (PyObject* o, PyObject* k) {
+PyListBoxDialog& t = *(PyListBoxDialog*)o;
+if (PyLong_Check(k)) {
+int i = PyLong_AsLong(k), len = t.getItemCount();
+if (i<0) i+=len;
+if (i>=len) { PyErr_SetString(PyExc_ValueError, "List index out of range"); return NULL; }
+return Py_BuildValue(Py_TString_Decl, t.get(i).c_str() );
+}
+else if (PySlice_Check(k)) {
+int start, end, step, slicelen, len = t.getItemCount();
+if (PySlice_GetIndicesEx(k, len, &start, &end, &step, &slicelen)) return NULL;
+PyObject* list = PyList_New(0);
+for (int i=start; i<end; i+=step) PyList_Append(list, Py_BuildValue(Py_TString_Decl, t.get(i).c_str() ));
+return list;
+}
+PyErr_SetString(PyExc_TypeError, "int or slice expected"); 
+return NULL;
+}
+
+static int PyMapSet (PyObject* o, PyObject* k, PyObject* v) {
+PyListBoxDialog& t = *(PyListBoxDialog*)o;
+if (PyLong_Check(k)) {
+int i = PyLong_AsLong(k), len = t.getItemCount();
+if (i<0) i+=len;
+if (i>=len) { PyErr_SetString(PyExc_ValueError, "List index out of range"); return NULL; }
+if (!v) { t.remove(i); return 0; }
+else if (!PyUnicode_Check(v)) { PyErr_SetString(PyExc_TypeError, "str expected");  return -1; }
+tstring s = PyUnicode_AsUnicode(v);
+t.set(i,s);
+return 0;
+}
+else if (PySlice_Check(k)) {
+int start, end, step, slicelen, len = t.getItemCount();
+if (PySlice_GetIndicesEx(k, len, &start, &end, &step, &slicelen)) return -1;
+if (!v) {
+for (int i=slicelen -1; i>=0; i--) t.remove(start + step*i);
+return 0;
+}
+else {
+if (!PySequence_Check(v)) { PyErr_SetString(PyExc_TypeError, "sequence expected"); return -1; }
+if (PySequence_Size(v)!=slicelen) { PyErr_Format(PyExc_ValueError, "ATtempt to assign sequence of size %d to extended slice of size %d", PySequence_Size(v), slicelen); return -1; }
+for (int i=0, j=start; i<slicelen; i++, j+=step) {
+PyObject* x = PySequence_GetItem(v,i);
+if (!PyUnicode_Check(x)) { PyErr_SetString(PyExc_TypeError, "str expected");  return -1; }
+tstring s = PyUnicode_AsUnicode(x);
+t.set(j,s);
+}
+return 0;
+}}
+PyErr_SetString(PyExc_TypeError, "int or slice expected"); 
+return -1;
+}
+
+static PyMappingMethods PyListBoxDialogMapping = {
+PyMapLen, // length
+PyMapGet, // Get
+PyMapSet, // set
+};
+
 static PyMethodDef PyListBoxDialogMethods[] = {
 PyDecl("addEvent", &PyListBoxDialog::addEvent),
 PyDecl("removeEvent", &PyListBoxDialog::removeEvent),
@@ -54,7 +118,7 @@ static PyTypeObject PyListBoxDialogType = {
     0,                         /* tp_repr */ 
     0,                         /* tp_as_number */ 
     0,                         /* tp_as_sequence */ 
-    0,                         /* tp_as_mapping */ 
+    &PyListBoxDialogMapping,                         /* tp_as_mapping */ 
     0,                         /* tp_hash  */ 
     0,                         /* tp_call */ 
     0,                         /* tp_str */ 
@@ -122,7 +186,7 @@ void PyListBoxDialog::set_selectedValue (const tstring& s) {
 SendMessage(hLb, LB_SELECTSTRING, -1, s.c_str());
 }
 
-vector<int> PyListBoxDialog::getSelectedIndices () {
+vector<int> PyListBoxDialog::get_selectedIndices () {
 int count = SendMessage(hLb, LB_GETSELCOUNT, 0, 0);
 if (count<=0) return {};
 vector<int> list(count);
@@ -130,23 +194,18 @@ SendMessage(hLb, LB_GETSELITEMS, count, &list[0]);
 return list;
 }
 
-PyObject* PyListBoxDialog::get_selectedIndices () {
-PyObject* list = PyList_New(0);
-for (int i: getSelectedIndices()) PyList_Append(list, Py_BuildValue("i", i));
-return list;
+void PyListBoxDialog::set_selectedIndices (const vector<int>& v) {
+SendMessage(hLb, LB_SETSEL, false, -1);
+for (int i: v) SendMessage(hLb, LB_SETSEL, true, i);
 }
 
-void PyListBoxDialog::set_selectedIndices (PyObject* list) {
-//todo
+vector<tstring> PyListBoxDialog::get_selectedValues () {
+vector<tstring> v;
+for (int i: get_selectedIndices()) v.push_back(GetListBoxItemText(hLb,i));
+return v;
 }
 
-PyObject* PyListBoxDialog::get_selectedValues () {
-PyObject* list = PyList_New(0);
-for (int i: getSelectedIndices()) PyList_Append(list, Py_BuildValue("u", GetListBoxItemText(hLb,i) .c_str() ));
-return list;
-}
-
-void PyListBoxDialog::set_selectedValues (PyObject* list) {
+void PyListBoxDialog::set_selectedValues (const vector<tstring>& v) {
 //todo
 }
 
@@ -166,12 +225,25 @@ void PyListBoxDialog::insert (int i, const tstring& s) {
 SendMessage(hLb, LB_INSERTSTRING, i, s.c_str());
 }
 
+tstring PyListBoxDialog::get (int i) {
+return GetListBoxItemText(hLb, i);
+}
+
+void PyListBoxDialog::set (int i, const tstring& s) {
+remove(i);
+insert(i,s);
+}
+
 void PyListBoxDialog::remove (int i) {
 SendMessage(hLb, LB_DELETESTRING, i, 0);
 }
 
 void PyListBoxDialog::clear () {
 SendMessage(hLb, LB_RESETCONTENT, 0, 0);
+}
+
+int PyListBoxDialog::getItemCount () {
+return SendMessage(hLb, LB_GETCOUNT, 0, 0);
 }
 
 int PyListBoxDialog::get_closed () {
@@ -283,8 +355,8 @@ else { SendMessage(hwnd, LB_SETCURSEL, npos, 0); return true; }
 case WM_CONTEXTMENU:
 int udw = GetWindowLong(dlg->hDlg, GWL_USERDATA);
 bool modal = udw&1, multiple = udw&2, re = modal;
-PyObject* indices = multiple? dlg->get_selectedIndices() : Py_BuildValue("i", dlg->get_selectedIndex());
-PyObject* values = multiple? dlg->get_selectedValues() : Py_BuildValue("u", dlg->get_selectedValue() .c_str() );
+PyObject* indices = multiple? toPyObject(dlg->get_selectedIndices()) : toPyObject(dlg->get_selectedIndex());
+PyObject* values = multiple? toPyObject(dlg->get_selectedValues()) : toPyObject(dlg->get_selectedValue() .c_str() );
 dlg->signals->oncontextMenu((PyObject*)&dlg, (PyObject*)indices, (PyObject*)values );
 break;
 }
@@ -357,8 +429,8 @@ GIL_PROTECT
 PyListBoxDialog& dlg = *(PyListBoxDialog*)GetWindowLong(hwnd, DWL_USER);
 int udw = GetWindowLong(hwnd, GWL_USERDATA);
 bool modal = udw&1, multiple = udw&2, re = modal;
-PyObject* indices = multiple? dlg.get_selectedIndices() : Py_BuildValue("i", dlg.get_selectedIndex());
-PyObject* values = multiple? dlg.get_selectedValues() : Py_BuildValue("u", dlg.get_selectedValue() .c_str() );
+PyObject* indices = multiple? toPyObject(dlg.get_selectedIndices()) : toPyObject(dlg.get_selectedIndex());
+PyObject* values = multiple? toPyObject(dlg.get_selectedValues()) : toPyObject(dlg.get_selectedValue() .c_str() );
 if (!dlg.signals->onaction.empty()) re = dlg.signals->onaction((PyObject*)&dlg, (PyObject*)indices, (PyObject*)values );
 dlg.signals->finalValue = Py_BuildValue("(OO)", indices, values);
 if (!re) break; 

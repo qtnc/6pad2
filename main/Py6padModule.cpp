@@ -51,21 +51,14 @@ if (it!=config.end()) return it->second;
 else return def;
 }
 
-static PyObject* PySetConfig (PyObject* unused, PyObject* args, PyObject* dic) {
-const char *key=NULL, *value=NULL;
-bool allowMulti = false;
-static const char* KWLST[] = {"key", "value", "multiple", NULL};
-if (!PyArg_ParseTupleAndKeywords(args, dic, "ss|p", (char**)KWLST, &key, &value, &allowMulti)) return NULL;
-if (key&&value) config.set2(string(key), string(value), allowMulti);
-Py_RETURN_NONE;
+static void PySetConfig (const string& key, const string& value, OPT, bool allowMulti) {
+if (!key.empty()&&!value.empty()) config.set2(string(key), string(value), allowMulti);
 }
+static constexpr const char* confGetMulti_KWLST[] = {"key", "value", "multiple", NULL};
 
-static PyObject* PyGetConfigMulti (const string& key) {
-PyObject* list = PyList_New( config.count(key) );
-int i=0;
-for (auto it=config.find(key); it!=config.end(); ++it) {
-PyList_SetItem(list, i++, Py_BuildValue("s", it->second.c_str()) );
-}
+static vector<string> PyGetConfigMulti (const string& key) {
+vector<string> list;
+for (auto it=config.find(key); it!=config.end(); ++it) list.push_back(it->second);
 return list;
 }
 
@@ -109,7 +102,7 @@ PyDecl("msg", msg),
 
 // Configuration management
 PyDecl("getConfig", PyGetConfig),
-{"setConfig", (PyCFunction)PySetConfig, METH_VARARGS | METH_KEYWORDS, NULL},
+PyDeclKW("setConfig", PySetConfig, confGetMulti_KWLST),
 PyDecl("getConfigAsList", PyGetConfigMulti),
 PyDecl("reloadConfig", ReloadConfig),
 

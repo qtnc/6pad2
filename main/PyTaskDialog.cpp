@@ -216,25 +216,15 @@ td.dwCommonButtons = PyLong_AsLong(buttonList);
 td.nDefaultButton = button;
 }
 else if (buttonList && PySequence_Check(buttonList)) {
-for (int i=0, n=PySequence_Size(buttonList); i<n; i++) {
-PyObject* item = PySequence_GetItem(buttonList,i);
-if (!item || !PyUnicode_Check(item)) return NULL;
-const wchar_t* str = PyUnicode_AsUnicode(item);
-if (!str) return NULL;
-pButtons.push_back({1000+i, str});
-}
+auto b = fromPyObject<vector<tstring>>(buttonList);
+for (int i=0, n=b.size(); i<n; i++) pButtons.push_back({1000+i, b[i].c_str() });
 td.nDefaultButton = 1000 + button;
 td.cButtons = pButtons.size();
 td.pButtons = &(pButtons[0]);
 }
 if (radioList && PySequence_Check(radioList)) {
-for (int i=0, n=PySequence_Size(radioList); i<n; i++) {
-PyObject* item = PySequence_GetItem(radioList,i);
-if (!item || !PyUnicode_Check(item)) return NULL;
-const wchar_t* str = PyUnicode_AsUnicode(item);
-if (!str) return NULL;
-pRadios.push_back({2000+i, str});
-}
+auto b = fromPyObject<vector<tstring>>(radioList);
+for (int i=0, n=b.size(); i<n; i++) pRadios.push_back({2000+i, b[i].c_str() });
 td.nDefaultRadioButton = 2000 + radio;
 td.cRadioButtons = pRadios.size();
 td.pRadioButtons = &(pRadios[0]);
