@@ -2,7 +2,6 @@
 #define ___PYTHON___HPP___9
 #include<python/python.h>
 #include "strings.hpp"
-#include "variant.h"
 #include<tuple>
 #include<functional>
 #include<type_traits>
@@ -28,11 +27,17 @@ void PyStart (void);
 
 ///Automatic wrappers!
 
+struct ___DOLLAR___ {};
+
 template<class T> struct IgnoreType {
 static constexpr const bool value = false;
 };
 
 template<> struct IgnoreType<nullptr_t> {
+static constexpr const bool value = true;
+};
+
+template<> struct IgnoreType<___DOLLAR___> {
 static constexpr const bool value = true;
 };
 
@@ -42,6 +47,12 @@ template<> struct PyTypeSpec<nullptr_t> {
 typedef nullptr_t type;
 static constexpr const char c = '|'; 
 static inline nullptr_t convert (nullptr_t i) { return i; }
+};
+
+template<> struct PyTypeSpec<___DOLLAR___> {
+typedef nullptr_t type;
+static constexpr const char c = '$'; 
+static inline ___DOLLAR___ convert (nullptr_t i) { return ___DOLLAR___(); }
 };
 
 template<> struct PyTypeSpec<int> { 
@@ -183,30 +194,6 @@ static constexpr const char c = 'u';
 static inline const wchar_t* convert (const wchar_t* s) { return s; }
 static inline const wchar_t* convert2 (const wchar_t*  s) { return s; }
 static inline PyObject* convert4 (const wchar_t* s) { return Py_BuildValue("u", s); }
-};
-
-template<> struct PyTypeSpec<var> {
-typedef PyObject* type;
-static constexpr const char c = 'O'; 
-static PyObject* convert2 (var v) { 
-switch(v.getType()){
-case T_INT: return Py_BuildValue("i", v.toInt());
-case T_STR: return Py_BuildValue(Py_TString_Decl, v.toTString().c_str() );
-case T_BOOL:
-if (v) Py_RETURN_TRUE;
-else Py_RETURN_FALSE;
-default: Py_RETURN_NONE;
-}}
-static var convert3 (PyObject* o) {
-if (!o||o==Py_None) return var();
-else if (o==Py_True) return true;
-else if (o==Py_False) return false;
-else if (PyLong_Check(o)) return (int)(PyLong_AsLong(o));
-else if (PyUnicode_Check(o)) return toTString(PyUnicode_AsUnicode(o));
-else PyErr_SetString(PyExc_TypeError, "none, bool, int or str  expected"); 
-return var();
-}
-static inline PyObject* convert4 (var v) { return convert2(v); }
 };
 
 template<> struct PyTypeSpec<PyObject*> { 
@@ -391,19 +378,31 @@ static inline std::pair<E1, E2> convert (PyObject* i) { return convert3(i); }
 static inline PyObject* convert4 (const std::pair<E1, E2>& v) { return convert2(v); }
 };
 
+template<class E> struct PyTypeSpec<optional<E>> {
+typedef PyObject* type;
+static constexpr const char c = 'O'; 
+static PyObject* convert2 (const optional<E>& o) { 
+if (o) return PyTypeSpec<E>::convert4(*o);
+else Py_RETURN_NONE;
+}
+static optional<E> convert3 (PyObject* o) {
+if (!o||o==Py_None) return none;
+else return PyTypeSpec<E>::convert3(o);
+}
+static inline PyObject* convert4 (const optional<E>& v) { return convert2(v); }
+};
+
 template<> struct PyTypeSpec<any> {
 typedef PyObject* type;
 static constexpr const char c = 'O'; 
 static PyObject* convert2 (const any& a) { 
 if (a.empty() || isoftype(a, nullptr_t)) Py_RETURN_NONE;
-else if (isoftype(a,int)) return PyLong_FromLong( any_cast<int>(a) );
-else if (isoftype(a,tstring)) return Py_BuildValue("u", any_cast<tstring>(a) .c_str() ); 
-else if (isoftype(a,bool)) {
-if (any_cast<bool>(a)) Py_RETURN_TRUE;
-else Py_RETURN_FALSE;
-}
-else if (isoftype(a,PyObject*)) return any_cast<PyObject*>(a);
-Py_RETURN_NONE;
+#define T(...) else if (isoftype(a,##__VA_ARGS__)) return PyTypeSpec<__VA_ARGS__>::convert4( any_cast<__VA_ARGS__>(a) );
+T(int) T(wstring) T(string) T(bool)
+T(vector<tstring>) T(vector<int>)
+T(pair<tstring,int>) T(pair<vector<tstring>,int>)
+#undef T
+else Py_RETURN_NONE;
 }
 static any convert3 (PyObject* o) {
 if (!o||o==Py_None) return any();
@@ -443,6 +442,27 @@ typedef S type;
 template<int... S> struct TemplateSequence {};
 template<int N, int... S> struct TemplateSequenceGenerator: TemplateSequenceGenerator<N -1, N -1, S...> {};
 template<int... S> struct TemplateSequenceGenerator<0, S...> { typedef TemplateSequence<S...> sequence; };
+
+template<class... E> struct PyTypeSpec<std::tuple<E...>> {
+typedef typename TemplateSequenceGenerator<sizeof...(E)>::sequence sequence;
+typedef PyObject* type;
+static constexpr const char c = 'O'; 
+template<int... S> static inline PyObject* convert2s (TemplateSequence<S...> seq, const std::tuple<E...>& t) {
+return Py_BuildValue(PyTypeSpecsTuple<E...>(), PyTypeSpec<typename NthType<S, E...>::type>::convert2(std::get<S>(t))...);
+}
+static inline PyObject* convert2 (const std::tuple<E...>& t) { 
+return convert2s(sequence(), t);
+}
+template<int... S> static inline std::tuple<E...> convert3s (PyObject* o) {
+return { PyTypeSpec<typename NthType<S, E...>::type>::convert4(PySequence_GetItem(o,S))... };
+}
+static std::tuple<E...> convert3 (PyObject* o) {
+if (!PySequence_Check(o) || PySequence_Size(o)!=sizeof...(E)) PyErr_Format(PyExc_TypeError, "sequence of size %d expected", sizeof...(E));
+return convert3s(sequence(), o);
+}
+static inline std::tuple<E...> convert (PyObject* i) { return convert3(i); }
+static inline PyObject* convert4 (const std::tuple<E...>& v) { return convert2(v); }
+};
 
 template<class... A> struct PyParseTupleSpec {
 template<int... S> struct TemplateSequence2 {};
@@ -590,10 +610,12 @@ template<G getf> static inline PyObject* getter (PyObject* self, void* unused) {
 #define PyDecl(n,f) {(n), (PyFuncSpec<decltype(f)>::func<f>), METH_VARARGS, NULL}
 #define PyDeclKW(n,f,k) {(n), (PyCFunction)(PyFuncSpecKW<decltype(f),k>::func<f>), METH_VARARGS | METH_KEYWORDS, NULL}
 #define PyDeclStatic(n,f) {(n), (PyFuncSpec<decltype(f)>::func<f>), METH_VARARGS | METH_CLASS, NULL}
+#define PyDeclStaticKW(n,f,k) {(n), (PyCFunction)(PyFuncSpecKW<decltype(f),k>::func<f>), METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL}
 #define PyAccessor(n,g,s) {(n), (PyGetterSpec<decltype(g)>::getter<g>), (PySetterSpec<decltype(s)>::setter<s>), NULL, NULL}
 #define PyWriteOnlyAccessor(n,s) {(n), NULL, (PySetterSpec<decltype(s)>::setter<s>), NULL, NULL}
 #define PyReadOnlyAccessor(n,g) {(n), (PyGetterSpec<decltype(g)>::getter<g>), NULL, NULL, NULL}
 #define PyDeclEnd {0, 0, 0, 0}
 #define OPT nullptr_t ___OPTIONAL_MARKER___
+#define DOLLAR ___DOLLAR___ ___DOLLAR_MARKER___
 
 #endif

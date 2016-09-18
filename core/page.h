@@ -69,13 +69,13 @@ std::vector<shared_ptr<UndoState>> undoStates;
 std::vector<PageSpecificMenu> specificMenus;
 
 signal<void(shared_ptr<Page>)> ondeactivated, onactivated, onclosed, onsaved;
-signal<void(shared_ptr<Page>, int,var)> onattrChange;
+signal<void(shared_ptr<Page>, int,any)> onattrChange;
 signal<bool(shared_ptr<Page>), BoolSignalCombiner> onclose, ondeactivate;
 signal<bool(shared_ptr<Page>,int), BoolSignalCombiner> onkeyDown, onkeyUp, oncontextMenu;
 signal<bool(shared_ptr<Page>, const tstring&, int, int), BoolSignalCombiner> onfileDropped;
-signal<var(shared_ptr<Page>,const tstring&), VarSignalCombiner> onsave, onbeforeSave, onload, onkeyPress, onstatus;
-signal<var(shared_ptr<Page>, const tstring&, int), VarSignalCombiner> onenter;
-
+signal<tstring(shared_ptr<Page>,const tstring&)> onsave, onbeforeSave, onload, onstatus;
+signal<any(shared_ptr<Page>,const tstring&), AnySignalCombiner> onkeyPress;
+signal<any(shared_ptr<Page>, const tstring&, int), AnySignalCombiner> onenter;
 
 virtual ~Page();
 virtual void SetName (const tstring& name) ;
@@ -151,10 +151,6 @@ inline void SetSelectionEnd (int x) { SetSelection(GetSelectionStart(), x); }
 inline void MarkCurrentPosition () { markedPosition = GetCurrentPosition(); }
 inline void SelectToMark () { SetSelection(markedPosition, GetSelectionEnd()); }
 inline void GoToMark () { SetCurrentPosition(markedPosition); }
-
-//template<class R, R initial, class... A> inline R dispatchEvent (const string& type, A... args) {  return listeners.dispatch<R,initial>(type, *pyData, args...);  }
-//template<class... A> inline var dispatchEvent (const string& type, const var& def, A... args) { return listeners.dispatch(type, def, *pyData, args...); }
-//template<class... A> inline void dispatchEvent (const string& type, A... args) { listeners.dispatch(type, *pyData, args...); }
 
 int AddEvent (const std::string& type, const PySafeObject& cb) ;
 bool RemoveEvent (const std::string& type, int id);

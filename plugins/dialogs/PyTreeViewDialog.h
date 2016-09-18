@@ -8,7 +8,7 @@ signal<void(PyObject*)> onfocus, onblur;
 signal<bool(PyObject*), BoolSignalCombiner> onclose;
 signal<bool(PyObject*, int), BoolSignalCombiner> onkeyDown, onkeyUp;
 signal<bool(PyObject*, PyObject*), BoolSignalCombiner> onaction, onselect, onexpand, onedit, oncheck, oncontextMenu;
-signal<var(PyObject*, PyObject*, const tstring&), VarSignalCombiner> onedited;
+signal<any(PyObject*, PyObject*, const tstring&), AnySignalCombiner> onedited;
 PySafeObject finalValue;
 };
 

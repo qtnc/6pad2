@@ -1,6 +1,6 @@
 #ifndef _____SIGNALS_H9
 #define _____SIGNALS_H9
-#include "variant.h"
+#include "any.h"
 #include<functional>
 #include<boost/signals2.hpp>
 using boost::signals2::signal;
@@ -14,13 +14,13 @@ while(start!=end && (re=*start)) ++start;
 return re;
 }};
 
-struct VarSignalCombiner {
-typedef var result_type;
-template<class I> var operator() (I start, I end) {
-var re;
+struct AnySignalCombiner {
+typedef any result_type;
+template<class I> any operator() (I start, I end) {
+any re;
 while(start!=end) {
-re = *start++;
-if (re.getType()==T_BOOL && !re) break;
+any re = *start++;
+if (isoftype(re,bool) && !any_cast<bool>(re)) break;
 }
 return re;
 }};

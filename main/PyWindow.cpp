@@ -32,7 +32,8 @@ shared_ptr<Page> PageAddEmpty (bool focus, const string& type);
 
 PyObject* PyMenuItem_GetMenuBar (void);
 int PyShowPopupMenu (const vector<tstring>&);
-PyObject* PyShowTaskDialog (PyObject*, PyObject*, PyObject*);
+
+PyObject* PyShowTaskDialog (PyObject* unused, PyObject* args, PyObject* kwds); 
 
 static int PyAddAccelerator (const tstring& kn, PySafeObject cb, OPT, bool specific) {
 int k=0, kf=0;
@@ -45,6 +46,7 @@ HACCEL& accel = curPage&&specific? curPage->hPageAccel : sp.hAccel;
 if (AddAccelerator(accel, kf, k, cmd)) return cmd;
 else return 0;
 }
+static constexpr const char* Accelerator_KWLST[] = { "key", "action", "specific", NULL };
 
 static bool PyRemoveAccelerator (int id) {
 bool re = RemoveAccelerator(sp.hAccel,id);
@@ -137,84 +139,71 @@ return re;
 }
 static constexpr const char* PyChoiceDlgKWLST[] = {"prompt", "title", "options", "initialSelection", NULL};
 
-static tstring PyInputDlg (const tstring& prompt, const tstring& title, OPT, const tstring& text, const vector<tstring>& options) {
+static optional<tstring> PyInputDlg (const tstring& prompt, const tstring& title, OPT, const tstring& text, const vector<tstring>& options) {
 tstring result;
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
 result = InputDialog(GetForegroundWindow(), title, prompt, text, options);
 });//RunSync
 Py_END_ALLOW_THREADS
-return result;
+if (result.empty()) return none;
+else return result;
 }
 static constexpr const char* PyInputDlgKWLST[] = {"prompt", "title", "text", "list", NULL};
 
-static PyObject* PyFileDlg (PyObject* args, PyObject* dic, int flags) {
-bool multiple=false;
-int initialFilter=0;
-const wchar_t *cTitle=0, *cFile=0;
-PyObject* pFilters=0;
-static const char* KWLST[] = {"file", "title", "filters", "initialFilter", "multiple", NULL};
-if (!PyArg_ParseTupleAndKeywords(args, dic, "|uuOip", (char**)KWLST, &cFile, &cTitle, &pFilters, &initialFilter, &multiple)) return NULL;
+static any PyFileDlg (int flags, const tstring& file, const tstring& title, const vector<pair<tstring,tstring>>& pFilters, int initialFilter, bool multiple) {
 wostringstream oFilters;
-if (pFilters && PySequence_Check(pFilters)) for (int i=0, n=PySequence_Size(pFilters); i<n; i++) {
-PyObject* pItem = PySequence_GetItem(pFilters,i);
-if (!pItem || !PySequence_Check(pItem) || PySequence_Size(pItem)!=2) return NULL;
-PyObject *pfText = PySequence_GetItem(pItem,0), *pfGlob = PySequence_GetItem(pItem,1);
-if (!pfGlob || !pfText || !PyUnicode_Check(pfText) || !PyUnicode_Check(pfGlob)) return NULL;
-const wchar_t *cGlob = PyUnicode_AsUnicode(pfGlob), *cText = PyUnicode_AsUnicode(pfText);
-if (!cText || !cGlob) return NULL;
-if (i>0) oFilters << (wchar_t)'|';
-oFilters << cText << (wchar_t)'|' << cGlob;
+int i=0;
+for (auto& p: pFilters) {
+if (i++>0) oFilters << (wchar_t)'|';
+oFilters << p.first << (wchar_t)'|' << p.second;
 }
 if (!(flags&FD_OPEN)) multiple=false;
 if (multiple) flags |= FD_MULTI;
-tstring title = toTString(cTitle?cTitle:TEXT("")), file = toTString(cFile?cFile:TEXT("")), filters = toTString(oFilters.str());
-
-int z=0;
-tstring selection = TEXT("");
+tstring selection, filters = toTString(oFilters.str());
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
 selection = FileDialog(GetForegroundWindow(), flags, file, title, filters, &initialFilter);
 });//RunSync
 Py_END_ALLOW_THREADS
-PyObject* re = NULL;
-if (selection.size()<=0) { re = Py_None; Py_INCREF(Py_None); }
-else if (!multiple) re = Py_BuildValue("u", toWString(selection).c_str());
-else if ((z=selection.find('|'))<0 || z>=selection.size()) {
-re = PyList_New(1);
-PyList_SetItem(re, 0, Py_BuildValue("u", selection.c_str()));
+if (selection.empty()) return nullptr;
+else if (!multiple) {
+if (filters.empty()) return selection;
+else return pair<tstring,int>(selection, initialFilter -1);
+}
+else if ((i=selection.find('|'))<0 || i>=selection.size()) {
+if (filters.empty()) return vector<tstring>{selection};
+else return pair<vector<tstring>,int>({selection}, initialFilter -1);
 }
 else {
 vector<tstring> files = split(selection, TEXT("|"));
-re = PyList_New(files.size() -1);
-for (int i=1, n=files.size(); i<n; i++) PyList_SetItem(re, i -1, Py_BuildValue("u", toWString(files[0] + TEXT("\\") + files[i]).c_str()));
-}
-if (filters.size()>0) re = Py_BuildValue("(Oi)", re, initialFilter -1);
-return re;
+tstring prepend = files[0];
+files.erase(files.begin());
+for (tstring& file: files) file = prepend + TEXT("\\") + file;
+if (filters.empty()) return files;
+else return pair<vector<tstring>,int>(files, initialFilter -1);
+}}
+static constexpr const char* PyFileDlg_KWLST[] = {"file", "title", "filters", "initialFilter", "multiple", NULL};
+
+static any PyOpenFileDlg  (OPT, const tstring& file, const tstring& title, const vector<pair<tstring,tstring>>& pFilters, int initialFilter, bool multiple) {
+return PyFileDlg(FD_OPEN, file, title, pFilters, initialFilter, multiple);
 }
 
-static PyObject* PyOpenFileDlg (PyObject* unused, PyObject* args, PyObject* dic) {
-return PyFileDlg(args, dic, FD_OPEN);
+static any PySaveFileDlg  (OPT, const tstring& file, const tstring& title, const vector<pair<tstring,tstring>>& pFilters, int initialFilter, bool multiple) {
+return PyFileDlg(FD_SAVE, file, title, pFilters, initialFilter, multiple);
 }
 
-static PyObject* PySaveFileDlg (PyObject* unused, PyObject* args, PyObject* dic) {
-return PyFileDlg(args, dic, FD_SAVE);
-}
-
-static PyObject* PyFolderDlg (PyObject* unused, PyObject* args, PyObject* dic) {
-wchar_t *cFolder=0, *cTitle=0, *cRoot=0;
-bool includeFiles=false;
-static const char* KWLST[] = {"folder", "title", "root", "showFiles", NULL};
-if (!PyArg_ParseTupleAndKeywords(args, dic, "|uuup", (char**)KWLST, &cFolder, &cTitle, &cRoot, &includeFiles)) return NULL;
-tstring re, folder = cFolder?cFolder:TEXT(""), title = cTitle?cTitle:TEXT(""), root = cRoot?cRoot:TEXT("");
+static optional<tstring> PyFolderDlg (OPT, const tstring& folder, const tstring& title, const tstring& root, bool includeFiles) {
+tstring re;
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
 re = FolderDialog(GetForegroundWindow(), folder, title, root, includeFiles);
 });//RunSync
 Py_END_ALLOW_THREADS
-if (re.size()>0) return Py_BuildValue("u", re.c_str());
-else { Py_RETURN_NONE; }
+if (re.empty()) return none;
+else return re;
 }
+static constexpr const char* PyFolderDlg_KWLST[] = {"folder", "title", "root", "showFiles", NULL};
 
 static tstring PyGetStatusText () {
 return GetWindowText(status);
@@ -301,13 +290,13 @@ PyDecl("warning", PyWarn),
 PyDecl("confirm", PyConfirm),
 PyDeclKW("choice", PyChoiceDlg, PyChoiceDlgKWLST),
 PyDeclKW("prompt", PyInputDlg, PyInputDlgKWLST),
-{"taskDialog", (PyCFunction)PyShowTaskDialog, METH_VARARGS | METH_KEYWORDS, NULL},
-{"openDialog", (PyCFunction)PyOpenFileDlg, METH_VARARGS | METH_KEYWORDS, NULL},
-{"saveDialog", (PyCFunction)PySaveFileDlg, METH_VARARGS | METH_KEYWORDS, NULL},
-{"chooseFolder", (PyCFunction)PyFolderDlg, METH_VARARGS | METH_KEYWORDS, NULL},
+{"taskDialog", (PyCFunction)PyShowTaskDialog, METH_VARARGS | METH_KEYWORDS, NULL },
+PyDeclKW("openDialog", PyOpenFileDlg, PyFileDlg_KWLST),
+PyDeclKW("saveDialog", PySaveFileDlg, PyFileDlg_KWLST),
+PyDeclKW("chooseFolder", PyFolderDlg, PyFolderDlg_KWLST),
 
 // Menus and accelerators management
-PyDecl("addAccelerator", PyAddAccelerator),
+PyDeclKW("addAccelerator", PyAddAccelerator, Accelerator_KWLST),
 PyDecl("RemoveAccelerator", PyRemoveAccelerator),
 PyDecl("findAcceleratorByID", PyFindAcceleratorByID),
 PyDecl("findAcceleratorByKey", PyFindAcceleratorByKey),

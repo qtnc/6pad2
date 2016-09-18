@@ -38,8 +38,8 @@ signal<void()> onactivated, ondeactivated, onclosed, onresized;
 signal<bool(), BoolSignalCombiner> onclose;
 signal<bool(const tstring&), BoolSignalCombiner> onquickJump;
 signal<bool(const tstring&, int, int), BoolSignalCombiner> onfileDropped;
-signal<var(const tstring&)> onpageBeforeOpen, ontitle;
-signal<var(const tstring&,int)> onquickJumpAutocomplete;
+signal<tstring(const tstring&)> onpageBeforeOpen, ontitle;
+signal<tstring(const tstring&,int)> onquickJumpAutocomplete;
 signal<void(shared_ptr<Page>)> onpageOpened;
 
 TCHAR CLASSNAME[32] = {0};
@@ -69,8 +69,8 @@ else return toTString(string(x));
 
 void UpdateWindowTitle () {
 tstring title = curPage->name + TEXT(" - ") + appName;
-var re = ontitle(title);
-if (re.getType()==T_STR) title = re.toTString();
+optional<tstring> re = ontitle(title);
+if (re) title = *re;
 SetWindowText(win, title.c_str() );
 }
 
@@ -223,14 +223,14 @@ CheckMenuItem(menuFormat, IDM_AUTOLINEBREAK, MF_BYCOMMAND | (p->flags&PF_AUTOLIN
 PageActivated(p);
 }}
 
-void PageAttrChanged (shared_ptr<Page> p, int attr, var val) {
+void PageAttrChanged (shared_ptr<Page> p, int attr, any val) {
 switch(attr){
-case PA_NAME: PageSetName(p, val.toTString()); break;
-case PA_ENCODING: PageSetEncoding(p, val.toInt()); break;
-case PA_LINE_ENDING: PageSetLineEnding(p, val.toInt()); break;
-case PA_INDENTATION_MODE: PageSetIndentationMode(p, val.toInt()); break;
-case PA_TAB_WIDTH: PageSetTabWidth(p, val.toInt()); break;
-case PA_AUTOLINEBREAK: PageSetAutoLineBreak(p, val.toBool()); break;
+case PA_NAME: PageSetName(p, any_cast<tstring>(val)); break;
+case PA_ENCODING: PageSetEncoding(p, any_cast<int>(val)); break;
+case PA_LINE_ENDING: PageSetLineEnding(p, any_cast<int>(val)); break;
+case PA_INDENTATION_MODE: PageSetIndentationMode(p, any_cast<int>(val)); break;
+case PA_TAB_WIDTH: PageSetTabWidth(p, any_cast<int>(val)); break;
+case PA_AUTOLINEBREAK: PageSetAutoLineBreak(p, any_cast<bool>(val)); break;
 case PA_FOCUS: PageEnsureFocus(p); break;
 }}
 
@@ -516,8 +516,8 @@ ParseLineCol(file, line, col);
 File::normalizePath(file);
 if ((flags&OF_CHECK_OTHER_WINDOWS) && OpenFile_CheckOtherWindows(file, line, col)) return NULL;
 string type = "text";
-var vtype= onpageBeforeOpen(file) ;
-if (vtype.getType()==T_STR) type = toString(vtype.toTString());
+optional<tstring> vtype = onpageBeforeOpen(file);
+if (vtype) type = toString(*vtype);
 shared_ptr<Page> cp = curPage;
 shared_ptr<Page> p = PageCreate(type);
 if (!p) return p;
@@ -844,9 +844,9 @@ switch(LOWORD(wp)){
 case VK_TAB: {
 int ss, se; tstring text = GetWindowText(hwnd);
 SendMessage(hwnd, EM_GETSEL, &ss, &se);
-var re = onquickJumpAutocomplete(text, min(ss,se));
-if (re.getType()==T_STR) {
-tstring newText = re.toTString();
+optional<tstring> re = onquickJumpAutocomplete(text, min(ss,se));
+if (re) {
+tstring newText = *re;
 SetWindowText(hwnd, newText);
 ss = first_mismatch(text, newText);
 se = newText.size();

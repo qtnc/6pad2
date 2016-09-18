@@ -109,9 +109,9 @@ return re;
 
 bool PyTreeViewDialog::allowEdit (HTREEITEM item, tstring& text) {
 if (!signals->onedited.empty()) {
-var re = signals->onedited((PyObject*)this, (PyObject*)PyTreeViewItem::New(hTree, item), text);
-if (re.getType()==T_BOOL && !re) return false;
-else if (re.getType()==T_STR) text = re.toTString();
+any re = signals->onedited((PyObject*)this, (PyObject*)PyTreeViewItem::New(hTree, item), text);
+if (isoftype(re,bool) && !any_cast<bool>(re)) return false;
+else if (isoftype(re,tstring)) text = any_cast<tstring>(re);
 }
 return text.size()>0;
 }

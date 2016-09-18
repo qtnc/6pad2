@@ -421,8 +421,8 @@ ini.fusion(*sect.second);
 
 string Page::SaveData () {
 tstring str = GetText();
-var re = onsave(shared_from_this(), str);
-if (re.getType()==T_STR) str = re.toTString();
+optional<tstring> re = onsave(shared_from_this(), str);
+if (re) str = *re;
 if (lineEnding==LE_UNIX) str = replace_all_copy(str, TEXT("\r\n"), TEXT("\n"));
 else if (lineEnding==LE_MAC) str = replace_all_copy(str, TEXT("\r\n"), TEXT("\r"));
 else if (lineEnding==LE_RS) str = replace_all_copy(str, TEXT("\r\n"), TEXT("\x1E"));
@@ -452,8 +452,8 @@ if (le!=lineEnding) SetLineEnding(le);
 if (enc!=encoding) SetEncoding(enc);
 if (im!=indentationMode) SetIndentationMode(im);
 }}
-var re = onbeforeSave(shared_from_this(), file);
-if (re.getType()==T_STR) file = re.toTString();
+optional<tstring> re = onbeforeSave(shared_from_this(), file);
+if (re) file = *re;
 if (file.size()<=0) return false;
 string cstr = SaveData();
 SetModified(false);
@@ -528,8 +528,8 @@ text = replace_all_copy(text, TEXT("\x2029"), TEXT("\r\n\r\n"));
 if (indentationMode<0) indentationMode = guessIndentationMode(text.data(), text.size(), sp->config->get("defaultIndentationMode", 0)  );
 if (indentationMode>0) tabWidth = indentationMode;
 else tabWidth = sp->config->get("defaultTabWidth", 4);
-var re = onload(shared_from_this(), text);
-if (re.getType()==T_STR) text = re.toTString();
+optional<tstring> re = onload(shared_from_this(), text);
+if (re) text = *re;
 lastSave = GetCurTime();
 SetText(text);
 return true;
@@ -559,8 +559,8 @@ return tsnprintf(512, msg("Li %d, Col %d.\t%d%%, %d lines"), 1+sline, 1+scolumn,
 
 void Page::UpdateStatusBar (HWND hStatus) {
 tstring text = StatusBarUpdate(zone, hStatus, this);
-var re = onstatus(shared_from_this(), text);
-if (re.getType()==T_STR) text=re.toTString();
+optional<tstring> re = onstatus(shared_from_this(), text);
+if (re) text = *re;
 SetWindowText(hStatus, text);
 }
 
@@ -815,13 +815,10 @@ int pos=0, nLine=0, addIndent=0;
 SendMessage(hEdit, EM_GETSEL, &pos, 0);
 nLine = SendMessage(hEdit, EM_LINEFROMCHAR, pos, 0);
 tstring addString, line = EditGetLine(hEdit, nLine, pos);
-var re = page->onenter(page->shared_from_this(), line, nLine);
-switch(re.getType()) {
-case T_NULL: break;
-case T_BOOL: if (!re) return false; break;
-case T_INT: addIndent = re.toInt(); break;
-case T_STR: addString = re.toTString(); break;
-}
+any re = page->onenter(page->shared_from_this(), line, nLine);
+if (isoftype(re,bool) && !any_cast<bool>(re)) return false; 
+else if (isoftype(re,int)) addIndent = any_cast<int>(re);
+else if (isoftype(re,tstring)) addString = any_cast<tstring>(re);
 pos = noAutoIndent? 0 : line.find_first_not_of(TEXT("\t \xA0"));
 if (pos<0 || pos>=line.size()) pos=line.size();
 if (addIndent<0) pos = max(0, pos + addIndent * max(1, page->indentationMode));
@@ -939,17 +936,15 @@ static LRESULT CALLBACK EditProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UIN
 switch(msg){
 case WM_CHAR: {
 TCHAR cc = LOWORD(wp);
-var re = curPage->onkeyPress(curPage->shared_from_this(), tstring(&cc,1));
-switch(re.getType()) {
-case T_NULL: break;
-case T_BOOL: if (!re) return true; break;
-case T_INT: wp = re.toInt(); break;
-case T_STR: {
-tstring str = re.toTString();
+any re = curPage->onkeyPress(curPage->shared_from_this(), tstring(&cc,1));
+if (isoftype(re,bool) && !any_cast<bool>(re)) return true; 
+else if (isoftype(re,int)) wp = any_cast<int>(re);
+else if (isoftype(re,tstring)) {
+tstring str = any_cast<tstring>(re);
 SendMessage(hwnd, EM_REPLACESEL, 0, str.c_str() );
 EZTextInserted(curPage, hwnd, str); 
 return true;
-}}
+}
 switch(cc) {
 case VK_RETURN: 
 return EZHandleEnter(curPage, hwnd, curPage->flags&PF_NOAUTOINDENT);
