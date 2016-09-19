@@ -68,7 +68,7 @@ win.addAccelerator('Ctrl+E', func6)
 win.addAccelerator('Ctrl+0', func2)
 
 #win.menus.tools.add(label='Hello item', accelerator='Ctrl+E', specific=True, action=func)
-test = win.menus.add(label='&Test', name='test', index=4, submenu=True, specific=True)
+test = win.menus.add(label='&Test', name='test', index=4, submenu=True, specific=True, separator=False)
 for i in range(1,6):
 	test.add(label='Item '+str(i), action=func, accelerator='Ctrl+'+str(i))
 

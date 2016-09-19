@@ -24,14 +24,14 @@ tstring get_name (void);
 void set_name (const tstring&);
 tstring get_label (void);
 void set_label (tstring);
-int get_submenu (void) { return !!submenu; }
-int hasFlag (int flag);
-int get_checked (void) { return hasFlag(MFS_CHECKED); }
-void set_checked (int);
-int get_enabled (void) { return !hasFlag(MFS_DISABLED); }
-void set_enabled (int);
-int get_radio (void);
-void set_radio (int);
+bool get_submenu (void) { return !!submenu; }
+bool hasFlag (int flag);
+bool get_checked (void) { return hasFlag(MFS_CHECKED); }
+void set_checked (bool);
+bool get_enabled (void) { return !hasFlag(MFS_DISABLED); }
+void set_enabled (bool);
+bool get_radio (void);
+void set_radio (bool);
 tstring get_accelerator (void);
 void set_accelerator (const tstring&);
 PyObject* get_action (void);
@@ -42,7 +42,7 @@ int get_length (void);
 PyObject* getItem (int n);
 PyObject* getItemByName (const tstring&);
 PyObject* get_parent (void) { return parent; }
-PyObject* addItem (tstring label, OPT, PySafeObject action, int pos, const tstring& accelerator, const tstring& name, int isSubmenu, int isSeparator, int isSpecific);
+PyObject* addItem (tstring label, OPT, PySafeObject action, int pos, const tstring& accelerator, const tstring& name, bool isSubmenu, bool isSeparator, bool isSpecific);
 PyObject* removeItem (OPT, PyObject*, PyObject*);
 void remove (void);
 };
@@ -183,7 +183,7 @@ if (submenu) return (UINT)submenu;
 else return cmd;
 }
 
-int PyMenuItem::hasFlag (int flag) {
+bool PyMenuItem::hasFlag (int flag) {
 MENUITEMINFO mii;
 mii.cbSize = sizeof(MENUITEMINFO);
 mii.fMask = MIIM_STATE | MIIM_FTYPE;
@@ -193,7 +193,7 @@ if (!GetMenuItemInfo(menu, getID(), FALSE, &mii)) mii.fState=0;
 return (0!=(mii.fState&flag));
 }
 
-void PyMenuItem::set_checked (int checked) {
+void PyMenuItem::set_checked (bool checked) {
 if (submenu) return;
 checked = checked? MF_CHECKED : MF_UNCHECKED;
 RunSync([&]()mutable{
@@ -201,14 +201,14 @@ CheckMenuItem(menu, cmd, MF_BYCOMMAND | checked);
 });//RunSync
 }
 
-void PyMenuItem::set_enabled (int enabled) {
+void PyMenuItem::set_enabled (bool enabled) {
 enabled = enabled? MF_ENABLED :  MF_GRAYED  | MF_DISABLED;
 RunSync([&]()mutable{
 EnableMenuItem(menu, getID(), MF_BYCOMMAND | enabled);
 });//RunSync
 }
 
-int PyMenuItem::get_radio (void) {
+bool PyMenuItem::get_radio (void) {
 if (submenu) return 0;
 MENUITEMINFO mii;
 mii.cbSize = sizeof(MENUITEMINFO);
@@ -219,7 +219,7 @@ if (!GetMenuItemInfo(menu, cmd, FALSE, &mii)) mii.fType=0;
 return 0!=(mii.fType&MFT_RADIOCHECK);
 }
 
-void PyMenuItem::set_radio (int radio) {
+void PyMenuItem::set_radio (bool radio) {
 if (submenu) return;
 RunSync([&]()mutable{
 MENUITEMINFO mii;
@@ -363,7 +363,7 @@ RemoveAccelerator(hAccel, cmd);
 });//RunSync
 }
 
-PyObject* PyMenuItem::addItem (tstring  label, OPT, PySafeObject action, int pos, const tstring& accelerator, const tstring& name, int isSubmenu, int isSeparator, int isSpecific) {
+PyObject* PyMenuItem::addItem (tstring  label, OPT, PySafeObject action, int pos, const tstring& accelerator, const tstring& name, bool isSubmenu, bool isSeparator, bool isSpecific) {
 if (!submenu) { Py_RETURN_NONE; }
 int cmd = pos+1, kf=0, key= 0;
 HACCEL& hAccel = (isSpecific||specific)&&curPage? curPage->hPageAccel : sp.hAccel;

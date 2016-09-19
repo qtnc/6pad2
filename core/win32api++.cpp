@@ -107,3 +107,10 @@ if (GetFileTime(h, type==0?&ft:0, type==1?&ft:0, type==2?&ft:0)) l = (((unsigned
 CloseHandle(h);
 return l;
 }
+
+tstring export GetErrorText (int errorCode) {
+TCHAR buf[512]={0};
+FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buf, 511, NULL);
+return buf;
+}
+

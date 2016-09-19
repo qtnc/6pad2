@@ -43,13 +43,13 @@ nRadio = 2000+rb;
 if (IsUIThread()) SendMessage(data->hwnd, TDM_CLICK_RADIO_BUTTON, nRadio, 0);
 else modified|=(1<<28); 
 }
-int get_checkboxChecked () { return checkboxChecked; }
+bool get_checkboxChecked () { return checkboxChecked; }
 void set_checkboxChecked (bool b) { 
 checkboxChecked=b; 
 if (IsUIThread()) SendMessage(data->hwnd, TDM_CLICK_VERIFICATION, checkboxChecked, 0);
 else modified|=(1<<27); 
 }
-int get_closed () { return closed; }
+bool get_closed () { return closed; }
 void close () { modified|=(1<<29); nButton=IDCANCEL; }
 void enableButton (int btn, bool enable) { SendMessage(data->hwnd, TDM_ENABLE_BUTTON, 1000+btn, enable); }
 void enableRadioButton (int btn, bool enable) { SendMessage(data->hwnd, TDM_ENABLE_RADIO_BUTTON, 2000+btn, enable); }

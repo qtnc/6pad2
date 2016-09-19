@@ -59,6 +59,7 @@ return (IsCtrlDown()? VKM_CTRL:0)
 
 unsigned long long export GetFileTime (LPCTSTR, int);
 unsigned long long export GetCurTime ();
+tstring export GetErrorText (int errorCode);
 
 #ifdef __cplusplus
 extern "C" {

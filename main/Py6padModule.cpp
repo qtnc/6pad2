@@ -80,19 +80,19 @@ else if (ends_with(name, ".dll")) LoadDLLExtension(name);
 else if (!PyImport_ImportModule(name.c_str())) PyErr_Print();
 }
 
-static int PyLoadLang (const tstring& langfile) {
-msgs.load(langfile);
+static bool PyLoadLang (const tstring& langfile) {
+return msgs.load(langfile);
 }
 
 static void PyBraille (const tstring& str) {
 brailleDisplay(str.c_str());
 }
 
-static int PySayStr (const tstring& str, OPT, bool interrupt) {
+static bool PySayStr (const tstring& str, OPT, bool interrupt) {
 return speechSay(str.c_str(), interrupt);
 }
 
-static int PyIsUIThread () {
+static bool PyIsUIThread () {
 return IsUIThread();
 }
 

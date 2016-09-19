@@ -84,7 +84,7 @@ def pageOpened (page):
 	pageDetectType(page)
 
 menuFormat = win.menus.format
-menuProject = win.menus.add(label=msg('&Project'), submenu=1, index=-2)
+menuProject = win.menus.add(label=msg('&Project'), submenu=True, index=-2)
 items = []
 for item in (
 	{ 'name': 'buildDebug', 'label': 'Build debug', 'accelerator': 'F9' },

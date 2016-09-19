@@ -29,10 +29,10 @@ PyErr_SetString(PyExc_ValueError, "Page is closed");
 return shared_ptr<Page>(new Page());
 }}
 
-int isClosed () { return wpPage.expired(); }
-int isModified () { return page()->IsModified(); }
+bool isClosed () { return wpPage.expired(); }
+bool isModified () { return page()->IsModified(); }
 void setModified (bool b) { page()->SetModified(b); }
-int isReadOnly () { return page()->IsReadOnly(); }
+bool isReadOnly () { return page()->IsReadOnly(); }
 void setReadOnly (bool b) { page()->SetReadOnly(b); }
 tstring getName () { return page()->name; }
 tstring getFile () { return page()->file; }
@@ -45,12 +45,12 @@ int getEncoding () { return page()->encoding; }
 int getIndentationMode () { return page()->indentationMode; }
 int getTabWidth () { return page()->tabWidth; }
 tstring getIndentString () { shared_ptr<Page> p = page(); return tstring(max(p->indentationMode,1), p->indentationMode>0?' ':'\t'); }
-int getAutoLineBreak () { return 0!=(page()->flags&PF_AUTOLINEBREAK); }
+bool getAutoLineBreak () { return 0!=(page()->flags&PF_AUTOLINEBREAK); }
 void setLineEnding (int le) { RunSync([&]()mutable{ page()->SetLineEnding(le); }); }
 void setEncoding (int e) { RunSync([&]()mutable{ page()->SetEncoding(e); }); }
 void setIndentationMode (int i) { RunSync([&]()mutable{ page()->SetIndentationMode(i); }); }
 void setTabWidth (int i) { RunSync([&]()mutable{ page()->SetTabWidth(i); }); }
-void setAutoLineBreak (int b) { RunSync([&]()mutable{ page()->SetAutoLineBreak(b); }); }
+void setAutoLineBreak (bool b) { RunSync([&]()mutable{ page()->SetAutoLineBreak(b); }); }
 string getDotEditorConfigValue (const string& key, OPT, const string& def) {
 IniFile& ini = page()->dotEditorConfig;
 auto it = ini.find(key);
@@ -60,10 +60,10 @@ int addEvent (const string& type, const PySafeObject& cb) {  return page()->AddE
 int removeEvent (const string& type, int id) { return page()->RemoveEvent(type, id); }
 void focus () { page()->Focus(); }
 void close () { page()->Focus(); page()->Close(); }
-int find (const tstring& term, OPT, bool scase, bool regex, bool up, bool stealthty) {  RunSync([&]()mutable{  page()->Find(term, scase, regex, up, stealthty); });  }
+bool find (const tstring& term, OPT, bool scase, bool regex, bool up, bool stealthty) {  bool re=false; RunSync([&]()mutable{  re = page()->Find(term, scase, regex, up, stealthty); });  return re; }
 void searchReplace (const tstring& sText, const tstring& rText, OPT, bool scase, bool regex, bool stealthty) {  RunSync([&]()mutable{ page()->FindReplace(sText, rText, scase, regex, stealthty); });  }
-int findNext () { bool re; RunSync([&]()mutable{ re = page()->FindNext(); });  return re; }
-int findPrev () { bool re; RunSync([&]()mutable{ re = page()->FindPrev(); }); return re; }
+bool findNext () { bool re; RunSync([&]()mutable{ re = page()->FindNext(); });  return re; }
+bool findPrev () { bool re; RunSync([&]()mutable{ re = page()->FindPrev(); }); return re; }
 void undo () { RunSync([&]()mutable{ page()->Undo(); }); }
 void redo () { RunSync([&]()mutable{ page()->Redo(); }); }
 void save () { RunSync([&]()mutable{ page()->SaveFile(); }); }

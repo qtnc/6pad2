@@ -156,12 +156,8 @@ int AddEvent (const std::string& type, const PySafeObject& cb) ;
 bool RemoveEvent (const std::string& type, int id);
 };
 
-template<> struct PyTypeSpec<shared_ptr<Page>> { 
-typedef PyObject* type;
-static constexpr const char c = 'O'; 
-//static inline shared_ptr<Page> convert (PyObject* i) { return i; }
-static inline PyObject* convert2 (const shared_ptr<Page>& p) { return p->GetPyData(); }
-//static inline PySafeObject convert3 (PyObject* o) {  return o;  }
+template<> struct PyConverter<shared_ptr<Page>> { 
+static inline PyObject* inCast (const shared_ptr<Page>& p) { return p->GetPyData(); }
 };
 
 int export AddSignalConnection (const connection& con);

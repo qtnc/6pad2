@@ -62,8 +62,8 @@ alert(text, title = 'Info') -> None:
 :	Show an alert dialog box with an OK button.
 warning(text, title = 'Warning!') -> None:
 :	Show a warning dialog box with an OK button.
-confirm(text, title = 'Question') -> int:
-:	Show a confirmation dialog box where the user can choose between yes and no; return 1 if the user clicked yes, 0 if he clicked no.
+confirm(text, title = 'Question') -> bool:
+:	Show a confirmation dialog box where the user can choose between yes and no; return True if the user clicked yes, False  if he clicked no.
 choice(prompt, title, listOfOptions, initialSelection=0) -> int:
 :	Show a dialog box where the user can choose an option ammong a list. Returns the index of the chosen item, or -1 if the user cancelled the dialog box. You can use keyword arguments.
 prompt(prompt, title, text='', list=[]) -> str:
@@ -72,13 +72,13 @@ saveDialog(file='', title='', filters=[], initialFilter=0) -> multiple return ty
 :	Show a save dialog box where the user can choose a file to save to. 
 	If specified, the filters list must be a list of 2-tuples where the first item is the filter description e.g. "TExt files", and the second is the pattern e.g. "`*.txt`". 
 	Returns a str indicating the path being selected by the user, or None if he cancelled the dialog box. 
-	If a filters list is specified, returns a tuple where the first item is the selected file and the second is the index of the selected filter. 
+	If a filters list is specified, returns a 2-tuple where the first item is the selected file and the second is the index of the selected filter. 
 	You can use keyword arguments.
 openDialog(file='', title='', filters=[], initialFilter=0, multiple=False) -> multiple return types:
 :	Show an open dialog box where the user can choose a file to open.
 	If specified, the filters list must be a list of 2-tuples where the first item is the filter description e.g. "TExt files", and the second is the pattern e.g. "`*.txt`".
 	Returns a str indicating the path being selected by the user, or None if he cancelled the dialog box. 
-	If a filters list is specified, returns a tuple where the first item is the selected file and the second is the index of the selected filter.
+	If a filters list is specified, returns a 2-tuple where the first item is the selected file and the second is the index of the selected filter.
 	If multiple is set to True, the user can select more than one file to open and a list of str is returned instead of a single str.
 	You can use keyword arguments.
 chooseFolder(folder='', title='', root='', showFiles=False) -> str:
@@ -187,12 +187,12 @@ delete(start, end) -> None:
 :	Delete a range of characters.
 insert(position, text) -> None:
 :	Insert a string of text at the given position.
-find(term, scase=False, regex=False, up=False, stealthty=False) -> int:
-:	Make a search in the text, as if the user issued a search using the Find dialog. SEt scase to True for a sensible case search, regex to True for a regular expression search, and up to True for a search backward instead of forward. If stealthty is True, the find term won't be added in the combobox of previously searched terms in the Find dialog box. You can use keywords arguments. Returns 1 or 0 depending on if something has been found or not.
-findNext() -> int:
-:	Find the next occurence of the text previously searched for, as if the user pressed F3 or chose the Find next item in the Edit menu. Returns 1 if something has been found, 0 otherwise.
-findPrevious() -> int:
-:	Find the previous occurence of the text most recently searched for, as if the user pressed Shift+F3 or chose the Find previous item in the Edit menu. Returns 1 if something has been found, 0 otherwise.
+find(term, scase=False, regex=False, up=False, stealthty=False) -> bool:
+:	Make a search in the text, as if the user issued a search using the Find dialog. SEt scase to True for a sensible case search, regex to True for a regular expression search, and up to True for a search backward instead of forward. If stealthty is True, the find term won't be added in the combobox of previously searched terms in the Find dialog box. You can use keywords arguments. Returns True or False depending on if something has been found or not.
+findNext() -> bool:
+:	Find the next occurence of the text previously searched for, as if the user pressed F3 or chose the Find next item in the Edit menu. Returns True if something has been found, False otherwise.
+findPrevious() -> bool:
+:	Find the previous occurence of the text most recently searched for, as if the user pressed Shift+F3 or chose the Find previous item in the Edit menu. Returns True if something has been found, False otherwise.
 searchReplace(search, replacement, scase=False, regex=False, stealthty=False) -> None:
 :	Make a search/replace operation in the text, as if the user issued this command from the search/replace dialog box. SEt scase to True for a sensible case search, regex to True for a regular expression search/replace. If stealthty is True, terms won't be added in comboboxes of previously used terms in the dialog box. You can use keyword arguments.
 save() -> None:
@@ -209,9 +209,9 @@ doteditorconfig(key, defaultValue = '') -> str
 :	Get the value of a configuration key that can be found in .editorconfig files for the current file. If the key is not found, defaultValue is returned. Note that .editorconfig configuration directives are loaded/updated when the file is loaded, reloaded or saved.
 
 ## Members
-int closed (read only):
+bool closed (read only):
 :	Indicates if the page has been closed by the user.
-int modified:
+bool modified:
 :	Indicates if the contents of the page has been modified since the last load/save.
 str name:
 :	The name of the page as shown on the tablist and on the window title.
@@ -225,7 +225,7 @@ int indentation:
 :	The indentation convention to use while editing the file. See [indentation modes](configuration.html#indent) for a list of possible values.
 int tabWidth:
 :	The width, in spaces, visually taken by a tab character, between 1 and 8.
-int autoLineBreak:
+bool autoLineBreak:
 :	Whether or not lines are broken automatically when displaying the text in the edition field.
 int selectionStart:
 :	The anchor point of the current selection.
@@ -340,7 +340,7 @@ I.e. `item()`. If the item represents a submenu, calling it like a function rais
 - *Warning: slicing, e.g. menu[1:3] doesn't work* and raise an error.
 
 ## Members
-int submenu (read only):
+bool submenu (read only):
 :	Whether this object represents a menu or a single menu item.
 int length (read only):
 :	The number of sub menu items contained in this menu, or -1 if this object represents just a single menu item.
@@ -354,11 +354,11 @@ str accelerator:
 :	A string representing the key shortcut associated with the item (e.g. 'Ctrl+E'). Empty if no accelerator is associated with this item.
 int id (read only):
 :	The command identifier of this item.
-int enabled:
+bool enabled:
 :	The enabled/disabled state of the item.
-int checked:
+bool checked:
 :	The checked/unchecked state of the item.
-int radio:
+bool radio:
 :	Whether or not the item is a radio button menu item.
 callable action:
 :	The action function that has to be called when the item is clicked. This is None for submenus or built-in menu items (i.e. items that are natively managed).
@@ -428,7 +428,7 @@ enableRadioButton(radioButtonIndex, bEnable) -> None:
 :	Enable or disable the specified radio button in the dialog box.
 
 ## Members
-int closed (read only):
+bool closed (read only):
 :	Indicate whether the dialog box is still open, or already closed. Any further modification of the other members after the dialog is closed has no effect.
 float value:
 :	The value of the progress bar, between 0 (nothing is done) to 1 (fully complete)
@@ -446,7 +446,7 @@ int buttonClicked (read only):
 :	Once the dialog is closed, indicates the index of the button clicked by the user in the buttons list/tuple, or -1 if escape or Alt+F4 was used to close the dialog box. Since the close method simulates a click, buttonClicked always equals -1 after an explicit call to close.
 int radioChecked:
 :	Indicates the radio button currently selected by the user as an index in the radio buttons list/tuple, or -1 if the dialog doesn't contain any radio button. You can modify this property to programmatically select another radio button.
-int checkboxChecked:
+bool checkboxChecked:
 :	Indicate if the verification checkbox is currently checked or not. You can change the state of the checkbox by modifying this property.
 
 

@@ -118,7 +118,7 @@ MessageBox(GetForegroundWindow(), str.c_str(), (title.size()>0?title:msg("Warnin
 Py_END_ALLOW_THREADS
 }
 
-static int PyConfirm (const tstring& str, OPT, const tstring& title) {
+static bool PyConfirm (const tstring& str, OPT, const tstring& title) {
 bool re = false;
 Py_BEGIN_ALLOW_THREADS
 RunSync([&]()mutable{
@@ -229,7 +229,7 @@ static int PySetTimer2 (const PySafeObject& cb, int time) {
 return SetTimeout(cb.asFunction<void()>(), time, true);
 }
 
-static int PyPlaySound (const tstring& filename) {
+static void PyPlaySound (const tstring& filename) {
 PlaySound(filename.c_str(), NULL, SND_ASYNC | SND_FILENAME);
 }
 

@@ -1,5 +1,25 @@
 #include "global.h"
+#include "strings.hpp"
+#include "sixpad.h"
 #include "python34.h"
+
+static vector<int> enclist = { 1200, 1201, 1202, 1203, 65002 };
+
+void EnumPythonBonusCP (vector<int>& v);
+
+static BOOL CALLBACK EnumProc1 (LPTSTR cpstr) {
+int enc = toInt(tstring(cpstr));
+enclist.push_back(enc);
+return true;
+}
+
+const vector<int>& getAllAvailableEncodings () {
+if (enclist.size()<=5) {
+EnumSystemCodePages(EnumProc1, CP_INSTALLED);
+EnumPythonBonusCP(enclist);
+}
+return enclist;
+}
 
 tstring decodeFromPythonEncoding (const string& str, int offset, const char* encoding) {
 GIL_PROTECT
@@ -22,3 +42,4 @@ else PyErr_Print();
 Py_DECREF(uStr);
 return prefix+re;
 }
+
