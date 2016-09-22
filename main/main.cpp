@@ -543,9 +543,11 @@ OpenFile(files[0] + TEXT("\\") + files[i], flags);
 
 void UpdateRecentFilesMenu (void) {
 for (int i=recentFiles.size() -1; i>=0; i--)  DeleteMenu(menuRecentFiles, i, MF_BYPOSITION);
-int i=0;
-for (const tstring& file: recentFiles) {
-InsertMenu(menuRecentFiles, i, MF_STRING | MF_BYPOSITION, IDM_RECENT_FILE +i, tsnprintf(512, TEXT("&%d. %ls"), i+1, file.c_str() ).c_str() );
+int i=0, j=0;
+for (const tstring& path: recentFiles) {
+j = path.rfind('\\');
+tstring name = j>=0&&j<path.size()? path.substr(j+1) : path;
+InsertMenu(menuRecentFiles, i, MF_STRING | MF_BYPOSITION, IDM_RECENT_FILE +i, tsnprintf(512, TEXT("&%d. %ls (%ls)"), i+1, name.c_str(), path.c_str() ).c_str() );
 i++;
 }
 DeleteMenu(menuRecentFiles, recentFiles.size(), MF_BYPOSITION);
