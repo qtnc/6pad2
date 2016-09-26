@@ -15,9 +15,7 @@ void Undo (Page&);
 void Redo (Page&);
 };
 
-struct PyEditorTab { 
-    PyObject_HEAD
-PyObject* dic;
+struct PyPage: PyObjectWithDic { 
 weak_ptr<Page> wpPage;
 bool seqAsLines;
 
@@ -38,8 +36,8 @@ tstring getName () { return page()->name; }
 tstring getFile () { return page()->file; }
 void setName (const tstring& s) { page()->SetName(s); }
 void setFile (const tstring& s) { page()->file=s; }
-int getSeqLineFlag () { return seqAsLines; }
-void setSeqLineFlag (int x) { seqAsLines=!!x; }
+bool getSeqLineFlag () { return seqAsLines; }
+void setSeqLineFlag (bool x) { seqAsLines=x; }
 int getLineEnding () { return page()->lineEnding; }
 int getEncoding () { return page()->encoding; }
 int getIndentationMode () { return page()->indentationMode; }
@@ -56,7 +54,7 @@ IniFile& ini = page()->dotEditorConfig;
 auto it = ini.find(key);
 return it!=ini.end()? it->second : def;
 }
-int addEvent (const string& type, const PySafeObject& cb) {  return page()->AddEvent(type,cb); }
+int addEvent (const string& type, PyGenericFunc cb) {  return page()->AddEvent(type,cb); }
 int removeEvent (const string& type, int id) { return page()->RemoveEvent(type, id); }
 void focus () { page()->Focus(); }
 void close () { page()->Focus(); page()->Close(); }
@@ -83,7 +81,7 @@ int getLineLength (int l) { return page()->GetLineLength(l); }
 tstring getLine (int l) { return page()->GetLine(l); }
 int getCurLine () { return getLineOfPos(getSelectionEnd()); }
 int getLineStartIndex (int l) { return page()->GetLineStartIndex(l); }
-int getLineEndIndex (int l) { return page()->GetLineStartIndex(l) + page()->GetLineLength(l); }
+int getLineEndIndex (int l) { return page()->GetLineEndIndex(l); }
 int getLineSafeStartIndex (int l) { return page()->GetLineSafeStartIndex(l); }
 int getLineIndentLevel (int l) { return page()->GetLineIndentLevel(l); }
 int getLineOfPos (int pos) { return page()->GetLineOfPos(pos); }
@@ -98,36 +96,36 @@ void deleteTextRange (int start, int end) { replaceTextRange(start, end, TEXT(""
 void insertTextAt (int pos, const tstring& str) { replaceTextRange(pos, pos, str); }
 tstring getTextSubstring (int start, int end) { return page()->GetTextSubstring(start,end); }
 void pushUndoState (PyObject* o) { page()->PushUndoState(shared_ptr<UndoState>(new PyProxyUndoState(o)), false); }
-};//PyEditorTab class
+};//PyPage class
 
-static void PyEditorTabDealloc (PyObject* pySelf) {
-PyEditorTab* self = (PyEditorTab*)pySelf;
+static void PyPageDealloc (PyObject* pySelf) {
+PyPage* self = (PyPage*)pySelf;
 Py_XDECREF(self->dic);
 self->dic = NULL;
 self->wpPage = weak_ptr<Page>();
 Py_TYPE(pySelf)->tp_free(pySelf);
 }
 
-static PyEditorTab* PyEditorTabNew (PyTypeObject* type, PyObject* args, PyObject* kwds) {
-PyEditorTab* self = (PyEditorTab*)(type->tp_alloc(type, 0));
+static PyPage* PyPageNew (PyTypeObject* type, PyObject* args, PyObject* kwds) {
+PyPage* self = (PyPage*)(type->tp_alloc(type, 0));
 self->wpPage = weak_ptr<Page>();
 self->seqAsLines = false;
 self->dic = PyDict_New();
 return self;
 }
 
-static int PyEditorTabInit (PyEditorTab* self, PyObject* args, PyObject* kwds) {
+static int PyPageInit (PyPage* self, PyObject* args, PyObject* kwds) {
 return 0;
 }
 
 static int PyMapLen (PyObject* o) {
-PyEditorTab& t = *(PyEditorTab*)o;
+PyPage& t = *(PyPage*)o;
 if (t.seqAsLines) return t.getLineCount();
 else return t.getTextLength();
 }
 
 static PyObject* PyMapGet (PyObject* o, PyObject* k) {
-PyEditorTab& t = *(PyEditorTab*)o;
+PyPage& t = *(PyPage*)o;
 if (PyLong_Check(k)) {
 int i = PyLong_AsLong(k);
 if (!t.seqAsLines) {
@@ -154,7 +152,7 @@ return NULL;
 static int PyMapSet (PyObject* o, PyObject* k, PyObject* v) {
 if (v&&!PyUnicode_Check(v)) { PyErr_SetString(PyExc_TypeError, "str expected");  return -1; }
 tstring str = v? PyUnicode_AsUnicode(v) : TEXT("");
-PyEditorTab& t = *(PyEditorTab*)o;
+PyPage& t = *(PyPage*)o;
 if (PyLong_Check(k)) {
 int i = PyLong_AsLong(k);
 if (!t.seqAsLines) {
@@ -184,78 +182,78 @@ PyErr_SetString(PyExc_TypeError, "int or slice expected");
 return -1;
 }
 
-static constexpr const char* PyEditorTab_find_KWLST[] = {"term", "scase", "regex", "up", "stealthty", NULL};
-static constexpr const char* PyEditorTab_searchReplace_KWLST[] = {"search", "replacement", "scase", "regex", "stealthty", NULL};
+static constexpr const char* PyPage_find_KWLST[] = {"term", "scase", "regex", "up", "stealthty", NULL};
+static constexpr const char* PyPage_searchReplace_KWLST[] = {"search", "replacement", "scase", "regex", "stealthty", NULL};
 
-static PyMappingMethods PyEditorTabMapping = {
+static PyMappingMethods PyPageMapping = {
 PyMapLen, // length
 PyMapGet, // Get
 PyMapSet, // set
 };
 
-static PyMethodDef PyEditorTabMethods[] = {
-PyDecl("addEvent", &PyEditorTab::addEvent),
-PyDecl("removeEvent", &PyEditorTab::removeEvent),
-PyDecl("select", &PyEditorTab::setSelection),
-PyDecl("line", &PyEditorTab::getLine),
-PyDecl("lineLength", &PyEditorTab::getLineLength),
-PyDecl("lineOfOffset", &PyEditorTab::getLineOfPos),
-PyDecl("lineStartOffset", &PyEditorTab::getLineStartIndex),
-PyDecl("lineEndOffset", &PyEditorTab::getLineEndIndex),
-PyDecl("lineSafeStartOffset", &PyEditorTab::getLineSafeStartIndex),
-PyDecl("lineIndentLevel", &PyEditorTab::getLineIndentLevel),
-PyDecl("columnOfOffset", &PyEditorTab::getColOfPos),
-PyDecl("substring", &PyEditorTab::getTextSubstring),
-PyDecl("replace", &PyEditorTab::replaceTextRange),
-PyDecl("insert", &PyEditorTab::insertTextAt),
-PyDecl("delete", &PyEditorTab::deleteTextRange),
-PyDecl("focus", &PyEditorTab::focus),
-PyDecl("close", &PyEditorTab::close),
-PyDecl("pushUndoState", &PyEditorTab::pushUndoState),
-PyDecl("undo", &PyEditorTab::undo),
-PyDecl("redo", &PyEditorTab::redo),
-PyDecl("save", &PyEditorTab::save),
-PyDecl("reload", &PyEditorTab::reload),
-PyDeclKW("find", &PyEditorTab::find, PyEditorTab_find_KWLST),
-PyDecl("findNext", &PyEditorTab::findNext),
-PyDecl("findPrevious", &PyEditorTab::findPrev),
-PyDeclKW("searchReplace", &PyEditorTab::searchReplace, PyEditorTab_searchReplace_KWLST),
-PyDecl("doteditorconfig", &PyEditorTab::getDotEditorConfigValue),
+static PyMethodDef PyPageMethods[] = {
+PyDecl("addEvent", &PyPage::addEvent),
+PyDecl("removeEvent", &PyPage::removeEvent),
+PyDecl("select", &PyPage::setSelection),
+PyDecl("line", &PyPage::getLine),
+PyDecl("lineLength", &PyPage::getLineLength),
+PyDecl("lineOfOffset", &PyPage::getLineOfPos),
+PyDecl("lineStartOffset", &PyPage::getLineStartIndex),
+PyDecl("lineEndOffset", &PyPage::getLineEndIndex),
+PyDecl("lineSafeStartOffset", &PyPage::getLineSafeStartIndex),
+PyDecl("lineIndentLevel", &PyPage::getLineIndentLevel),
+PyDecl("columnOfOffset", &PyPage::getColOfPos),
+PyDecl("substring", &PyPage::getTextSubstring),
+PyDecl("replace", &PyPage::replaceTextRange),
+PyDecl("insert", &PyPage::insertTextAt),
+PyDecl("delete", &PyPage::deleteTextRange),
+PyDecl("focus", &PyPage::focus),
+PyDecl("close", &PyPage::close),
+PyDecl("pushUndoState", &PyPage::pushUndoState),
+PyDecl("undo", &PyPage::undo),
+PyDecl("redo", &PyPage::redo),
+PyDecl("save", &PyPage::save),
+PyDecl("reload", &PyPage::reload),
+PyDeclKW("find", &PyPage::find, PyPage_find_KWLST),
+PyDecl("findNext", &PyPage::findNext),
+PyDecl("findPrevious", &PyPage::findPrev),
+PyDeclKW("searchReplace", &PyPage::searchReplace, PyPage_searchReplace_KWLST),
+PyDecl("doteditorconfig", &PyPage::getDotEditorConfigValue),
 PyDeclEnd
 };
 
-static PyGetSetDef PyEditorTabAccessors[] = {
-PyReadOnlyAccessor("closed", &PyEditorTab::isClosed),
-PyAccessor("name", &PyEditorTab::getName, &PyEditorTab::setName),
-PyAccessor("file", &PyEditorTab::getFile, &PyEditorTab::setFile),
-PyAccessor("modified", &PyEditorTab::isModified, &PyEditorTab::setModified),
-PyAccessor("readOnly", &PyEditorTab::isReadOnly, &PyEditorTab::setReadOnly),
-PyAccessor("rangesInLines", &PyEditorTab::getSeqLineFlag, &PyEditorTab::setSeqLineFlag),
-PyAccessor("lineEnding", &PyEditorTab::getLineEnding, &PyEditorTab::setLineEnding),
-PyAccessor("encoding", &PyEditorTab::getEncoding, &PyEditorTab::setEncoding),
-PyAccessor("indentation", &PyEditorTab::getIndentationMode, &PyEditorTab::setIndentationMode),
-PyAccessor("tabWidth", &PyEditorTab::getTabWidth, &PyEditorTab::setTabWidth),
-PyAccessor("autoLineBreak", &PyEditorTab::getAutoLineBreak, &PyEditorTab::setAutoLineBreak),
-PyAccessor("selectionStart", &PyEditorTab::getSelectionStart, &PyEditorTab::setSelectionStart),
-PyAccessor("selectionEnd", &PyEditorTab::getSelectionEnd, &PyEditorTab::setSelectionEnd),
-PyAccessor("position", &PyEditorTab::getSelectionEnd, &PyEditorTab::setPosition),
-PyAccessor("selectedText", &PyEditorTab::getSelectedText, &PyEditorTab::setSelectedText),
-PyAccessor("text", &PyEditorTab::getText, &PyEditorTab::setText),
-PyAccessor("curLine", &PyEditorTab::getCurLine, &PyEditorTab::setCurLine),
-PyAccessor("curLineText", &PyEditorTab::getCurLineText, &PyEditorTab::setCurLineText),
-PyReadOnlyAccessor("curColumn", &PyEditorTab::getCurCol),
-PyReadOnlyAccessor("textLength", &PyEditorTab::getTextLength),
-PyReadOnlyAccessor("lineCount", &PyEditorTab::getLineCount),
-PyReadOnlyAccessor("indentString", &PyEditorTab::getIndentString),
+static PyGetSetDef PyPageAccessors[] = {
+PyReadOnlyAccessor("closed", &PyPage::isClosed),
+PyAccessor("name", &PyPage::getName, &PyPage::setName),
+PyAccessor("file", &PyPage::getFile, &PyPage::setFile),
+PyAccessor("modified", &PyPage::isModified, &PyPage::setModified),
+PyAccessor("readOnly", &PyPage::isReadOnly, &PyPage::setReadOnly),
+PyAccessor("rangesInLines", &PyPage::getSeqLineFlag, &PyPage::setSeqLineFlag),
+PyAccessor("lineEnding", &PyPage::getLineEnding, &PyPage::setLineEnding),
+PyAccessor("encoding", &PyPage::getEncoding, &PyPage::setEncoding),
+PyAccessor("indentation", &PyPage::getIndentationMode, &PyPage::setIndentationMode),
+PyAccessor("tabWidth", &PyPage::getTabWidth, &PyPage::setTabWidth),
+PyAccessor("autoLineBreak", &PyPage::getAutoLineBreak, &PyPage::setAutoLineBreak),
+PyAccessor("selectionStart", &PyPage::getSelectionStart, &PyPage::setSelectionStart),
+PyAccessor("selectionEnd", &PyPage::getSelectionEnd, &PyPage::setSelectionEnd),
+PyAccessor("position", &PyPage::getSelectionEnd, &PyPage::setPosition),
+PyAccessor("selectedText", &PyPage::getSelectedText, &PyPage::setSelectedText),
+PyAccessor("text", &PyPage::getText, &PyPage::setText),
+PyAccessor("curLine", &PyPage::getCurLine, &PyPage::setCurLine),
+PyAccessor("curLineText", &PyPage::getCurLineText, &PyPage::setCurLineText),
+PyReadOnlyAccessor("curColumn", &PyPage::getCurCol),
+PyReadOnlyAccessor("textLength", &PyPage::getTextLength),
+PyReadOnlyAccessor("lineCount", &PyPage::getLineCount),
+PyReadOnlyAccessor("indentString", &PyPage::getIndentString),
 PyDeclEnd
 };
 
-static PyTypeObject PyEditorTabType = { 
+static PyTypeObject PyPageType = { 
     PyVarObject_HEAD_INIT(NULL, 0) 
     "sixpad.Page",             /* tp_name */ 
-    sizeof(PyEditorTab), /* tp_basicsize */ 
+    sizeof(PyPage), /* tp_basicsize */ 
     0,                         /* tp_itemsize */ 
-    PyEditorTabDealloc,                         /* tp_dealloc */ 
+    PyPageDealloc,                         /* tp_dealloc */ 
     0,                         /* tp_print */ 
     0,                         /* tp_getattr */ 
     0,                         /* tp_setattr */ 
@@ -263,7 +261,7 @@ static PyTypeObject PyEditorTabType = {
     0,                         /* tp_repr */ 
     0,                         /* tp_as_number */ 
     0,                         /* tp_as_sequence */ 
-    &PyEditorTabMapping,                         /* tp_as_mapping */ 
+    &PyPageMapping,                         /* tp_as_mapping */ 
     0,                         /* tp_hash  */ 
     0,                         /* tp_call */ 
     0,                         /* tp_str */ 
@@ -278,19 +276,19 @@ static PyTypeObject PyEditorTabType = {
     0,                         /* tp_weaklistoffset */ 
     0,                         /* tp_iter */ 
     0,                         /* tp_iternext */ 
-    PyEditorTabMethods,             /* tp_methods */ 
+    PyPageMethods,             /* tp_methods */ 
 NULL,             /* tp_members */ 
-    PyEditorTabAccessors,                         /* tp_getset */ 
+    PyPageAccessors,                         /* tp_getset */ 
     0,                         /* tp_base */ 
     0,                         /* tp_dict */ 
     0,                         /* tp_descr_get */ 
     0,                         /* tp_descr_set */ 
-    offsetof(PyEditorTab,dic),                         /* tp_dictoffset */ 
-    (initproc)PyEditorTabInit,      /* tp_init */ 
+    offsetof(PyPage,dic),                         /* tp_dictoffset */ 
+    (initproc)PyPageInit,      /* tp_init */ 
     0,                         /* tp_alloc */ 
 }; 
 
-void PyEditorTab::setCurLineText (const tstring& str) { 
+void PyPage::setCurLineText (const tstring& str) { 
 int l = getCurLine();
 int s = getLineStartIndex(l);
 int e = s + getLineLength(l);
@@ -309,17 +307,22 @@ PyObject* arg = p.GetPyData();
 CallMethod<void>(*obj, "redo", arg);
 }
 
-PyObject* export CreatePyEditorTabObject (shared_ptr<Page> p) {
+PyObject* export CreatePyPageObject (shared_ptr<Page> p) {
 GIL_PROTECT
-PyEditorTab* it = PyEditorTabNew(&PyEditorTabType, NULL, NULL);
+PyPage* it = PyPageNew(&PyPageType, NULL, NULL);
 it->wpPage = p;
 return (PyObject*)it;
 }
 
-bool export PyRegister_EditorTab (PyObject* m) {
-//PyEditorTabType.tp_new = (decltype(PyEditorTabType.tp_new))PyEditorTabNew;
-if (PyType_Ready(&PyEditorTabType) < 0)          return false;
-Py_INCREF(&PyEditorTabType); 
-PyModule_AddObject(m, "EditorTab", (PyObject*)&PyEditorTabType); 
+shared_ptr<Page> Page::FromPyData (PyObject* o) {
+PyPage* e = (PyPage*)o;
+return e->page();
+}
+
+bool export PyRegister_Page (PyObject* m) {
+//PyPageType.tp_new = (decltype(PyPageType.tp_new))PyPageNew;
+if (PyType_Ready(&PyPageType) < 0)          return false;
+Py_INCREF(&PyPageType); 
+PyModule_AddObject(m, "Page", (PyObject*)&PyPageType); 
 return true;
 }

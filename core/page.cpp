@@ -280,9 +280,10 @@ SendMessage(zone, EM_SETSEL, start, start+str.size());
 if (IsWindowVisible(zone)) SendMessage(zone, EM_SCROLLCARET, 0, 0);
 }
 
-PyObject* CreatePyEditorTabObject (shared_ptr<Page>);
+PyObject* CreatePyPageObject (shared_ptr<Page>);
 PyObject* Page::GetPyData () {
-if (!pyData) pyData = CreatePyEditorTabObject(shared_from_this());
+if (!pyData) pyData.assign( CreatePyPageObject(shared_from_this()) ,true);
+pyData.incref();
 return *pyData;
 }
 
@@ -375,7 +376,7 @@ switch(ch){
 case '\\': ignore=true; out << '\\'; break;
 case '\x1F': out << TEXT(".*"); break;
 case '*': out << TEXT("[^/\\\\]*"); break;
-case '?': out < TEXT("[^/\\\\]"); break;
+case '?': out << TEXT("[^/\\\\]"); break;
 case '.': out << TEXT("\\."); break;
 case '!': if (i>0&&glob[i -1]=='[') out << (wchar_t)'^'; else out << (wchar_t)'!'; break;
 case '{': {
@@ -816,9 +817,11 @@ SendMessage(hEdit, EM_GETSEL, &pos, 0);
 nLine = SendMessage(hEdit, EM_LINEFROMCHAR, pos, 0);
 tstring addString, line = EditGetLine(hEdit, nLine, pos);
 any re = page->onenter(page->shared_from_this(), line, nLine);
+if (!re.empty()) {
 if (isoftype(re,bool) && !any_cast<bool>(re)) return false; 
 else if (isoftype(re,int)) addIndent = any_cast<int>(re);
 else if (isoftype(re,tstring)) addString = any_cast<tstring>(re);
+}
 pos = noAutoIndent? 0 : line.find_first_not_of(TEXT("\t \xA0"));
 if (pos<0 || pos>=line.size()) pos=line.size();
 if (addIndent<0) pos = max(0, pos + addIndent * max(1, page->indentationMode));
@@ -937,6 +940,7 @@ switch(msg){
 case WM_CHAR: {
 TCHAR cc = LOWORD(wp);
 any re = curPage->onkeyPress(curPage->shared_from_this(), tstring(&cc,1));
+if (!re.empty()) {
 if (isoftype(re,bool) && !any_cast<bool>(re)) return true; 
 else if (isoftype(re,int)) wp = any_cast<int>(re);
 else if (isoftype(re,tstring)) {
@@ -944,7 +948,7 @@ tstring str = any_cast<tstring>(re);
 SendMessage(hwnd, EM_REPLACESEL, 0, str.c_str() );
 EZTextInserted(curPage, hwnd, str); 
 return true;
-}
+}}
 switch(cc) {
 case VK_RETURN: 
 return EZHandleEnter(curPage, hwnd, curPage->flags&PF_NOAUTOINDENT);
@@ -1231,10 +1235,10 @@ else ++it;
 return con;
 }
 
-int Page::AddEvent (const string& type, const PySafeObject& cb) {
+int Page::AddEvent (const string& type, PyGenericFunc cb) {
 connection con;
 if(false){}
-#define E(n) else if (type==#n) con = on##n .connect(cb.asFunction<typename decltype(on##n)::signature_type>());
+#define E(n) else if (type==#n) con = on##n .connect(AsPyFunc<typename decltype(on##n)::signature_type>(cb.o));
 E(keyDown) E(keyUp) E(keyPress)
 E(save) E(beforeSave) E(load)
 E(attrChange) E(status) E(fileDropped) E(contextMenu) E(enter)

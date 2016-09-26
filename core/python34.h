@@ -18,8 +18,11 @@ RAII_GIL():  gil(PyGILState_Ensure()) { }
 ~RAII_GIL(){  PyGILState_Release(gil); }
 };
 
-struct PyObjectWithDic {
+struct PyObjectBase {
     PyObject_HEAD 
+};
+
+struct PyObjectWithDic: PyObjectBase {
 PyObject* dic;
 };
 
@@ -148,13 +151,16 @@ static inline PyObject* inCast (const char* s) { return PyUnicode_FromString(s);
 template<> struct PyConverter<const std::string&>: PyConverter<std::string> {};
 template<> struct PyConverter<const std::wstring&>: PyConverter<std::wstring> {};
 
-template<class S> struct PyCallback {};
+struct PyGenericFunc {
+PyObject* o;
+};
 
 struct PySafeObject {
 PyObject* o;
 inline PySafeObject (): o(0) {}
-inline PySafeObject (PyObject* x, bool b = false): o(b?x:0) { operator=(x); }
+inline PySafeObject (PyObject* x, bool b=false): o(0) { operator=(x); }
 inline PySafeObject (const PySafeObject& x): PySafeObject(x.o) {}
+inline PySafeObject (PySafeObject&& x): o(x.o) { x.o=0; }
 inline PySafeObject& operator= (const PySafeObject& x) { return operator=(x.o); }
 PySafeObject& operator= (PyObject* x) {
 GIL_PROTECT
@@ -164,23 +170,48 @@ o=x;
 return *this;
 }
 PySafeObject& operator= (PySafeObject&& x) {
-if (this==&x) return *this;
+if (o) {
+if (o==x.o) return *this;
 GIL_PROTECT;
 Py_XDECREF(o);
+}
 o = x.o;
-x.o = 0;
+x.o=0;
 return *this;
 }
-inline PySafeObject (PySafeObject&& x): o(x.o) { x.o=0; }
-inline ~PySafeObject  () { operator=(NULL); }
+inline ~PySafeObject  () {
+if (o) {
+GIL_PROTECT
+Py_XDECREF(o);
+}}
+inline PySafeObject& assign (PyObject* x, bool b = false) {
+if (!b) return operator=(x);
+if (o) {
+GIL_PROTECT
+Py_XDECREF(o);
+}
+o=x;
+return *this;
+}
+inline void incref () {
+if (!o) return;
+GIL_PROTECT
+Py_XINCREF(o);
+}
+inline void decref () {
+if (!o) return;
+GIL_PROTECT
+Py_XDECREF(o);
+}
 inline bool operator== (PyObject* x) const {  return x==o;  }
 inline bool operator== (const PySafeObject& x) const {  return x.o==o;  }
 inline PyObject* operator* () const { return o; }
 inline operator bool () const { return !!o && o!=Py_None && o!=Py_False; }
-template<class S> inline PyCallback<S> asFunction () const;
 };
 
-template<class R, class... A> struct PyCallback<R(A...)> {
+template<class S> struct PyFunc {};
+
+template<class R, class... A> struct PyFunc <R(A...)> {
 PySafeObject func;
 static R call (PyObject* f, A... arg) {
 GIL_PROTECT
@@ -195,16 +226,15 @@ PySafeObject result( PyObject_CallMethod(obj, name.c_str(), TemplatedString<'(',
 if (!result) PyErr_Print();
 return PyConverter<R>::outCast(*result);
 }
-inline PyCallback<R(A...)> (): func() {}
-inline PyCallback<R(A...)> (PyObject* o, bool b=false): func(o,b) {}
-inline PyCallback<R(A...)> (const PySafeObject& o): func(o) {}
+inline PyFunc<R(A...)> (): func() {}
+inline PyFunc<R(A...)> (PyObject* o, bool b=false): func(o,b) {}
 inline operator bool () const { return func; }
-inline bool operator== (const PyCallback<R(A...)>& x) const {  return x.func==func;  }
-inline bool operator!= (const PyCallback<R(A...)>& x) const { return !operator==(x); }
+inline bool operator== (const PyFunc<R(A...)>& x) const {  return x.func==func;  }
+inline bool operator!= (const PyFunc<R(A...)>& x) const { return !operator==(x); }
 inline R operator() (A... args) { return call(*func, args...); }
 };
 
-template<class... A> struct PyCallback<void(A...)> {
+template<class... A> struct PyFunc<void(A...)> {
 PySafeObject func;
 static void call (PyObject* f, A... arg) {
 GIL_PROTECT
@@ -217,20 +247,19 @@ GIL_PROTECT
 PySafeObject result( PyObject_CallMethod(obj, name.c_str(), TemplatedString<'(', PyTypeSpec<A>::inLetter..., ')'>(), PyConverter<A>::inCast(arg)...), true);
 if (!result) PyErr_Print();
 }
-inline PyCallback<void(A...)> (PyObject* o, bool b=false): func(o,b) {}
-inline PyCallback<void(A...)> (const PySafeObject& o): func(o) {}
+inline PyFunc<void(A...)> (PyObject* o, bool b=false): func(o,b) {}
 inline operator bool () const { return func; }
-inline bool operator== (const PyCallback<void(A...)>& x) const {  return x.func==func;  }
-inline bool operator!= (const PyCallback<void(A...)>& x) const { return !operator==(x); }
+inline bool operator== (const PyFunc<void(A...)>& x) const {  return x.func==func;  }
+inline bool operator!= (const PyFunc<void(A...)>& x) const { return !operator==(x); }
 inline void operator() (A... args) { call(*func, args...); }
 };
 
-template<class S> inline PyCallback<S> PySafeObject::asFunction () const {
-return PyCallback<S>(*this);
+template<class S> inline PyFunc<S> AsPyFunc  (PyObject* o) {
+return PyFunc<S>(o);
 }
 
 template<class R, class... A> inline R CallMethod (PyObject* obj, const string& name, A... args) {
-return PyCallback<R(A...)>::callMethod(obj, name, args...);
+return PyFunc<R(A...)>::callMethod(obj, name, args...);
 }
 
 template<> struct PyConverter<PySafeObject> {
@@ -241,7 +270,28 @@ return *o;
 }
 };
 
-template<> struct PyConverter<const PySafeObject&>: PyConverter<PySafeObject> {};
+template<class S> struct PyConverter<PyFunc<S>> {
+static inline PyFunc<S>outCast (PyObject* o) { 
+if (o && o!=Py_None && !PyCallable_Check(o)) PyErr_SetString(PyExc_TypeError, "object is not callable");
+return o; 
+}
+static inline PyObject* inCast (const PyFunc<S>& O) { 
+PyObject* o = O.func.o;
+Py_XINCREF(o);
+return o; 
+}
+};
+
+template<> struct PyConverter<PyGenericFunc> {
+static inline PyGenericFunc outCast (PyObject* o) { 
+if (o && o!=Py_None && !PyCallable_Check(o)) PyErr_SetString(PyExc_TypeError, "object is not callable");
+return {o}; 
+}
+static inline PyObject* inCast (const PyGenericFunc& O) { 
+Py_XINCREF(O.o);
+return O.o;
+}
+};
 
 template<class E> struct PyConverter<std::vector<E>> {
 typedef std::vector<E> type;
@@ -365,7 +415,8 @@ template<class CFunc> struct PyFuncSpec {
 template<class R, class... A> static inline PyObject* func2 (R(*cfunc)(A...), PyObject* pySelf, PyObject* pyArgs) {
 typename PyParseTupleSpec<A...>::sequence seq1;
 typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq2;
-PyObject* args[sizeof...(A)] = { TemplatedZero<A>::zero... };
+PyObject* args[sizeof...(A)] ;//= { TemplatedZero<A>::zero... };
+ZeroMemory(args, sizeof(args));
 if (!PyParseTupleSpec<A...>::PyArg_ParseTuple(seq1, pyArgs, TemplatedString<PyTypeSpec<A>::outLetter...>(), args)) return NULL;
 R result = PyCTupleCallSpec<R,A...>::call(seq2, cfunc, args);
 return PyConverter<R>::inCast(result);
@@ -373,7 +424,8 @@ return PyConverter<R>::inCast(result);
 template<class... A> static inline PyObject* func2 (void(*cfunc)(A...), PyObject* pySelf, PyObject* pyArgs) {
 typename PyParseTupleSpec<A...>::sequence seq1;
 typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq2;
-PyObject* args[sizeof...(A)] = { TemplatedZero<A>::zero... };
+PyObject* args[sizeof...(A)] ;//= { TemplatedZero<A>::zero... };
+ZeroMemory(args, sizeof(args));
 if (!PyParseTupleSpec<A...>::PyArg_ParseTuple(seq1, pyArgs, TemplatedString<PyTypeSpec<A>::outLetter...>(), args)) return NULL;
 PyCTupleCallSpec<void,A...>::call(seq2, cfunc, args);
 Py_RETURN_NONE;
@@ -381,7 +433,8 @@ Py_RETURN_NONE;
 template<class R, class... A> static inline PyObject* func2 (R(__stdcall *cfunc)(A...), PyObject* pySelf, PyObject* pyArgs) {
 typename PyParseTupleSpec<A...>::sequence seq1;
 typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq2;
-PyObject* args[sizeof...(A)] = { TemplatedZero<A>::zero... };
+PyObject* args[sizeof...(A)] ;//= { TemplatedZero<A>::zero... };
+ZeroMemory(args, sizeof(args));
 if (!PyParseTupleSpec<A...>::PyArg_ParseTuple(seq1, pyArgs, TemplatedString<PyTypeSpec<A>::outLetter...>(), args)) return NULL;
 R result = PyCTupleCallSpec<R,A...>::call(seq2, cfunc, args);
 return PyConverter<R>::inCast(result);
@@ -389,7 +442,8 @@ return PyConverter<R>::inCast(result);
 template<class... A> static inline PyObject* func2 (void(*__stdcall cfunc)(A...), PyObject* pySelf, PyObject* pyArgs) {
 typename PyParseTupleSpec<A...>::sequence seq1;
 typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq2;
-PyObject* args[sizeof...(A)] = { TemplatedZero<A>::zero... };
+PyObject* args[sizeof...(A)] ;//= { TemplatedZero<A>::zero... };
+ZeroMemory(args, sizeof(args));
 if (!PyParseTupleSpec<A...>::PyArg_ParseTuple(seq1, pyArgs, TemplatedString<PyTypeSpec<A>::outLetter...>(), args)) return NULL;
 PyCTupleCallSpec<void,A...>::call(seq2, cfunc, args);
 Py_RETURN_NONE;
@@ -397,7 +451,8 @@ Py_RETURN_NONE;
 template<class R, class O, class... A> static inline PyObject* func2 (R(O::*cfunc)(A...), PyObject* pySelf, PyObject* pyArgs) {
 typename PyParseTupleSpec<A...>::sequence seq1;
 typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq2;
-PyObject* args[sizeof...(A)] = { TemplatedZero<A>::zero... };
+PyObject* args[sizeof...(A)] ;//= { TemplatedZero<A>::zero... };
+ZeroMemory(args, sizeof(args));
 if (!PyParseTupleSpec<A...>::PyArg_ParseTuple(seq1, pyArgs, TemplatedString<PyTypeSpec<A>::outLetter...>(), args)) return NULL;
 R result = PyCTupleCallSpec<R,A...>::callmeth(seq2, *(O*)(pySelf), cfunc, args);
 return PyConverter<R>::inCast(result);
@@ -405,7 +460,8 @@ return PyConverter<R>::inCast(result);
 template<class O, class... A> static inline PyObject* func2 (void(O::*cfunc)(A...), PyObject* pySelf, PyObject* pyArgs) {
 typename PyParseTupleSpec<A...>::sequence seq1;
 typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq2;
-PyObject* args[sizeof...(A)] = { TemplatedZero<A>::zero... };
+PyObject* args[sizeof...(A)] ;//= { TemplatedZero<A>::zero... };
+ZeroMemory(args, sizeof(args));
 if (!PyParseTupleSpec<A...>::PyArg_ParseTuple(seq1, pyArgs, TemplatedString<PyTypeSpec<A>::outLetter...>(), args)) return NULL;
 PyCTupleCallSpec<void,A...>::callmeth(seq2, *(O*)(pySelf), cfunc, args);
 Py_RETURN_NONE;
@@ -417,7 +473,8 @@ template<class CFunc, const char* const* kwds> struct PyFuncSpecKW {
 template<class R, class... A> static inline PyObject* func2 (R(*cfunc)(A...), PyObject* pySelf, PyObject* pyArgs, PyObject* pyKwds) {
 typename PyParseTupleSpec<A...>::sequence seq1;
 typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq2;
-PyObject* args[sizeof...(A)] = { TemplatedZero<A>::zero... };
+PyObject* args[sizeof...(A)] ;//= { TemplatedZero<A>::zero... };
+ZeroMemory(args, sizeof(args));
 if (!PyParseTupleSpec<A...>::PyArg_ParseTupleAndKeywords(seq1, pyArgs, pyKwds, TemplatedString<PyTypeSpec<A>::outLetter...>(), kwds, args)) return NULL;
 R result = PyCTupleCallSpec<R,A...>::call(seq2, cfunc, args);
 return PyConverter<R>::inCast(result);
@@ -425,7 +482,8 @@ return PyConverter<R>::inCast(result);
 template<class... A> static inline PyObject* func2 (void(*cfunc)(A...), PyObject* pySelf, PyObject* pyArgs, PyObject* pyKwds) {
 typename PyParseTupleSpec<A...>::sequence seq1;
 typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq2;
-PyObject* args[sizeof...(A)] = { TemplatedZero<A>::zero... };
+PyObject* args[sizeof...(A)] ;//= { TemplatedZero<A>::zero... };
+ZeroMemory(args, sizeof(args));
 if (!PyParseTupleSpec<A...>::PyArg_ParseTupleAndKeywords(seq1, pyArgs, pyKwds, TemplatedString<PyTypeSpec<A>::outLetter...>(), kwds, args)) return NULL;
 PyCTupleCallSpec<void,A...>::call(seq2, cfunc, args);
 Py_RETURN_NONE;
@@ -433,7 +491,8 @@ Py_RETURN_NONE;
 template<class R, class O, class... A> static inline PyObject* func2 (R(O::*cfunc)(A...), PyObject* pySelf, PyObject* pyArgs, PyObject* pyKwds) {
 typename PyParseTupleSpec<A...>::sequence seq1;
 typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq2;
-PyObject* args[sizeof...(A)] = { TemplatedZero<A>::zero... };
+PyObject* args[sizeof...(A)] ;//= { TemplatedZero<A>::zero... };
+ZeroMemory(args, sizeof(args));
 if (!PyParseTupleSpec<A...>::PyArg_ParseTupleAndKeywords(seq1, pyArgs, pyKwds, TemplatedString<PyTypeSpec<A>::outLetter...>(), kwds, args)) return NULL;
 R result = PyCTupleCallSpec<R,A...>::callmeth(seq2, *(O*)(pySelf), cfunc, args);
 return PyConverter<R>::inCast(result);
@@ -441,7 +500,8 @@ return PyConverter<R>::inCast(result);
 template<class O, class... A> static inline PyObject* func2 (void(O::*cfunc)(A...), PyObject* pySelf, PyObject* pyArgs, PyObject* pyKwds) {
 typename PyParseTupleSpec<A...>::sequence seq1;
 typename TemplateSequenceGenerator<sizeof...(A)>::sequence seq2;
-PyObject* args[sizeof...(A)] = { TemplatedZero<A>::zero... };
+PyObject* args[sizeof...(A)] ;//= { TemplatedZero<A>::zero... };
+ZeroMemory(args, sizeof(args));
 if (!PyParseTupleSpec<A...>::PyArg_ParseTupleAndKeywords(seq1, pyArgs, pyKwds, TemplatedString<PyTypeSpec<A>::outLetter...>(), kwds, args)) return NULL;
 PyCTupleCallSpec<void,A...>::callmeth(seq2, *(O*)(pySelf), cfunc, args);
 Py_RETURN_NONE;

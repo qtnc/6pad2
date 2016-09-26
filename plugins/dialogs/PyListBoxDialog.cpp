@@ -308,10 +308,10 @@ SetForegroundWindow(hDlg);
 });//
 }
 
-int PyListBoxDialog::addEvent (const string& type, const PySafeObject& cb) {
+int PyListBoxDialog::addEvent (const string& type, PyObject* cb) {
 connection con;
 if(false){}
-#define E(n) else if (type==#n) con = signals->on##n .connect(cb.asFunction<typename decltype(signals->on##n)::signature_type>());
+#define E(n) else if (type==#n) con = signals->on##n .connect(PySafeObject(cb).asFunction<typename decltype(signals->on##n)::signature_type>());
 E(action) E(select) E(contextMenu) E(search)
 E(close) E(focus) E(blur)
 E(keyDown) E(keyUp)
@@ -432,7 +432,7 @@ bool modal = udw&1, multiple = udw&2, re = modal;
 PyObject* indices = multiple? toPyObject(dlg.get_selectedIndices()) : toPyObject(dlg.get_selectedIndex());
 PyObject* values = multiple? toPyObject(dlg.get_selectedValues()) : toPyObject(dlg.get_selectedValue() .c_str() );
 if (!dlg.signals->onaction.empty()) re = dlg.signals->onaction((PyObject*)&dlg, (PyObject*)indices, (PyObject*)values );
-dlg.signals->finalValue = Py_BuildValue("(OO)", indices, values);
+dlg.signals->finalValue.assign( Py_BuildValue("(OO)", indices, values)  ,true);
 if (!re) break; 
 }
 case IDCANCEL: {

@@ -21,7 +21,7 @@ tstring msg (const char* name);
 void ReloadConfig();
 
 bool PyRegister_Window (PyObject* m); 
-bool PyRegister_EditorTab(PyObject* m);
+bool PyRegister_Page(PyObject* m);
 bool PyRegister_MenuItem (PyObject* m);
 bool PyRegister_TaskDialog (PyObject* m);
 PyObject* CreatePyWindowObject ();
@@ -139,7 +139,7 @@ PyMODINIT_FUNC PyInit_6padMain (void) {
 PyObject* mod = PyModule_Create(&_6padMainMod);
 PyRegister_Window(mod);
 PyRegister_MenuItem(mod);
-PyRegister_EditorTab(mod);
+PyRegister_Page(mod);
 PyRegister_TaskDialog(mod);
 //PyRegister_MyObj(mod);
 PyModule_AddObject(mod, "window", CreatePyWindowObject() );

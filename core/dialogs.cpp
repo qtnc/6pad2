@@ -102,11 +102,11 @@ static ChoiceDlgData* data = NULL;
 switch (umsg) {
 case WM_INITDIALOG : {
 data = (ChoiceDlgData*)lp;
-HWND hList = GetDlgItem(hwnd, 1002);
 SetDlgItemText(hwnd, IDOK, msg("&OK"));
 SetDlgItemText(hwnd, IDCANCEL, msg("Ca&ncel"));
 SetDlgItemText(hwnd, 1001, data->prompt);
 SetWindowText(hwnd, data->title);
+HWND hList = GetDlgItem(hwnd, 1002);
 SendMessage(hList, LB_RESETCONTENT, 0, 0);
 for (int l, i=0, n=data->choices.size(); i<n; i++) {
 l = SendMessage(hList, LB_ADDSTRING, 0, data->choices[i].c_str() );

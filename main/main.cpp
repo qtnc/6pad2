@@ -365,10 +365,10 @@ curPage->ResizeZone(r);
 onresized();
 }
 
-int AppAddEvent (const string& type, const PySafeObject& cb) {
+int AppAddEvent (const string& type, PyGenericFunc cb) {
 connection con; 
 if(false){}
-#define E(n) else if (type==#n) con = on##n .connect(cb.asFunction<typename decltype(on##n)::signature_type>());
+#define E(n) else if (type==#n) con = on##n .connect( AsPyFunc<typename decltype(on##n)::signature_type>(cb.o));
 E(pageBeforeOpen) E(pageOpened)
 E(close) E(resized) E(activated) E(deactivated)
 E(title) E(fileDropped)

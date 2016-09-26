@@ -114,6 +114,7 @@ virtual void Redo () ;
 virtual void PushUndoState (shared_ptr<UndoState> state, bool tryToJoin = true);
 
 virtual PyObject* GetPyData ();
+static shared_ptr<Page> FromPyData (PyObject*);
 virtual void UpdateStatusBar (HWND) ;
 virtual void GetSelection (int& start, int& end);
 virtual tstring GetSelectedText () ;
@@ -125,6 +126,7 @@ virtual tstring GetLine (int line) ;
 virtual int GetLineCount () ;
 virtual int GetLineLength (int line);
 virtual int GetLineStartIndex (int line);
+inline int GetLineEndIndex (int line) { return GetLineStartIndex(line) + GetLineLength(line); }
 virtual int GetLineSafeStartIndex (int line);
 virtual int GetLineIndentLevel (int line);
 virtual int GetLineOfPos (int pos);
@@ -152,12 +154,13 @@ inline void MarkCurrentPosition () { markedPosition = GetCurrentPosition(); }
 inline void SelectToMark () { SetSelection(markedPosition, GetSelectionEnd()); }
 inline void GoToMark () { SetCurrentPosition(markedPosition); }
 
-int AddEvent (const std::string& type, const PySafeObject& cb) ;
+int AddEvent (const std::string& type, PyGenericFunc cb) ;
 bool RemoveEvent (const std::string& type, int id);
 };
 
 template<> struct PyConverter<shared_ptr<Page>> { 
 static inline PyObject* inCast (const shared_ptr<Page>& p) { return p->GetPyData(); }
+static inline shared_ptr<Page> outCast (PyObject* o) { return Page::FromPyData(o); }
 };
 
 int export AddSignalConnection (const connection& con);

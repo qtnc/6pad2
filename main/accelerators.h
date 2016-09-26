@@ -6,10 +6,10 @@
 
 template<class S> struct UserFunction {
 std::function<S> func;
-PyCallback<S> pyFunc;
+PyFunc<S> pyFunc;
 inline UserFunction (): func(), pyFunc(nullptr) {}
 inline UserFunction (const std::function<S>& f): func(f), pyFunc(nullptr) {}
-inline UserFunction (const PyCallback<S>& f): func(), pyFunc(f) {}
+inline UserFunction (const PyFunc<S>& f): func(), pyFunc(f) {}
 inline operator bool () { return func||pyFunc; }
 template <class... A> void operator() (A... args) {
 if (func) func(args...);

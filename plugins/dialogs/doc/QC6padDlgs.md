@@ -1,6 +1,10 @@
 %6pad++ Additional dialogs plugin
 Note: Import module `qc6paddlgs` in your scripts to get all functions and objects.
 
+# Global plugin functions
+
+None.
+
 # TreeViewDialog class {#tvddef1}
 The TreeViewDialog allows you to create modal and modless dialogs containing a tree view as their main control.
 The tree view can be used to display hierarchical data such as files/directories, XML-like structures, etc.

@@ -35,7 +35,7 @@ void clear();
 tstring get (int i);
 void set (int i, const tstring& s);
 int getItemCount ();
-int addEvent (const std::string& type, const PySafeObject& cb) ;
+int addEvent (const std::string& type, PyObject* cb) ;
 int removeEvent (const std::string& type, int id);
 int get_closed ();
 int get_selectedIndex ();

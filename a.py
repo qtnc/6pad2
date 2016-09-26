@@ -22,8 +22,7 @@ def func5 () :
 	ptd.close()
 
 def func4 ():
-	win.showPopupMenu( ['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5'] )
-	win.choice( 'TEst1', 'Test2', ['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5'] )
+	win.choice( 'Test1', 'Test2', ['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5'] )
 	lb = dlgs.ListBoxDialog.open('Some text 1', 'Some text 2', searchField=True)
 	def action(*args, **kwargs):
 		print(args, kwargs)

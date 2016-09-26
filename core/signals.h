@@ -20,7 +20,7 @@ template<class I> any operator() (I start, I end) {
 any re;
 while(start!=end) {
 any re = *start++;
-if (isoftype(re,bool) && !any_cast<bool>(re)) break;
+if (!re.empty() && isoftype(re,bool) && !any_cast<bool>(re)) break;
 }
 return re;
 }};

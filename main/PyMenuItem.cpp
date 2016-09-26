@@ -34,15 +34,15 @@ bool get_radio (void);
 void set_radio (bool);
 tstring get_accelerator (void);
 void set_accelerator (const tstring&);
-PyObject* get_action (void);
-void set_action (PyObject* action);
+PyFunc<void()> get_action (void);
+void set_action (PyFunc<void()> action);
 int get_id (void);
 UINT getID (void);
 int get_length (void);
 PyObject* getItem (int n);
 PyObject* getItemByName (const tstring&);
 PyObject* get_parent (void) { return parent; }
-PyObject* addItem (tstring label, OPT, PySafeObject action, int pos, const tstring& accelerator, const tstring& name, bool isSubmenu, bool isSeparator, bool isSpecific);
+PyObject* addItem (tstring label, OPT, PyFunc<void()> action, int pos, const tstring& accelerator, const tstring& name, bool isSubmenu, bool isSeparator, bool isSpecific);
 PyObject* removeItem (OPT, PyObject*, PyObject*);
 void remove (void);
 };
@@ -287,18 +287,17 @@ AddAccelerator(hAccel, kf, key, cmd);
 set_label(get_label());
 }
 
-PyObject* PyMenuItem::get_action (void) {
+PyFunc<void()> PyMenuItem::get_action (void) {
 if (submenu) return Py_None;
 auto uf = findUserCommand(cmd);
-if (uf.pyFunc) return *uf.pyFunc.func;
+if (uf.pyFunc) return uf.pyFunc;
 else return Py_None;
 }
 
-void PyMenuItem::set_action (PyObject* action) {
+void PyMenuItem::set_action (PyFunc<void()> action) {
 if (submenu) return;
-if (action && action!=Py_None && !PyCallable_Check(action)) { PyErr_SetString(PyExc_ValueError, "action must be callable"); return; }
-if (!action || action==Py_None) RemoveUserCommand(cmd);
-else AddUserCommand( PyCallback<void(void)>(action), cmd);
+if (!action) RemoveUserCommand(cmd);
+else AddUserCommand( action, cmd);
 }
 
 int PyMenuItem::get_length (void) {
@@ -363,11 +362,11 @@ RemoveAccelerator(hAccel, cmd);
 });//RunSync
 }
 
-PyObject* PyMenuItem::addItem (tstring  label, OPT, PySafeObject action, int pos, const tstring& accelerator, const tstring& name, bool isSubmenu, bool isSeparator, bool isSpecific) {
+PyObject* PyMenuItem::addItem (tstring  label, OPT, PyFunc<void()> action, int pos, const tstring& accelerator, const tstring& name, bool isSubmenu, bool isSeparator, bool isSpecific) {
 if (!submenu) { Py_RETURN_NONE; }
 int cmd = pos+1, kf=0, key= 0;
 HACCEL& hAccel = (isSpecific||specific)&&curPage? curPage->hPageAccel : sp.hAccel;
-if (action && !isSeparator && !isSubmenu) cmd = AddUserCommand(PyCallback<void(void)>(action));
+if (action && !isSeparator && !isSubmenu) cmd = AddUserCommand(action);
 if (cmd && accelerator.size()>0 && KeyNameToCode(accelerator, kf, key)) AddAccelerator(hAccel, kf, key, cmd);
 if (key) label += TEXT("\t\t") + KeyCodeToName(kf, key, true);
 PyObject* re = NULL;

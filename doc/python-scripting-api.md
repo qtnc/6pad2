@@ -81,13 +81,13 @@ openDialog(file='', title='', filters=[], initialFilter=0, multiple=False) -> mu
 	If a filters list is specified, returns a 2-tuple where the first item is the selected file and the second is the index of the selected filter.
 	If multiple is set to True, the user can select more than one file to open and a list of str is returned instead of a single str.
 	You can use keyword arguments.
-chooseFolder(folder='', title='', root='', showFiles=False) -> str:
-:	Show a dialog box where the user can choose a folder in a tree view. If showFiles is set to True, the user can also select files, otherwise he can only select folders. Returns the item selected by the user, or None if he cancelled the dialog box. You can use keyword arguments.
 taskDialog(title=None, heading=None, text=None, details=None, footer=None, icon=None, buttons=None, radioButtons=None, checkbox=None, checked=False, collapseButtonText=None, expandButtonText=None, expanded=False, defaultButton=0, defaultRadioButton=0, expandInFooter=False, commandLinks=False, commandLinksNoIcon=False, progressBar=False, callback=None) -> (button,radio,checkbox)|TaskDialog:
 :	Show a task dialog. Task dialogs offer a major evolution over old message boxes, allowing much more customization, flexibility and input controls. See the [dedicated chapter of this documentation](#taskDialog) for more information about the use of task dialogs and the different possible parameters.
+chooseFolder(folder='', title='', root='', showFiles=False) -> str:
+:	Show a dialog box where the user can choose a folder in a tree view. If showFiles is set to True, the user can also select files, otherwise he can only select folders. Returns the item selected by the user, or None if he cancelled the dialog box. You can use keyword arguments.
 focus () -> None:
 :	Focus 6pad++ window.
-showPopupMenu(listOfOptions) -> int:
+popupMenu(listOfOptions) -> int:
 :	Show a popup (context) menu with the given list of option items. Returns the index of the selected item in the list, or -1 if the user closed the menu without choosing an option.
 addAccelerator(key, callbackFunction, specific = True) -> int:
 :	Install a callback function to be called when the given shortcut key is pressed. If specific is set to True, the given shortcut key is specific to the current page, i.e. it is triggered only when pressed while being in the current page.
@@ -249,7 +249,7 @@ int lineCount (read only):
 :	The number of lines composing the text being edited.
 str indentString:
 :	A string representing a level of indentation, i.e. a tab or a couple of spaces.
-<span id="rangesinlines"></span>int rangesInLines:
+<span id="rangesinlines"></span>bool rangesInLines:
 :	Whether indexing and slicing indices are counted in lines. If this attribute is False, indices are counted in characters. By default, this attribute is False. See [Indexing and slicing](#pageindexing) for more details.
 
 ## Indexing and slicing {#pageindexing}

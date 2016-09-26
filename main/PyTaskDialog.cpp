@@ -6,7 +6,7 @@ using namespace std;
 
 struct PyTaskDialogData {
 tstring heading, text, details, footer;
-PyCallback<int(PyObject*,int)> callback = nullptr;
+PyFunc<int(PyObject*,int)> callback = nullptr;
 HWND hwnd;
 };
 
