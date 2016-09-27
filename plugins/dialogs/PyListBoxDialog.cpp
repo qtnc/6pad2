@@ -308,10 +308,10 @@ SetForegroundWindow(hDlg);
 });//
 }
 
-int PyListBoxDialog::addEvent (const string& type, PyObject* cb) {
+int PyListBoxDialog::addEvent (const string& type, PyGenericFunc cb) {
 connection con;
 if(false){}
-#define E(n) else if (type==#n) con = signals->on##n .connect(PySafeObject(cb).asFunction<typename decltype(signals->on##n)::signature_type>());
+#define E(n) else if (type==#n) con = signals->on##n .connect(PyFunc<typename decltype(signals->on##n)::signature_type>(cb.o));
 E(action) E(select) E(contextMenu) E(search)
 E(close) E(focus) E(blur)
 E(keyDown) E(keyUp)
@@ -410,7 +410,7 @@ else ShowWindow(GetDlgItem(hwnd, IDCANCEL), SW_HIDE);
 if (!lbdi.searchField) ShowWindow(GetDlgItem(hwnd, 1002), SW_HIDE);
 SetWindowSubclass(hLb, (SUBCLASSPROC)ListBoxSubclassProc, 0, (DWORD_PTR)&dlg);
 SetWindowSubclass(hEdit, (SUBCLASSPROC)SearchFieldSubclassProc, 0, (DWORD_PTR)&dlg);
-if (lbdi.callback) lbdi.callback.asFunction<void(PyObject*)>()((PyObject*)&dlg);
+if (lbdi.callback) lbdi.callback((PyObject*)&dlg);
 SetFocus(lbdi.searchField? hEdit : hLb);
 if (!lbdi.modal) sp->AddModlessWindow(hwnd);
 }return false;

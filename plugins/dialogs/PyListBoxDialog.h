@@ -35,7 +35,7 @@ void clear();
 tstring get (int i);
 void set (int i, const tstring& s);
 int getItemCount ();
-int addEvent (const std::string& type, PyObject* cb) ;
+int addEvent (const std::string& type, PyGenericFunc cb) ;
 int removeEvent (const std::string& type, int id);
 int get_closed ();
 int get_selectedIndex ();
@@ -57,7 +57,7 @@ void set_search (const tstring& text);
 struct ListBoxDialogInfo {
 tstring title, label, okText, cancelText;
 bool modal, multiple, searchField;
-PySafeObject callback;
+PyFunc<void(PyObject*)> callback;
 PyListBoxDialog* dlg;
 };
 

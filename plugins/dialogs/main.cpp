@@ -6,7 +6,6 @@ SixpadData* sp = 0;
 bool PyRegister_TreeViewItem (PyObject* m);
 bool PyRegister_TreeViewDialog (PyObject* m);
 bool PyRegister_ListBoxDialog (PyObject* m);
-bool PyRegister_ProgressDialog (PyObject* m);
 
 static PyMethodDef MainDefs [] = {
 //PyDecl("test", test123),
@@ -27,7 +26,6 @@ PyObject* mod = PyModule_Create(&MainMod);
 PyRegister_TreeViewItem (mod);
 PyRegister_TreeViewDialog(mod);
 PyRegister_ListBoxDialog(mod);
-PyRegister_ProgressDialog(mod);
 return mod;
 }
 

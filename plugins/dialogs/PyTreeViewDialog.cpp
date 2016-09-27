@@ -231,10 +231,10 @@ SetForegroundWindow(hDlg);
 });//
 }
 
-int PyTreeViewDialog::addEvent (const string& type, const PySafeObject& cb) {
+int PyTreeViewDialog::addEvent (const string& type, PyGenericFunc cb) {
 connection con;
 if(false){}
-#define E(n) else if (type==#n) con = signals->on##n .connect(cb.asFunction<typename decltype(signals->on##n)::signature_type>());
+#define E(n) else if (type==#n) con = signals->on##n .connect(AsPyFunc<typename decltype(signals->on##n)::signature_type>(cb.o));
 E(action) E(select) E(expand) E(contextMenu) E(check)
 E(edit) E(edited) E(close) E(focus) E(blur)
 E(keyDown) E(keyUp)
@@ -336,7 +336,7 @@ if (tvdi.cancelText.size()>0) SetDlgItemText(hwnd, IDCANCEL, tvdi.cancelText);
 else ShowWindow(GetDlgItem(hwnd, IDCANCEL), SW_HIDE);
 if (tvdi.checkboxes) SendMessage(hTree, 0x1100+44, 0x80, 0x80); // Partial checkboxes
 SetWindowSubclass(hTree, (SUBCLASSPROC)TreeViewSubclassProc, 0, (DWORD_PTR)&dlg);
-if (tvdi.callback) tvdi.callback.asFunction<void(PyObject*)>()((PyObject*)&dlg);
+if (tvdi.callback) tvdi.callback((PyObject*)&dlg);
 SetFocus(hTree);
 sp->AddModlessWindow(hwnd);
 }return false;

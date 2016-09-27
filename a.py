@@ -62,11 +62,20 @@ def func6():
 			commandLinksNoIcon=True
 	))
 
+def opa (p):
+	win.beep(1600,200)
+
+def opo (p):
+	win.menus.tools.add(label='Specific item for page '+str(p), specific=True)
+	p.addEvent('activated', opa)
+	win.beep(800,200)
+
+win.addEvent('pageOpened', opo)
 win.addAccelerator('F5', func4)
 win.addAccelerator('Ctrl+E', func6)
 win.addAccelerator('Ctrl+0', func2)
 
-#win.menus.tools.add(label='Hello item', accelerator='Ctrl+E', specific=True, action=func)
+win.menus.tools.add(label='Hello item', accelerator='Ctrl+E', specific=True, action=func)
 test = win.menus.add(label='&Test', name='test', index=4, submenu=True, specific=True, separator=False)
 for i in range(1,6):
 	test.add(label='Item '+str(i), action=func, accelerator='Ctrl+'+str(i))

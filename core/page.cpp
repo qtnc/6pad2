@@ -1242,6 +1242,7 @@ if(false){}
 E(keyDown) E(keyUp) E(keyPress)
 E(save) E(beforeSave) E(load)
 E(attrChange) E(status) E(fileDropped) E(contextMenu) E(enter)
+E(activated) E(deactivated)
 #undef E
 if (con.connected()) return AddSignalConnection(con);
 else return 0;

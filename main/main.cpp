@@ -275,8 +275,8 @@ it.pszText = (LPTSTR)(p->name.c_str());
 int pos = SendMessage(tabctl, TCM_GETITEMCOUNT, 0, 0);
 SendMessage(tabctl, TCM_INSERTITEM, pos, &it);
 int oldpos = SendMessage(tabctl, TCM_GETCURSEL, 0, 0);
-PageOpened(p);
 if (focus) PageActivate(pages.size() -1);
+PageOpened(p);
 if (focus&&pages.size()==1) PageActivated(p);
 return true;
 }

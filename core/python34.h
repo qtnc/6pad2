@@ -135,7 +135,7 @@ static std::wstring s;
 s = PyConverter<std::wstring>::outCast(o);
 return s.c_str();
 }
-static inline PyObject* inCast (const wchar_t* s) { return PyUnicode_FromUnicode(s,-1); }
+static inline PyObject* inCast (const wchar_t* s) { return PyUnicode_FromUnicode(s, wcslen(s)); }
 };
 
 template<> struct PyConverter<const char*> {

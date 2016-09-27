@@ -25,7 +25,7 @@ void close ();
 void focus ();
 bool allowEdit (HTREEITEM item, tstring& text);
 bool allowEdit (HTREEITEM item);
-int addEvent (const std::string& type, const PySafeObject& cb) ;
+int addEvent (const std::string& type, PyGenericFunc cb) ;
 int removeEvent (const std::string& type, int id);
 int get_closed ();
 PyObject* get_root();
@@ -42,7 +42,7 @@ void set_text (const tstring& text);
 struct TreeViewDialogInfo {
 tstring title, label, okText, cancelText;
 bool modal, checkboxes, editable;
-PySafeObject callback;
+PyFunc<void(PyObject*)> callback;
 PyTreeViewDialog* dlg;
 };
 

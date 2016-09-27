@@ -45,8 +45,8 @@ inline bool IsUnicode () { return false; }
 #define DEBUG 0
 #endif
 
-#define SIXPAD_VERSION "Alpha 9"
-#define SIXPAD_VERSION_ID 0x00000009
+#define SIXPAD_VERSION "Alpha 10"
+#define SIXPAD_VERSION_ID 0x0000000A
 
 #define OF_CHECK_OTHER_WINDOWS 1
 #define OF_NEW_INSTANCE 2
