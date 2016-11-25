@@ -16,6 +16,7 @@ using boost::ends_with;
 using boost::starts_with;
 using boost::trim;
 using boost::split;
+using boost::join;
 using boost::is_any_of;
 using boost::iequals;
 
@@ -29,14 +30,14 @@ export bool preg_check (const tstring& regex, bool rethrow=false);
 void export ParseLineCol (tstring& file, int& line, int& col);
 tstring export str_replace (const tstring& str, const std::vector<std::pair<tstring,tstring>>& pairs);
 
-template<class T> std::vector<std::basic_string<T>> split (const std::basic_string<T>& str, const std::basic_string<T>& delims) {
+template<class T> std::vector<std::basic_string<T>> split (const std::basic_string<T>& str, const std::basic_string<T>& delims, bool compress = false) {
 std::vector<std::basic_string<T>> v;
-split(v, str, boost::is_any_of(delims));
+split(v, str, boost::is_any_of(delims), compress? boost::token_compress_on : boost::token_compress_off);
 return v;
 }
 
-template<class T> std::vector<std::basic_string<T>> split (const std::basic_string<T>& str, const T* delims) {
-return split(str, std::basic_string<T>(delims));
+template<class T> std::vector<std::basic_string<T>> split (const std::basic_string<T>& str, const T* delims, bool compress = false) {
+return split(str, std::basic_string<T>(delims), compress);
 }
 
 template<class T> int first_mismatch (const T& a, const T& b) { 
@@ -263,5 +264,30 @@ inline bool operator() (const T* l, const T* r) { return strnatcmp(l,r)<0; }
 inline bool operator() (const std::basic_string<T>& l, const std::basic_string<T>& r) {  return strnatcmp(l.data(), r.data() )<0;  }
 };
 
+
+// Misc
+
+// Code adapted from http://stackoverflow.com/questions/166630/how-to-repeat-a-string-a-variable-number-of-times-in-c
+template<class T> std::basic_string<T> str_repeat (std::basic_string<T> str, const std::size_t n) { 
+    if (n == 0) { 
+        str.clear(); 
+        str.shrink_to_fit(); 
+        return str; 
+    } 
+     if (n == 1 || str.empty()) return str; 
+     const auto period = str.size(); 
+     if (period == 1) { 
+        str.append(n - 1, str.front()); 
+        return str; 
+    } 
+     str.reserve(period * n); 
+     std::size_t m {2}; 
+     for (; m < n; m *= 2) str += str; 
+     str.append(str.c_str(), (n - (m / 2)) * period); 
+     return str;
+}
+
+template<class T> std::basic_string<T> operator* (const std::basic_string<T>& str, int n) { return str_repeat(str,n); }
+template<class T> std::basic_string<T> operator* (int n, const std::basic_string<T>& str) { return str_repeat(str,n); }
 
 #endif

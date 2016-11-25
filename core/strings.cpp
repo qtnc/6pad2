@@ -192,9 +192,11 @@ static inline bool isSpace (TCHAR c) {
 return c>=0 && c<=32 && c!=10 && c!=13;
 }
 
-/*void normalizeLineEndings (tstring& text) {
-text = preg_replace(text, TEXT("\r\n|\n|\r"), TEXT("\r\n") );
-}*/
+tstring str_replace (const tstring& str, const std::vector<std::pair<tstring,tstring>>& pairs) {
+tstring re = str;
+for (auto p: pairs) re = replace_all_copy(re, p.first, p.second);
+return re;
+}
 
 bool preg_check (const tstring& regex, bool rethrow) {
 using namespace boost;
@@ -280,12 +282,6 @@ match_flag_type flags =
 tregex reg(preg_needle_mod(needle, literal), options);
 return regex_replace(str, reg, preg_repl_mod(repl, literal), flags);
 } catch (const exception& e) { return str; }
-}
-
-tstring str_replace (const tstring& str, const std::vector<std::pair<tstring,tstring>>& pairs) {
-tstring re = str;
-for (auto p: pairs) re = replace_all_copy(re, p.first, p.second);
-return re;
 }
 
 void export ParseLineCol (tstring& file, int& line, int& col) {

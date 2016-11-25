@@ -35,22 +35,25 @@ int PyShowPopupMenu (const vector<tstring>&);
 
 PyObject* PyShowTaskDialog (PyObject* unused, PyObject* args, PyObject* kwds); 
 
-static int PyAddAccelerator (const tstring& kn, PyFunc<void()> cb, OPT, bool specific) {
+static int PyAddAccelerator (const tstring& kn, PyFunc<void()> cb, OPT, bool specific, tstring groupName) {
 int k=0, kf=0;
 KeyNameToCode(kn, kf, k);
 if (k<=0) return 0;
 function<void()> f = cb;
 int cmd = AddUserCommand(f);
 if (cmd<=0) return 0;
-HACCEL& accel = curPage&&specific? curPage->hPageAccel : sp.hAccel;
+shared_ptr<PageGroup> group;
+if (specific && curPage) groupName = tsnprintf(32, TEXT("Page@%p"), curPage.get());
+if (!groupName.empty()) group = PageGroup::getGroup(groupName);
+HACCEL& accel = group? group->accel : sp.hAccel;
 if (AddAccelerator(accel, kf, k, cmd)) return cmd;
 else return 0;
 }
-static constexpr const char* Accelerator_KWLST[] = { "key", "action", "specific", NULL };
+static constexpr const char* Accelerator_KWLST[] = { "key", "action", "specific", "group", NULL };
 
 static bool PyRemoveAccelerator (int id) {
 bool re = RemoveAccelerator(sp.hAccel,id);
-if (!re && curPage) re = RemoveAccelerator(curPage->hPageAccel, id);
+if (!re && curPage) for (auto& it: curPage->groups) if (re = RemoveAccelerator(it.second->accel, id)) break;
 return re;
 }
 

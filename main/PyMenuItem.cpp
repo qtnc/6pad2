@@ -18,8 +18,9 @@ struct PyMenuItem {
 PyObject* parent;
 HMENU menu, submenu;
 int cmd;
-bool specific;
+std::weak_ptr<PageGroup> wpGroup;
 
+optional<tstring> get_group (void) { auto g = wpGroup.lock(); if (g) return g->name; else return none; }
 tstring get_name (void);
 void set_name (const tstring&);
 tstring get_label (void);
@@ -42,12 +43,14 @@ int get_length (void);
 PyObject* getItem (int n);
 PyObject* getItemByName (const tstring&);
 PyObject* get_parent (void) { return parent; }
-PyObject* addItem (tstring label, OPT, PyFunc<void()> action, int pos, const tstring& accelerator, const tstring& name, bool isSubmenu, bool isSeparator, bool isSpecific);
+PyObject* addItem (tstring label, OPT, PyFunc<void()> action, optional<int> pos, const tstring& accelerator, const tstring& name, bool isSubmenu, bool isSeparator, bool isSpecific, tstring group);
 PyObject* removeItem (OPT, PyObject*, PyObject*);
 void remove (void);
 };
-static constexpr const char* addItem_KWLST[] = {"label", "action", "index", "accelerator", "name", "submenu", "separator", "specific", NULL};
+
+static constexpr const char* addItem_KWLST[] = {"label", "action", "index", "accelerator", "name", "submenu", "separator", "specific", "group", NULL};
 static constexpr const char* removeItem_KWLST[] = { "name", "index", NULL};
+
 
 static void PyMenuItemDealloc (PyObject* pySelf) {
 PyMenuItem* self = (PyMenuItem*)pySelf;
@@ -118,7 +121,7 @@ Prop(name), Prop(label),
 Prop(accelerator), Prop(action), 
 Prop(enabled), Prop(checked), Prop(radio),
 RProp(submenu), RProp(length),
-RProp(id), RProp(parent),
+RProp(id), RProp(parent), RProp(group), 
 PyDeclEnd
 };
 #undef Prop
@@ -320,19 +323,21 @@ PyObject* PyMenuItem::getItem (int n) {
 if (!submenu) { Py_RETURN_NONE; }
 PyObject* re = NULL;
 RunSync([&]()mutable{
+auto group = wpGroup.lock();
 int len = get_length();
 if (n<0) n+=len;
 if (n>=len) return;
 MENUITEMINFO mii;
 mii.cbSize = sizeof(MENUITEMINFO);
-mii.fMask = MIIM_ID | MIIM_SUBMENU;
+mii.fMask = MIIM_ID | MIIM_SUBMENU | MIIM_DATA;
 if (!GetMenuItemInfo(submenu, n, TRUE, &mii)) return;
 PyMenuItem* it = PyMenuItemNew(&PyMenuItemType, NULL, NULL);
 it->parent = (PyObject*)this;
 it->menu = submenu;
 it->submenu = mii.hSubMenu;
 it->cmd = mii.wID;
-it->specific = specific || (curPage && curPage->IsSpecificMenu(submenu, mii.wID));
+if (group) it->wpGroup = group;
+else it->wpGroup = PageGroup::FindGroupContainingMenu(submenu, mii.wID);
 re = (PyObject*)it;
 });//RunSync
 if (re) Py_XINCREF((PyObject*)this);
@@ -350,34 +355,52 @@ return (PyObject*)it;
 
 void PyMenuItem::remove (void) {
 RunSync([&]()mutable{
-HACCEL& hAccel = specific&&curPage? curPage->hPageAccel : sp.hAccel;
+auto group = wpGroup.lock();
+HACCEL& hAccel = group? group->accel : sp.hAccel;
 SetMenuName(menu, getID(), FALSE, NULL);
 DeleteMenu(menu, getID(), MF_BYCOMMAND);
-DrawMenuBar(win);
-if (curPage) curPage->RemoveSpecificMenu(menu, getID());
+if (group) group->RemoveMenu(menu, getID());
 if (cmd>=IDM_USER_COMMAND && cmd<0xF000 && !submenu) {
 RemoveUserCommand(cmd);
 RemoveAccelerator(hAccel, cmd);
 }
+DrawMenuBar(win);
 });//RunSync
 }
 
-PyObject* PyMenuItem::addItem (tstring  label, OPT, PyFunc<void()> action, int pos, const tstring& accelerator, const tstring& name, bool isSubmenu, bool isSeparator, bool isSpecific) {
+PyObject* PyMenuItem::addItem (tstring  label, OPT, PyFunc<void()> action, optional<int> optPos, const tstring& accelerator, const tstring& name, bool isSubmenu, bool isSeparator, bool isSpecific, tstring groupName) {
 if (!submenu) { Py_RETURN_NONE; }
+auto group = wpGroup.lock();
+if (isSpecific && curPage) groupName = tsnprintf(32, TEXT("Page@%p"), curPage.get());
+if (!groupName.empty()) group = PageGroup::getGroup(groupName);
+if (group && !name.empty()) {
+auto item = group->ContainsMenu(name);
+printf("group=%ls/%ls, name=%ls, re=%p\n", groupName.c_str(), group->name.c_str(), name.c_str(), item);
+if (item) {
+PyObject* re = NULL;
+RunSync([&]()mutable{ 
+if (curPage) curPage->AddPageGroup(group);
+re = getItem(item->pos);
+});//RunSync
+return re;
+}}
+HACCEL& hAccel = group? group->accel : sp.hAccel;
+int pos = optPos? *optPos : -1;
 int cmd = pos+1, kf=0, key= 0;
-HACCEL& hAccel = (isSpecific||specific)&&curPage? curPage->hPageAccel : sp.hAccel;
 if (action && !isSeparator && !isSubmenu) cmd = AddUserCommand(action);
 if (cmd && accelerator.size()>0 && KeyNameToCode(accelerator, kf, key)) AddAccelerator(hAccel, kf, key, cmd);
 if (key) label += TEXT("\t\t") + KeyCodeToName(kf, key, true);
 PyObject* re = NULL;
 RunSync([&]()mutable{
+if (pos<0) pos += 1 + GetMenuItemCount(submenu);
 HMENU hSub = isSubmenu? CreateMenu() : NULL;
+if (group && curPage) curPage->AddPageGroup(group);
 if (isSubmenu) InsertMenu(submenu, pos, MF_STRING | MF_BYPOSITION | MF_POPUP, (UINT)hSub, label.c_str() );
 else if (isSeparator) InsertMenu(submenu, pos, MF_SEPARATOR | MF_BYPOSITION, 0xEFFF, TEXT(""));
 else InsertMenu(submenu, pos, MF_STRING | MF_BYPOSITION, cmd, label.c_str() );
 if (name.size()>0) SetMenuName(submenu, pos, TRUE, name.c_str());
+if (group) group->AddMenu(name, submenu, hSub?(UINT)hSub:cmd, pos, hSub?MF_POPUP:MF_STRING);
 DrawMenuBar(win);
-if (isSpecific && curPage) curPage->AddSpecificMenu(submenu, hSub?(UINT)hSub:cmd, pos, hSub?MF_POPUP:MF_STRING);
 re = getItem(pos);
 });//RunSync
 return re;

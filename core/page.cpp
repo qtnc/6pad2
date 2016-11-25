@@ -60,23 +60,8 @@ void PrepareSmartPaste (tstring& text, const tstring& indent);
 tstring GetMenuName (HMENU, UINT, BOOL);
 void SetMenuName (HMENU, UINT, BOOL, LPCTSTR);
 
-static void RecursiveDestroyMenuAndUserCommands (HMENU hMenu) {
-for (int i = GetMenuItemCount(hMenu) -1; i>=0; i--) {
-UINT id = GetMenuItemID(hMenu,i);
-HMENU hSub = GetSubMenu(hMenu,i);
-if (hSub) RecursiveDestroyMenuAndUserCommands(hSub);
-else sp->RemoveUserCommand(id);
+Page::~Page () { 
 }
-DestroyMenu(hMenu);
-}
-
-Page::~Page () {
-if (hPageAccel) DestroyAcceleratorTable(hPageAccel);
-for (auto itr = specificMenus.rbegin(); itr!=specificMenus.rend(); ++itr) {
-auto& item = *itr;
-if (item.flags&MF_POPUP) RecursiveDestroyMenuAndUserCommands((HMENU)item.id);
-else sp->RemoveUserCommand(item.id);
-}}
 
 void Page::SetName (const tstring& n) { 
 name = n;
@@ -1074,23 +1059,48 @@ zone=hEdit;
 void Page::HideZone () {
 ShowWindow(zone, SW_HIDE);
 EnableWindow(zone, FALSE);
-for (auto& item: specificMenus) {
+for (auto& it: groups) HidePageGroup(it.second);
+}
+
+void Page::HidePageGroup (shared_ptr<PageGroup> group) {
+if (!group) return;
+for (auto& item: group->menus) {
 item.label = GetMenuString(item.menu, item.id, MF_BYCOMMAND);
 item.name = GetMenuName(item.menu, item.id, FALSE);
 RemoveMenu(item.menu, item.id, MF_BYCOMMAND);
 }}
 
-void Page::ShowZone (const RECT& r) {
-for (auto& item: specificMenus) {
+void Page::ShowPageGroup (shared_ptr<PageGroup> group) {
+if (!group) return;
+for (auto& item: group->menus) {
 InsertMenu(item.menu, item.pos, MF_BYPOSITION | MF_STRING | item.flags, item.id, item.label.c_str() );
 if (item.name.size()>0) SetMenuName(item.menu, item.id, FALSE, item.name.c_str());
-}
+}}
+
+void Page::ShowZone (const RECT& r) {
+for (auto& it: groups) ShowPageGroup(it.second);
 DrawMenuBar(sp->win);
 EnableWindow(zone, TRUE);
 SetWindowPos(zone, NULL,
 r.left+3, r.top+3, r.right - r.left -6, r.bottom - r.top -6,
 SWP_NOZORDER | SWP_SHOWWINDOW);
 SendMessage(zone, EM_SCROLLCARET, 0, 0);
+}
+
+void Page::AddPageGroup (shared_ptr<PageGroup> group) {
+if (!group) return;
+auto it = groups.find(group->name);
+if (it!=groups.end()) return;
+groups[group->name] = group;
+ShowPageGroup(group);
+}
+
+void Page::RemovePageGroup (shared_ptr<PageGroup> group) {
+if (!group) return;
+auto it = groups.find(group->name);
+if (it==groups.end()) return;
+groups.erase(group->name);
+HidePageGroup(group);
 }
 
 void Page::Focus () {
@@ -1109,18 +1119,18 @@ void Page::SetFont (HFONT font) {
 if (zone) SendMessage(zone, WM_SETFONT, font, true);
 }
 
-void Page::AddSpecificMenu (HMENU menu, UINT id, UINT pos, UINT flags) {
-specificMenus.push_back(PageSpecificMenu(menu, id, pos, flags));
+void export PageReplaceIndent (shared_ptr<Page> page, int oldIndent, int newIndent) {
+tstring text = page->GetText();
+tstring indentUnit(max(newIndent,1), newIndent<=0? '\t' : ' ');
+vector<tstring> lines = split(text, TEXT("\n"));
+for (tstring& line: lines) {
+int pos = line.find_first_not_of(TEXT("\t "));
+if (pos<0 || pos>=line.size()) pos = line.size();
+int count = pos / max(1, oldIndent);
+line.replace(0, pos, count*indentUnit);
 }
-
-void Page::RemoveSpecificMenu (HMENU menu, UINT id) {
-auto it = std::find_if(specificMenus.begin(), specificMenus.end(), [&](const PageSpecificMenu& m){ return m.menu==menu && m.id==id; });
-if (it!=specificMenus.end()) specificMenus.erase(it);
-}
-
-bool Page::IsSpecificMenu (HMENU menu, UINT id) {
-auto it = std::find_if(specificMenus.begin(), specificMenus.end(), [&](const PageSpecificMenu& m){ return m.menu==menu && m.id==id; });
-return it!=specificMenus.end();
+text = join(lines, TEXT("\n"));
+page->SetText(text);
 }
 
 void Page::PushUndoState (shared_ptr<UndoState> u, bool tryToJoin) {
@@ -1254,3 +1264,5 @@ bool re = con.connected();
 con.disconnect();
 return re;
 }
+
+

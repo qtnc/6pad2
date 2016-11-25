@@ -89,7 +89,7 @@ focus () -> None:
 :	Focus 6pad++ window.
 popupMenu(listOfOptions) -> int:
 :	Show a popup (context) menu with the given list of option items. Returns the index of the selected item in the list, or -1 if the user closed the menu without choosing an option.
-addAccelerator(key, callbackFunction, specific = True) -> int:
+addAccelerator(key, callbackFunction, specific = False, group = None) -> int:
 :	Install a callback function to be called when the given shortcut key is pressed. If specific is set to True, the given shortcut key is specific to the current page, i.e. it is triggered only when pressed while being in the current page.
 	ON success, return a non-zero identifier used to unregister this accelerator.
 removeAccelerator(id) -> int:
@@ -307,7 +307,7 @@ fileDropped (file, x, y) -> bool:
 
 # Menu class {#menuobj}
 ## Methods
-add(label='', action=None, index=-1, accelerator='', name='', submenu=False, separator=False, specific=False) -> Menu:
+add(label='', action=None, index=-1, accelerator='', name='', submenu=False, separator=False, specific=False, group=None) -> Menu:
 :	Add a new item to the menu and returns it. Specify a serie of keyword arguments to define what kind of menu item to add:
 	- label=text of the item
 	- action=the callback function to call when the item is chosen by the user
@@ -317,6 +317,7 @@ add(label='', action=None, index=-1, accelerator='', name='', submenu=False, sep
 	- submenu=True to create a submenu rahter than a menu item
 	- specific=True to create a page-specific menu element, i.e. it appears only when the current page is active
 	- separator=True to create an item separator
+	- Group: allow to share the same item in several pages. Items are reused instead of added if an item already exists with the same group and name.
 
 remove(name=None, index=-1) -> None:
 :	Remove this item or a subitem; without any argument, remove this item from the menu; specifiy wheither the keyword argument name or index to remove a subitem by its name or index.

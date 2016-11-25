@@ -56,6 +56,7 @@ shared_ptr<Page> OpenFile (tstring file, int flags=0);
 void OpenConsoleWindow (void);
 void UpdateRecentFilesMenu (void);
 void ParseLineCol (tstring& file, int& line, int& col);
+void PageReplaceIndent (shared_ptr<Page> page, int oldIndent, int newIndent);
 tstring GetErrorText (int errorCode);
 vector<tstring> GetHDROPFiles (HDROP);
 void CSignal ( void(*)(int) );
@@ -774,7 +775,10 @@ MSG msg;
 while (GetMessage(&msg,NULL,0,0)) {
 if (TranslateAccelerator(win, hGlobAccel, &msg)) continue;
 for (HWND hWin: modlessWindows) if (IsDialogMessage(hWin, &msg)) goto endmsgloop; // continue x2
-if (curPage && curPage->hPageAccel && TranslateAccelerator(win, curPage->hPageAccel, &msg)) continue;
+if (curPage) {
+for (auto& it: curPage->groups) {
+if (it.second->accel && TranslateAccelerator(win, it.second->accel, &msg)) goto endmsgloop; // continue x2
+}}
 if (TranslateAccelerator(win, hAccel, &msg)) continue;
 TranslateMessage(&msg);	
 DispatchMessage(&msg);
@@ -941,7 +945,9 @@ curPage->SetEncoding(encodings[cmd-IDM_ENCODING]);
 return true;
 }
 if (cmd>=IDM_INDENTATION_TABS && cmd<=IDM_INDENTATION_SPACES+8 && curPage) {
+int oldIndent = curPage->indentationMode;
 curPage->SetIndentationMode(cmd-IDM_INDENTATION_TABS);
+if (0==MessageBox2(win, msg("Indentation"), msg("Indentation"), msg("Replace existing indentations?"), {msg("&Replace"), msg("Do&n't replace")}, MB2_ICONEXCLAMATION)) PageReplaceIndent(curPage, oldIndent, cmd-IDM_INDENTATION_TABS);
 return true;
 }
 if (cmd>=IDM_TAB_WIDTH && cmd<=IDM_TAB_WIDTH+7 && curPage) {

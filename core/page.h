@@ -50,11 +50,26 @@ virtual int GetTypeId () { return 0; }
 virtual ~UndoState(){}
 };
 
-struct PageSpecificMenu {
+struct PageGroupMenu {
 HMENU menu;
 UINT id, pos, flags;
 tstring label, name;
-inline PageSpecificMenu (HMENU h, UINT i, UINT p, UINT f): menu(h), id(i), pos(p), flags(f), label(), name() {}
+inline PageGroupMenu (const tstring& n, HMENU h, UINT i, UINT p, UINT f): menu(h), id(i), pos(p), flags(f), label(), name(n) {}
+};
+
+struct export PageGroup {
+static std::unordered_map<tstring, std::weak_ptr<PageGroup>> groups;
+tstring name;
+HACCEL accel;
+std::vector<PageGroupMenu> menus;
+PageGroup (const tstring& name);
+~PageGroup();
+void AddMenu (const tstring& name, HMENU menu, UINT id, UINT pos, UINT flags);
+void RemoveMenu (HMENU menu, UINT id);
+PageGroupMenu* ContainsMenu (const tstring& name);
+bool ContainsMenu (HMENU menu, UINT id);
+static export shared_ptr<PageGroup> getGroup (const tstring& name);
+static export shared_ptr<PageGroup> FindGroupContainingMenu (HMENU menu, UINT id);
 };
 
 struct export Page: std::enable_shared_from_this<Page>  {
@@ -62,11 +77,10 @@ tstring name=TEXT(""), file=TEXT("");
 int encoding=-1, indentationMode=-1, tabWidth=-2, lineEnding=-1, markedPosition=0, curUndoState=0;
 unsigned long long flags = 0, lastSave=0;
 HWND zone=0;
-HACCEL hPageAccel=0;
 PySafeObject pyData;
 IniFile dotEditorConfig;
 std::vector<shared_ptr<UndoState>> undoStates;
-std::vector<PageSpecificMenu> specificMenus;
+std::unordered_map<tstring, std::shared_ptr<PageGroup>> groups;
 
 signal<void(shared_ptr<Page>)> ondeactivated, onactivated, onclosed, onsaved;
 signal<void(shared_ptr<Page>, int,any)> onattrChange;
@@ -89,13 +103,14 @@ virtual bool IsModified () ;
 virtual void SetModified (bool);
 virtual bool IsReadOnly ();
 virtual void SetReadOnly (bool);
-virtual void AddSpecificMenu (HMENU menu, UINT id, UINT pos, UINT flags);
-virtual void RemoveSpecificMenu (HMENU menu, UINT id);
-virtual bool IsSpecificMenu (HMENU menu, UINT id);
+virtual void AddPageGroup (shared_ptr<PageGroup> group);
+virtual void RemovePageGroup (shared_ptr<PageGroup> group);
 virtual void CreateZone (HWND parent, bool useEditFieldSubclass=true);
 virtual void ResizeZone (const RECT&);
 virtual void HideZone ();
 virtual void ShowZone (const RECT&);
+virtual void HidePageGroup (shared_ptr<PageGroup> group);
+virtual void ShowPageGroup (shared_ptr<PageGroup> group);
 virtual void FocusZone ();
 virtual void Focus ();
 virtual void SetFont (HFONT);
