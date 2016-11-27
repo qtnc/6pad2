@@ -19,7 +19,7 @@ msg(key) -> str:
 :	Return the string associated to a given key in the translation file. Return the key itself if the string isn't found.
 setConfig(key, value, multiple=False) -> None:
 :	Set the value of a key in the configuration file. The multiple argument defines whether or not the key can be present multiple times. You can use keyword arguments 'key', 'value' and 'multiple'.
-getConfig (key, defaultValue = '') -> str:
+getConfig (key, defaultValue = None) -> str:
 :	Return the value of a key from the configuration file. If the key has multiple values, the first value found is returned. If the key isn't found, defaultValue is returned.
 getConfigAsList(key) -> [str]:
 :	Return a list containing all the values associated with the given key in the configuration file.

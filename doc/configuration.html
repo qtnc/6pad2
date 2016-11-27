@@ -28,7 +28,10 @@
 <li><a href="#defaultSafeIndent">defaultSafeIndent</a></li>
 <li><a href="#instancemode">instanceMode</a></li>
 <li><a href="#reloadlastfilesmode">reloadLastFilesMode</a></li>
-<li><a href="#editorconfigoverride">editorConfigOverride</a></li>
+<li><a href="#editorconfigoverride">editorConfigOverride</a><ul>
+<li><a href="#standard-.editorconfig-properties-supported">Standard .editorconfig properties supported</a></li>
+<li><a href="#additional-non-standard-.editorconfig-properties-supported">Additional non-standard .editorconfig properties supported</a></li>
+</ul></li>
 <li><a href="#maxrecentfiles">maxRecentFiles</a></li>
 <li><a href="#tabsatbottom">tabsAtBottom</a></li>
 </ul></li>
@@ -56,6 +59,12 @@
 </dd>
 <dt>2:</dt>
 <dd>CR/Mac
+</dd>
+<dt>3:</dt>
+<dd>RS/QNX
+</dd>
+<dt>4:</dt>
+<dd>LS/PS (Unicode)
 </dd>
 </dl>
 <h2 id="ce">defaultEncoding</h2>
@@ -154,13 +163,14 @@
 <dd>Use .editorconfig files and always open the files in the format specified in .editorconfig, even if there are potential encoding and/or line endings conflicts.
 </dd>
 </dl>
+<h3 id="standard-.editorconfig-properties-supported">Standard .editorconfig properties supported</h3>
 <p>The following standard .editorconfig properties are supported :</p>
 <dl>
 <dt>charset:</dt>
 <dd>The character set encoding: “Latin1”, “UTF8”, “UTF8BOM”, “UTF16Le”, “UTF16Be”
 </dd>
 <dt>end_of_line:</dt>
-<dd>Line ending type: “CRLF”, “LF” or “CR”
+<dd>Line ending type: “CRLF”, “LF” or “CR”. as an extension, “RS” and “LS” are also supported.
 </dd>
 <dt>indent_style:</dt>
 <dd>Indentation type: “tab” or “space”
@@ -172,7 +182,8 @@
 <dd>Size of a tab when using tabs as indentation: number in range 1-8
 </dd>
 </dl>
-<p>The following proprietary .editorconfig parameters are also recognized :</p>
+<h3 id="additional-non-standard-.editorconfig-properties-supported">Additional non-standard .editorconfig properties supported</h3>
+<p>The following proprietary / non-standard .editorconfig parameters are also recognized :</p>
 <dl>
 <dt>_6p_auto_line_break:</dt>
 <dd>Define <a href="#defaultAutoLineBreak">defaultAutoLineBreak</a> parameter for specific files.

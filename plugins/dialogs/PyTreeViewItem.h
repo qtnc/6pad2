@@ -20,6 +20,8 @@ void removeChild (PyObject*);
 PyObject* addChild (const tstring& text, HTREEITEM hAfter = TVI_LAST, PyObject* udata=0, UINT state = 0);
 PyObject* appendChild (const tstring& text, PyObject* value, UINT state);
 PyObject* insertBefore (PyObject* child, const tstring& text, PyObject* value, UINT state);
+PyObject* appendChildProxy (const tstring& text, PyObject* value, OPT, bool checked, bool partiallyChecked, bool expanded, bool selected);
+PyObject* insertBeforeProxy (PyObject* child, const tstring& text, PyObject* value, OPT, bool checked, bool partiallyChecked, bool expanded, bool selected);
 PyObject* get_parentNode  () ;
 PyObject* get_firstChild () ;
 PyObject* get_lastChild () ;

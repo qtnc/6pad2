@@ -11,10 +11,10 @@ The tree view can be used to display hierarchical data such as files/directories
 To open a new tree view dialog and create an object, you must use the `open` static method described below.
 
 ## Static methods
-open(title='', hint='', modal=False, multiple=False, editable=False, okButtonText='', cancelButtonText='', callback=None) -> multiple possible return types:
+open(title='', text='', modal=False, multiple=False, editable=False, okButtonText='', cancelButtonText='', callback=None) -> multiple possible return types:
 :	Create and open a new tree view dialog. Returns the value(s) of the item(s) selected by the user if modal=True, or a TreeViewDialog object if modal=False. Use keywords to set the different options of the dialog box:
 	- title = The title text of the dialog box, shown on the dialog box title bar
-	- hint = a little text hint, placed above the tree view
+	- text = a little text hint, placed above the tree view
 	- modal = whether or not the dialog has to be modal. If modal is True, the function returns the selected item value chosen by the user, or a list of item values if multiple=True. If modal=False, then a TreeViewDialog object is returned, allowing further updates of the tree view's contents as long as the dialog remains open, including while being in background (not focused).
 	- multiple = whether the user can choose one or several items at the same time. If multiple is True, a checkbox is placed on the left of each item, allowing the user to independently selectt items. When the user checks or unchecks an item that has children, all children are automatically checked or unchecked recursively. An item become partially checked if one or more, but not all of its children are checked.
 	- editable = whether or not the user is able to edit the text of the items, by pressing F2 or double-clicking slowly on an item.

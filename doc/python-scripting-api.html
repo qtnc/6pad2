@@ -132,8 +132,8 @@
 <dt>warning(text, title = ‘Warning!’) -&gt; None:</dt>
 <dd>Show a warning dialog box with an OK button.
 </dd>
-<dt>confirm(text, title = ‘Question’) -&gt; int:</dt>
-<dd>Show a confirmation dialog box where the user can choose between yes and no; return 1 if the user clicked yes, 0 if he clicked no.
+<dt>confirm(text, title = ‘Question’) -&gt; bool:</dt>
+<dd>Show a confirmation dialog box where the user can choose between yes and no; return True if the user clicked yes, False if he clicked no.
 </dd>
 <dt>choice(prompt, title, listOfOptions, initialSelection=0) -&gt; int:</dt>
 <dd>Show a dialog box where the user can choose an option ammong a list. Returns the index of the chosen item, or -1 if the user cancelled the dialog box. You can use keyword arguments.
@@ -142,24 +142,24 @@
 <dd>Show a dialog box where the user can enter a single line of text. The list parameter allow to provide pre-entered suggestions. Returns the text entered by the user, or None if he cancelled the dialog box. You can use keyword arguments.
 </dd>
 <dt>saveDialog(file=‘’, title=’’, filters=[], initialFilter=0) -&gt; multiple return types:</dt>
-<dd>Show a save dialog box where the user can choose a file to save to. If specified, the filters list must be a list of 2-tuples where the first item is the filter description e.g. “TExt files”, and the second is the pattern e.g. “<code>*.txt</code>”. Returns a str indicating the path being selected by the user, or None if he cancelled the dialog box. If a filters list is specified, returns a tuple where the first item is the selected file and the second is the index of the selected filter. You can use keyword arguments.
+<dd>Show a save dialog box where the user can choose a file to save to. If specified, the filters list must be a list of 2-tuples where the first item is the filter description e.g. “TExt files”, and the second is the pattern e.g. “<code>*.txt</code>”. Returns a str indicating the path being selected by the user, or None if he cancelled the dialog box. If a filters list is specified, returns a 2-tuple where the first item is the selected file and the second is the index of the selected filter. You can use keyword arguments.
 </dd>
 <dt>openDialog(file=‘’, title=’’, filters=[], initialFilter=0, multiple=False) -&gt; multiple return types:</dt>
-<dd>Show an open dialog box where the user can choose a file to open. If specified, the filters list must be a list of 2-tuples where the first item is the filter description e.g. “TExt files”, and the second is the pattern e.g. “<code>*.txt</code>”. Returns a str indicating the path being selected by the user, or None if he cancelled the dialog box. If a filters list is specified, returns a tuple where the first item is the selected file and the second is the index of the selected filter. If multiple is set to True, the user can select more than one file to open and a list of str is returned instead of a single str. You can use keyword arguments.
-</dd>
-<dt>chooseFolder(folder=‘’, title=’‘, root=’’, showFiles=False) -&gt; str:</dt>
-<dd>Show a dialog box where the user can choose a folder in a tree view. If showFiles is set to True, the user can also select files, otherwise he can only select folders. Returns the item selected by the user, or None if he cancelled the dialog box. You can use keyword arguments.
+<dd>Show an open dialog box where the user can choose a file to open. If specified, the filters list must be a list of 2-tuples where the first item is the filter description e.g. “TExt files”, and the second is the pattern e.g. “<code>*.txt</code>”. Returns a str indicating the path being selected by the user, or None if he cancelled the dialog box. If a filters list is specified, returns a 2-tuple where the first item is the selected file and the second is the index of the selected filter. If multiple is set to True, the user can select more than one file to open and a list of str is returned instead of a single str. You can use keyword arguments.
 </dd>
 <dt>taskDialog(title=None, heading=None, text=None, details=None, footer=None, icon=None, buttons=None, radioButtons=None, checkbox=None, checked=False, collapseButtonText=None, expandButtonText=None, expanded=False, defaultButton=0, defaultRadioButton=0, expandInFooter=False, commandLinks=False, commandLinksNoIcon=False, progressBar=False, callback=None) -&gt; (button,radio,checkbox)|TaskDialog:</dt>
 <dd>Show a task dialog. Task dialogs offer a major evolution over old message boxes, allowing much more customization, flexibility and input controls. See the <a href="#taskDialog">dedicated chapter of this documentation</a> for more information about the use of task dialogs and the different possible parameters.
 </dd>
+<dt>chooseFolder(folder=‘’, title=’‘, root=’’, showFiles=False) -&gt; str:</dt>
+<dd>Show a dialog box where the user can choose a folder in a tree view. If showFiles is set to True, the user can also select files, otherwise he can only select folders. Returns the item selected by the user, or None if he cancelled the dialog box. You can use keyword arguments.
+</dd>
 <dt>focus () -&gt; None:</dt>
 <dd>Focus 6pad++ window.
 </dd>
-<dt>showPopupMenu(listOfOptions) -&gt; int:</dt>
+<dt>popupMenu(listOfOptions) -&gt; int:</dt>
 <dd>Show a popup (context) menu with the given list of option items. Returns the index of the selected item in the list, or -1 if the user closed the menu without choosing an option.
 </dd>
-<dt>addAccelerator(key, callbackFunction, specific = True) -&gt; int:</dt>
+<dt>addAccelerator(key, callbackFunction, specific = False, group = None) -&gt; int:</dt>
 <dd>Install a callback function to be called when the given shortcut key is pressed. If specific is set to True, the given shortcut key is specific to the current page, i.e. it is triggered only when pressed while being in the current page. ON success, return a non-zero identifier used to unregister this accelerator.
 </dd>
 <dt>removeAccelerator(id) -&gt; int:</dt>
@@ -293,14 +293,14 @@
 <dt>insert(position, text) -&gt; None:</dt>
 <dd>Insert a string of text at the given position.
 </dd>
-<dt>find(term, scase=False, regex=False, up=False, stealthty=False) -&gt; int:</dt>
-<dd>Make a search in the text, as if the user issued a search using the Find dialog. SEt scase to True for a sensible case search, regex to True for a regular expression search, and up to True for a search backward instead of forward. If stealthty is True, the find term won’t be added in the combobox of previously searched terms in the Find dialog box. You can use keywords arguments. Returns 1 or 0 depending on if something has been found or not.
+<dt>find(term, scase=False, regex=False, up=False, stealthty=False) -&gt; bool:</dt>
+<dd>Make a search in the text, as if the user issued a search using the Find dialog. SEt scase to True for a sensible case search, regex to True for a regular expression search, and up to True for a search backward instead of forward. If stealthty is True, the find term won’t be added in the combobox of previously searched terms in the Find dialog box. You can use keywords arguments. Returns True or False depending on if something has been found or not.
 </dd>
-<dt>findNext() -&gt; int:</dt>
-<dd>Find the next occurence of the text previously searched for, as if the user pressed F3 or chose the Find next item in the Edit menu. Returns 1 if something has been found, 0 otherwise.
+<dt>findNext() -&gt; bool:</dt>
+<dd>Find the next occurence of the text previously searched for, as if the user pressed F3 or chose the Find next item in the Edit menu. Returns True if something has been found, False otherwise.
 </dd>
-<dt>findPrevious() -&gt; int:</dt>
-<dd>Find the previous occurence of the text most recently searched for, as if the user pressed Shift+F3 or chose the Find previous item in the Edit menu. Returns 1 if something has been found, 0 otherwise.
+<dt>findPrevious() -&gt; bool:</dt>
+<dd>Find the previous occurence of the text most recently searched for, as if the user pressed Shift+F3 or chose the Find previous item in the Edit menu. Returns True if something has been found, False otherwise.
 </dd>
 <dt>searchReplace(search, replacement, scase=False, regex=False, stealthty=False) -&gt; None:</dt>
 <dd>Make a search/replace operation in the text, as if the user issued this command from the search/replace dialog box. SEt scase to True for a sensible case search, regex to True for a regular expression search/replace. If stealthty is True, terms won’t be added in comboboxes of previously used terms in the dialog box. You can use keyword arguments.
@@ -326,10 +326,10 @@
 </dl>
 <h2 id="members-2">Members</h2>
 <dl>
-<dt>int closed (read only):</dt>
+<dt>bool closed (read only):</dt>
 <dd>Indicates if the page has been closed by the user.
 </dd>
-<dt>int modified:</dt>
+<dt>bool modified:</dt>
 <dd>Indicates if the contents of the page has been modified since the last load/save.
 </dd>
 <dt>str name:</dt>
@@ -350,7 +350,7 @@
 <dt>int tabWidth:</dt>
 <dd>The width, in spaces, visually taken by a tab character, between 1 and 8.
 </dd>
-<dt>int autoLineBreak:</dt>
+<dt>bool autoLineBreak:</dt>
 <dd>Whether or not lines are broken automatically when displaying the text in the edition field.
 </dd>
 <dt>int selectionStart:</dt>
@@ -386,7 +386,7 @@
 <dt>str indentString:</dt>
 <dd>A string representing a level of indentation, i.e. a tab or a couple of spaces.
 </dd>
-<dt><span id="rangesinlines"></span>int rangesInLines:</dt>
+<dt><span id="rangesinlines"></span>bool rangesInLines:</dt>
 <dd>Whether indexing and slicing indices are counted in lines. If this attribute is False, indices are counted in characters. By default, this attribute is False. See <a href="#pageindexing">Indexing and slicing</a> for more details.
 </dd>
 </dl>
@@ -459,7 +459,7 @@
 <h1 id="menuobj">Menu class</h1>
 <h2 id="methods-2">Methods</h2>
 <dl>
-<dt>add(label=‘’, action=None, index=-1, accelerator=’‘, name=’’, submenu=False, separator=False, specific=False) -&gt; Menu:</dt>
+<dt>add(label=‘’, action=None, index=-1, accelerator=’‘, name=’’, submenu=False, separator=False, specific=False, group=None) -&gt; Menu:</dt>
 <dd><p>Add a new item to the menu and returns it. Specify a serie of keyword arguments to define what kind of menu item to add:</p>
 <ul>
 <li>label=text of the item</li>
@@ -469,8 +469,9 @@
 <li>name=The name of the submenu allowing it to be referenced in python code</li>
 <li>submenu=True to create a submenu rahter than a menu item</li>
 <li>specific=True to create a page-specific menu element, i.e. it appears only when the current page is active</li>
+<li>separator=True to create an item separator</li>
 </ul>
-- separator=True to create an item separator
+- Group: allow to share the same item in several pages. Items are reused instead of added if an item already exists with the same group and name.
 </dd>
 <dt>remove(name=None, index=-1) -&gt; None:</dt>
 <dd>Remove this item or a subitem; without any argument, remove this item from the menu; specifiy wheither the keyword argument name or index to remove a subitem by its name or index.
@@ -498,7 +499,7 @@
 </ul>
 <h2 id="members-3">Members</h2>
 <dl>
-<dt>int submenu (read only):</dt>
+<dt>bool submenu (read only):</dt>
 <dd>Whether this object represents a menu or a single menu item.
 </dd>
 <dt>int length (read only):</dt>
@@ -519,13 +520,13 @@
 <dt>int id (read only):</dt>
 <dd>The command identifier of this item.
 </dd>
-<dt>int enabled:</dt>
+<dt>bool enabled:</dt>
 <dd>The enabled/disabled state of the item.
 </dd>
-<dt>int checked:</dt>
+<dt>bool checked:</dt>
 <dd>The checked/unchecked state of the item.
 </dd>
-<dt>int radio:</dt>
+<dt>bool radio:</dt>
 <dd>Whether or not the item is a radio button menu item.
 </dd>
 <dt>callable action:</dt>
@@ -618,7 +619,7 @@
 </dl>
 <h2 id="members-4">Members</h2>
 <dl>
-<dt>int closed (read only):</dt>
+<dt>bool closed (read only):</dt>
 <dd>Indicate whether the dialog box is still open, or already closed. Any further modification of the other members after the dialog is closed has no effect.
 </dd>
 <dt>float value:</dt>
@@ -645,7 +646,7 @@
 <dt>int radioChecked:</dt>
 <dd>Indicates the radio button currently selected by the user as an index in the radio buttons list/tuple, or -1 if the dialog doesn’t contain any radio button. You can modify this property to programmatically select another radio button.
 </dd>
-<dt>int checkboxChecked:</dt>
+<dt>bool checkboxChecked:</dt>
 <dd>Indicate if the verification checkbox is currently checked or not. You can change the state of the checkbox by modifying this property.
 </dd>
 </dl>

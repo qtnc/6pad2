@@ -10,32 +10,22 @@ static int PyTreeViewItemInit (PyTreeViewItem* self, PyObject* args, PyObject* k
 return 0;
 }
 
-static PyObject* appendChildProxy (PyObject* item, PyObject* args, PyObject* kwds) {
-static const char* KWLST[] = { "text", "value", "checked", "partiallyChecked", "expanded", "selected", NULL};
-const wchar_t *text = nullptr;
-PyObject *value= nullptr;
-BOOL checked=false, partiallyChecked=false, expanded=false, selected=false;
-if (!PyArg_ParseTupleAndKeywords(args, kwds, "uO|$pppp", (char**)KWLST, &text, &value, &checked, &partiallyChecked, &expanded, &selected)) return NULL;
-if (!value || !text) return NULL;
+PyObject* PyTreeViewItem::appendChildProxy (const tstring& text, PyObject* value, OPT, bool checked, bool partiallyChecked, bool expanded, bool selected) {
 UINT state = (expanded? TVIS_EXPANDED : 0) | (selected? TVIS_SELECTED : 0) | (checked? 2<<12 : 0) | (partiallyChecked? 3<<12 : 0);
-return ((PyTreeViewItem*)item) ->appendChild(text, value, state);
+return appendChild(text, value, state);
 }
+static constexpr const char* PyTVIAppendChildProxy_KWLST[] = { "text", "value", "checked", "partiallyChecked", "expanded", "selected", NULL};
 
-static PyObject* insertBeforeProxy (PyObject* item, PyObject* args, PyObject* kwds) {
-static const char* KWLST[] = { "before", "text", "value", "checked", "partiallyChecked", "expanded", "selected", NULL};
-const wchar_t *text = nullptr;
-PyObject *value=nullptr, *child=nullptr;
-BOOL checked=false, partiallyChecked=false, expanded=false, selected=false;
-if (!PyArg_ParseTupleAndKeywords(args, kwds, "OuO|pppp", (char**)KWLST, &child, &text, &value, &checked, &partiallyChecked, &expanded, &selected)) return NULL;
-if (!child || !value || !text) return NULL;
+PyObject* PyTreeViewItem::insertBeforeProxy (PyObject* child, const tstring& text, PyObject* value, OPT, bool checked, bool partiallyChecked, bool expanded, bool selected) {
 UINT state = (expanded? TVIS_EXPANDED : 0) | (selected? TVIS_SELECTED : 0) | (checked? 2<<12 : 0) | (partiallyChecked? 3<<12 : 0);
-return ((PyTreeViewItem*)item) ->insertBefore(child, text, value, state);
+return insertBefore(child, text, value, state);
 }
+static constexpr const char* PyTVIInsertBeforeProxy_KWLST[] = { "before", "text", "value", "checked", "partiallyChecked", "expanded", "selected", NULL};
 
 #define M(x) PyDecl(#x, &PyTreeViewItem::x)
 static PyMethodDef PyTreeViewItemMethods[] = {
-{"appendChild", (PyCFunction)appendChildProxy, METH_VARARGS | METH_KEYWORDS, NULL},
-{"insertBefore", (PyCFunction)insertBeforeProxy, METH_VARARGS | METH_KEYWORDS, NULL},
+PyDeclKW("appendChild", &PyTreeViewItem::appendChildProxy, PyTVIAppendChildProxy_KWLST),
+PyDeclKW("insertBefore", &PyTreeViewItem::insertBeforeProxy, PyTVIInsertBeforeProxy_KWLST),
 M(removeChild),
 M(select),
 PyDecl("delete", &PyTreeViewItem::remove),

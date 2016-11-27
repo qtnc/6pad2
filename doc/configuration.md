@@ -26,6 +26,10 @@ The default line ending convention to use when creating a new empty file. Defaul
 :	LF/UNIX
 2:
 :	CR/Mac
+3:
+:	RS/QNX
+4:
+:	LS/PS (Unicode)
 
 ## defaultEncoding {#ce}
 The default encoding to use when creating a new empty file. Default to 1250-1258 depending on the current locale.
@@ -118,12 +122,14 @@ By default, this parameter is set to 1.
 2:
 :	Use .editorconfig files and always open the files in the format specified in .editorconfig, even if there are potential encoding and/or line endings conflicts.
 
+### Standard .editorconfig properties supported
+
 The following standard .editorconfig properties are supported :
 
 charset:
 :	The character set encoding: "Latin1", "UTF8", "UTF8BOM", "UTF16Le", "UTF16Be"
 end_of_line:
-:	Line ending type: "CRLF", "LF" or "CR"
+:	Line ending type: "CRLF", "LF" or "CR". as an extension, "RS" and "LS" are also supported.
 indent_style:
 :	Indentation type: "tab" or "space"
 indent_size:
@@ -131,7 +137,9 @@ indent_size:
 tab_width:
 :	Size of a tab when using tabs as indentation: number in range 1-8
 
-The following proprietary .editorconfig parameters are also recognized :
+### Additional non-standard .editorconfig properties supported
+
+The following proprietary / non-standard  .editorconfig parameters are also recognized :
 
 _6p_auto_line_break:
 :	Define [defaultAutoLineBreak](#defaultAutoLineBreak) parameter for specific files.

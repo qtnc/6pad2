@@ -20,7 +20,7 @@ bool closed, modal;
 
 static PyTreeViewDialog* New (HWND hDlg, HWND hTree);
 void Delete ();
-static PyObject* open (PyObject* unused, PyObject* args, PyObject* kw); 
+static PyObject* open (OPT, const tstring& title, const tstring& hint, bool modal, PyFunc<void(PyObject*)> callback, optional<tstring> okButtonText, optional<tstring> cancelButtonText, bool multiple, bool editable);
 void close ();
 void focus ();
 bool allowEdit (HTREEITEM item, tstring& text);

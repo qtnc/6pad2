@@ -45,7 +45,7 @@ Py_END_ALLOW_THREADS
 return s;
 }
 
-static string PyGetConfig (const string& key, OPT, const string& def) {
+static optional<string> PyGetConfig (const string& key, OPT, optional<string> def) {
 auto it = config.find(key);
 if (it!=config.end()) return it->second;
 else return def;
