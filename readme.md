@@ -9,7 +9,7 @@ Have fun !
 
 # Download
 
-You can download latest version, alpha 10, at <http://vrac.quentinc.net/6pad%2b%2b.zip>.
+You can download latest version at <http://vrac.quentinc.net/6pad%2b%2b.zip>.
 Note that this is still an *alpha release* !
 
 # Features
@@ -33,11 +33,11 @@ For example, notepad2 and notepad++ are very lightweight, but only partially acc
 IN the opposite side, complete integrated developement editors like eclipse are known to be not so badly accessible, but they are most of the time too heavy, take time to start up, and aren't that suited to have a quick look at small files and other notes.
 
 There effectively already exist a text editor made for screen reader users, it is called [EdSharp](http://empowermentzone.com/EdSharp.htm).
-However, I find its interface not as easy as it is said; menus are especially full of rarely used features, are quite randomly mixed up, and it lakes an obvious way of customizing the whole thing with scripts in an easy way. And, of course, I don't program in C#.
+However, I find its interface not as easy as it is said; menus are especially full of rarely used features, are quite randomly mixed up, and it lakes an obvious possibility of customizing the whole thing with scripts in an easy way. And, of course, I don't program in C#.
 
 # 6pad++, the successor of 6pad
 
-6pad++ is the successor of 6pad. 6pad was programmed in pur C. It was often buggy because of this and didn't use a modern development language, that's why I decided to start a new project from the beginning, in C++11.
+6pad++ is the successor of 6pad. 6pad was programmed in pur C. It was often buggy because of this and didn't use a modern development language, that's why I decided to start a new project from the beginning, in C++14.
 6pad proposed a lua scripting interface instead of python. I decided to switch to python because lua isn't very adapted in advanced string manipulation, after all the main task of a text editor. In particular, lua doesn't support unicode and UTF-8 natively.
 Python 3 isn't a string manipulation specific language either, but it is today a widely popular language which perfectly supports Unicode and UTF-8. 
 It also natively offers much more functionalities often useful as scripting language in a text editor beside text manipulation, such as file search for example.
@@ -53,7 +53,7 @@ You can have a look at the [old 6pad repository](http://github.com/qtnc/6pad) if
 *In *plugins* subfolder, are 6pad++ plugins programmed in python and/or C++ and their associated source code. Read each subfolder's readme for more info.
 * IN *extensions* folder, are python extensions; they are completely independent and might be used outside 6pad++. Read each subfolder's readme for more info.
 
-Note 1: 6pad++ binary is compiled with MinGW/GCC 4.8.1 in 32-bit mode. If you want to make C++ plugins that can be used seamlessly with the base distribution, you must use that exact same compiler and settings.
+Note 1: 6pad++ binary is compiled with MinGW/GCC in 32-bit mode. If you want to make C++ plugins that can be used seamlessly with the base distribution, you must use that exact same compiler and settings.
 This is because Visual Studio's and GCC's ABI aren't eachother compatible.
 
 Note 2: 6pad++ binary is linked with msvcr100.dll instead of msvcrt.dll. This is an obligation because python34.dll has also been linked with msvcr100.dll and I don't have any control on python34.dll. This python34.dll, as well as the whole python library found in python34.zip, have been taken unmodified from the default python 3.4 windows installer available at <http://www.python.org/>. I just removed completely useless python modules.

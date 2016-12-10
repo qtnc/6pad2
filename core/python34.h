@@ -338,13 +338,13 @@ else return PyConverter<E>::outCast(o);
 
 template<> struct PyConverter<any> {
 static PyObject* inCast (const any& a) { 
-if (a.empty() || isoftype(a, nullptr_t)) Py_RETURN_NONE;
-#define T(...) else if (isoftype(a,##__VA_ARGS__)) return PyConverter<__VA_ARGS__>::inCast( any_cast<__VA_ARGS__>(a) );
+if (a.empty() || any_cast<nullptr_t>(&a)) Py_RETURN_NONE;
+#define T(...)  { auto Z = any_cast<__VA_ARGS__>(&a); printf("%s:%d: test %s* => %p\n", __FILE__, __LINE__, #__VA_ARGS__, Z); if (Z) return PyConverter<__VA_ARGS__>::inCast(*Z); }
 T(int) T(std::wstring) T(std::string) T(bool)
 T(vector<tstring>) T(vector<int>)
-T(pair<tstring,int>) T(pair<vector<tstring>,int>)
+T(pair<tstring,int>) T(pair<vector<tstring>,int>) T(pair<int,int>)
 #undef T
-else Py_RETURN_NONE;
+Py_RETURN_NONE; 
 }
 static any outCast (PyObject* o) {
 if (!o||o==Py_None) return any();

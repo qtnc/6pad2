@@ -179,6 +179,10 @@ lineSafeStartOffset(lineNumber) -> int:
 :	Return the character position corresponding to the true beginning of the given line number, where the first non-space character is found. First line is line 0.
 lineIndentLevel(lineNumber) -> int:
 :	Return the indentation level of the given line, according to current indentation settings.
+licol (int pos) -> (int,int):
+:	Converts an offset position into a tuple (line,column)
+licol (int line, int column) -> int
+:	Converts (line,column) into an offset position.
 substring(start, end) -> str:
 :	Gets a substring of the whole text currently being edited.
 replace(start, end, newText) -> None:
@@ -205,7 +209,7 @@ redo() -> None:
 :	Redo the last operation, as if Edit>Redo had been chosen by the user.
 pushUndoState(UndoStateCompatibleObject) -> None:
 :	Push an undoable operation on the top of the undo stack. The object passed must have the two methods undo(self,page) and redo(self,page).
-doteditorconfig(key, defaultValue = '') -> str
+doteditorconfig(key, defaultValue = None) -> str
 :	Get the value of a configuration key that can be found in .editorconfig files for the current file. If the key is not found, defaultValue is returned. Note that .editorconfig configuration directives are loaded/updated when the file is loaded, reloaded or saved.
 
 ## Members
@@ -227,14 +231,14 @@ int tabWidth:
 :	The width, in spaces, visually taken by a tab character, between 1 and 8.
 bool autoLineBreak:
 :	Whether or not lines are broken automatically when displaying the text in the edition field.
+bool readOnly:
+:	Whether or not the zone is read only, i.e. don't allow any modification
 int selectionStart:
 :	The anchor point of the current selection.
 int selectionEnd:
 :	The end point of the current selection.
 int position
 :	Same as selectionEnd. Modifying this attribute is the same as doint `select(value, value)`, i.e. the selection is collapsed at given position.
-int curColumn (read only):
-:	The current column where the caret is. If there is a selection, selectionEnd is taken as being the current position.
 int curLine:
 :	The current line number where the caret is. If there is a selection, selectionEnd is taken as being the current position. Modifying this value is the same as doing `position = lineStartIndex(value)`, i.e. the cursor is placed at the beginning of the line.
 str curLineText:

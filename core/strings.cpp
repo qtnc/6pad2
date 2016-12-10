@@ -46,8 +46,9 @@ string snsprintf (int max, const string& fmt, ...) {
 string out(max+1, '\0');
 va_list ap;
 va_start(ap,fmt);
-stringSize(out) = vsnprintf((char*)out.data(), max, fmt.c_str(), ap);
+int size = vsnprintf((char*)out.data(), max, fmt.c_str(), ap);
 va_end(ap);
+out.resize(size);
 return out;
 }
 
@@ -56,8 +57,9 @@ wstring out(max+1, L'\0');
 out.reserve(max);
 va_list ap;
 va_start(ap,fmt);
-stringSize(out) = vsnwprintf((wchar_t*)out.data(), max, fmt.c_str(), ap);
+int size = vsnwprintf((wchar_t*)out.data(), max, fmt.c_str(), ap);
 va_end(ap);
+out.resize(size);
 return out;
 }
 

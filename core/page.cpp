@@ -803,9 +803,9 @@ nLine = SendMessage(hEdit, EM_LINEFROMCHAR, pos, 0);
 tstring addString, line = EditGetLine(hEdit, nLine, pos);
 any re = page->onenter(page->shared_from_this(), line, nLine);
 if (!re.empty()) {
-if (isoftype(re,bool) && !any_cast<bool>(re)) return false; 
-else if (isoftype(re,int)) addIndent = any_cast<int>(re);
-else if (isoftype(re,tstring)) addString = any_cast<tstring>(re);
+{ bool* B = any_cast<bool>(&re); if (B&&!*B) return false; }
+{ int* I = any_cast<int>(&re); if (I) addIndent = *I; }
+{ tstring* S = any_cast<tstring>(&re); if (S) addString = *S; }
 }
 pos = noAutoIndent? 0 : line.find_first_not_of(TEXT("\t \xA0"));
 if (pos<0 || pos>=line.size()) pos=line.size();
@@ -926,12 +926,12 @@ case WM_CHAR: {
 TCHAR cc = LOWORD(wp);
 any re = curPage->onkeyPress(curPage->shared_from_this(), tstring(&cc,1));
 if (!re.empty()) {
-if (isoftype(re,bool) && !any_cast<bool>(re)) return true; 
-else if (isoftype(re,int)) wp = any_cast<int>(re);
-else if (isoftype(re,tstring)) {
-tstring str = any_cast<tstring>(re);
-SendMessage(hwnd, EM_REPLACESEL, 0, str.c_str() );
-EZTextInserted(curPage, hwnd, str); 
+{ bool *B = any_cast<bool>(&re); if (B&&!*B) return true; }
+{ int* I = any_cast<int>(&re); if (I) wp = *I; }
+tstring* S = any_cast<tstring>(&re);
+if (S) {
+SendMessage(hwnd, EM_REPLACESEL, 0, S->c_str() );
+EZTextInserted(curPage, hwnd, *S); 
 return true;
 }}
 switch(cc) {

@@ -107,10 +107,6 @@ inline unsigned int gstoul (const wchar_t* s, wchar_t** e, int b) { return wcsto
 inline unsigned int gstoul (const char* s, char** e, int b) { return strtoul(s,e,b); }
 inline bool isDigit (int c) { return c>='0'&&c<='9'; }
 
-template <class T> inline size_t& stringSize (std::basic_string<T>& s) {
-return ((size_t*)(s.data()))[-3];
-}
-
 inline const std::string& toString (const std::string& s) { return s; }
 inline const std::wstring& toWString (const std::wstring& ws) { return ws; }
 inline std::string toString (const char* str) { return std::string(str?str:""); }
@@ -120,14 +116,16 @@ inline std::wstring toWString2 (const wchar_t* ws) { return toWString(ws); }
 inline std::string toString (const std::wstring& ws, int cp = CP_UTF8, int inOffset=0, int outOffset = 0) {
 size_t nSize = WideCharToMultiByte(cp, 0, ws.data()+inOffset, ws.size()-inOffset, NULL, 0, NULL, NULL);
 std::string s(nSize+outOffset, '\0');
-stringSize(s) = outOffset + WideCharToMultiByte(cp, 0, ws.data()+inOffset, ws.size()-inOffset, (char*)(s.data() + outOffset), nSize, NULL, NULL);
+int size = outOffset + WideCharToMultiByte(cp, 0, ws.data()+inOffset, ws.size()-inOffset, (char*)(s.data() + outOffset), nSize, NULL, NULL);
+s.resize(size);
 return s;
 }
 
 inline std::wstring toWString (const std::string& s, int cp = CP_UTF8, int inOffset=0, int outOffset = 0) {
 size_t nSize = MultiByteToWideChar(cp, 0, s.data()+inOffset, s.size()-inOffset, NULL, 0);
 std::wstring ws(nSize+outOffset, L'\0');
-stringSize(ws) = outOffset + MultiByteToWideChar(cp, 0, s.data()+inOffset, s.size()-inOffset, (wchar_t*)(ws.data() + outOffset), nSize);
+int size = outOffset + MultiByteToWideChar(cp, 0, s.data()+inOffset, s.size()-inOffset, (wchar_t*)(ws.data() + outOffset), nSize);
+ws.resize(size);
 return ws;
 }
 

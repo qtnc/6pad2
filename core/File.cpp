@@ -111,7 +111,6 @@ if (size<0 && pos>=cap-32) str.resize(cap = cap*3/2+1);
 }
 char* z = (char*)(str.data() +pos); *z=0;
 str.resize(pos);
-stringSize(str) = pos;
 close();
 return str;
 }

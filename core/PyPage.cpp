@@ -49,13 +49,15 @@ void setEncoding (int e) { RunSync([&]()mutable{ page()->SetEncoding(e); }); }
 void setIndentationMode (int i) { RunSync([&]()mutable{ page()->SetIndentationMode(i); }); }
 void setTabWidth (int i) { RunSync([&]()mutable{ page()->SetTabWidth(i); }); }
 void setAutoLineBreak (bool b) { RunSync([&]()mutable{ page()->SetAutoLineBreak(b); }); }
-string getDotEditorConfigValue (const string& key, OPT, const string& def) {
+optional<string> getDotEditorConfigValue (const string& key, OPT, optional<string> def) {
 IniFile& ini = page()->dotEditorConfig;
 auto it = ini.find(key);
 return it!=ini.end()? it->second : def;
 }
 int addEvent (const string& type, PyGenericFunc cb) {  return page()->AddEvent(type,cb); }
 int removeEvent (const string& type, int id) { return page()->RemoveEvent(type, id); }
+void addPageGroup (const tstring& name) { page()->AddPageGroup(PageGroup::getGroup(name)); }
+void removePageGroup (const tstring& name) { page()->RemovePageGroup(PageGroup::getGroup(name)); }
 void focus () { page()->Focus(); }
 void close () { page()->Focus(); page()->Close(); }
 bool find (const tstring& term, OPT, bool scase, bool regex, bool up, bool stealthty) {  bool re=false; RunSync([&]()mutable{  re = page()->Find(term, scase, regex, up, stealthty); });  return re; }
@@ -85,9 +87,17 @@ int getLineEndIndex (int l) { return page()->GetLineEndIndex(l); }
 int getLineSafeStartIndex (int l) { return page()->GetLineSafeStartIndex(l); }
 int getLineIndentLevel (int l) { return page()->GetLineIndentLevel(l); }
 int getLineOfPos (int pos) { return page()->GetLineOfPos(pos); }
+int getColOfPos (int pos) { int l = getLineOfPos(pos), s = getLineStartIndex(l); return pos-s; }
+any licol (int li, OPT, optional<int> col) {
+if (col) {
+int c = *col;
+if (c>=0) return getLineStartIndex(li) + c;
+else return getLineEndIndex(li) +c;
+} else {
+int l = getLineOfPos(li), i = getLineStartIndex(l);
+return pair<int,int>( l, li-i );
+}}
 int getLineCount () { return page()->GetLineCount(); }
-int getColOfPos (int p) { int l = getLineOfPos(p); int x = getLineStartIndex(l); return p-x; }
-int getCurCol () { return getColOfPos(getSelectionEnd()); }
 tstring getCurLineText () { return getLine(getCurLine()); }
 void setCurLine (int i) { setPosition(getLineSafeStartIndex(i)); }
 void setCurLineText (const tstring&);
@@ -194,6 +204,8 @@ PyMapSet, // set
 static PyMethodDef PyPageMethods[] = {
 PyDecl("addEvent", &PyPage::addEvent),
 PyDecl("removeEvent", &PyPage::removeEvent),
+PyDecl("addGroup", &PyPage::addPageGroup),
+PyDecl("removeGroup", &PyPage::removePageGroup),
 PyDecl("select", &PyPage::setSelection),
 PyDecl("line", &PyPage::getLine),
 PyDecl("lineLength", &PyPage::getLineLength),
@@ -203,6 +215,7 @@ PyDecl("lineEndOffset", &PyPage::getLineEndIndex),
 PyDecl("lineSafeStartOffset", &PyPage::getLineSafeStartIndex),
 PyDecl("lineIndentLevel", &PyPage::getLineIndentLevel),
 PyDecl("columnOfOffset", &PyPage::getColOfPos),
+PyDecl("licol", &PyPage::licol),
 PyDecl("substring", &PyPage::getTextSubstring),
 PyDecl("replace", &PyPage::replaceTextRange),
 PyDecl("insert", &PyPage::insertTextAt),
@@ -241,7 +254,6 @@ PyAccessor("selectedText", &PyPage::getSelectedText, &PyPage::setSelectedText),
 PyAccessor("text", &PyPage::getText, &PyPage::setText),
 PyAccessor("curLine", &PyPage::getCurLine, &PyPage::setCurLine),
 PyAccessor("curLineText", &PyPage::getCurLineText, &PyPage::setCurLineText),
-PyReadOnlyAccessor("curColumn", &PyPage::getCurCol),
 PyReadOnlyAccessor("textLength", &PyPage::getTextLength),
 PyReadOnlyAccessor("lineCount", &PyPage::getLineCount),
 PyReadOnlyAccessor("indentString", &PyPage::getIndentString),

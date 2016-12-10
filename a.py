@@ -69,7 +69,11 @@ def fTaskDlg ():
 			commandLinksNoIcon=True
 	))
 
+def oenter (p, *args, **kwargs):
+	return str(1+p.curLine) + ': '
+
 def opo (p):
+	p.addEvent('enter', oenter)
 	menu = win.menus.tools.add(label='My SubMenu', submenu=True, group='testGroup', name='MenuSubGroup')
 	menu.add(label='Specific item for page '+str(p), specific=True, action=fBeep, accelerator='Ctrl+9')
 	if menu.length<3:

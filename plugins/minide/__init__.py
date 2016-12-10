@@ -1,14 +1,21 @@
 # Minide for 6pad++
-import re, sixpad as sp
+import re, os, sixpad as sp, qc6paddlgs as dialogs
 from importlib import import_module
 from os import path
 from glob import glob
+from fnmatch import fnmatch
 from sixpad import msg, window as win
 from .FileType import FileType
 from .Project import Project
 
 
 pluginpath = path.dirname(__file__)
+
+excludeFiles = (
+	'*.exe', '*.dll', '*.pyd', '*.pyc', '*.pyo', '*.lc', '*.bin', '*.o', 
+	'*.class', '*.jar', '*.war', '*.ear', '*.zip', '*.7z',
+	'*.wav', '*.mp3', '*.ogg', '*.png', '*.gif', '*.jpg',
+)
 
 for lang in (sp.locale, 'english'):
 	langfile = pluginpath + lang + '.lng'
@@ -18,12 +25,39 @@ def quickJump (s):
 	m = re.match(r'^(.*?)(::|[/:@# ])(.*)$', s)
 	if m:
 		file, cmd, arg = m.group(1, 2, 3)
-		if cmd in quickJumpCommands: return quickJumpCommands[cmd](arg)
+		if cmd in quickJumpCommands: return qjGoToFile(file) and quickJumpCommands[cmd](arg)
 	m = re.match('^([-+!])(.*)$', s)
 	if m:
 		cmd, arg = m.group(1,2)
 		if cmd in quickJumpCommands: return quickJumpCommands[cmd](arg)
 	win.warning('Unknown command: '+s)
+
+def qjGoToFile (file):
+	if not file: return True
+	for page in win.pages:
+		if page.file and qjFileMatches(page.file, file):
+			page.focus()
+			return True
+	if win.curPage.project and win.curPage.project.dir: return qjGoToFileRec(win.curPage.project.dir, file)
+	return False
+
+def qjGoToFileRec (dir, pattern):
+	dirs=[]
+	for file in os.listdir(dir):
+		file = path.join(dir,file)
+		if path.isdir(file):
+			dirs.append(file)
+		elif qjFileMatches(file, pattern) and not any(fnmatch(path.basename(file), x) for x in excludeFiles):
+			page = win.open(file)
+			if page:
+				page.focus()
+				return True
+	for dir in dirs:
+		if qjGoToFileRec(dir, pattern): return True
+	return False
+
+def qjFileMatches (file, pattern):
+	return fnmatch(path.basename(file), pattern+'*') or fnmatch(file, pattern+'*')
 
 def qjGoToLineColumn (arg):
 	p = win.curPage
@@ -31,7 +65,7 @@ def qjGoToLineColumn (arg):
 	if not m: win.warning('Syntax error')
 	line, column = (int(x)-1 for x in m.groups(0))
 	if column<0: p.position = p.lineSafeStartOffset(line)
-	else: p.position = p.lineStartOffset(line) + column
+	else: p.position = p.licol(line, column)
 
 def qjIncLineNum (arg):
 	win.curPage.curLine += int(arg)
@@ -73,10 +107,7 @@ def pageBeforeSave (page, file):
 	if file!=page.lastFile: pageDetectType(page)
 
 def pageActivated (page):
-	global items
-	p = win.curPage
-	for item in items:
-		item.enabled = hasattr(p, 'project') and hasattr(p.project, item.name) and callable(getattr(p.project, item.name))
+	pass
 
 def pageOpened (page):
 	page.addEvent('activated', pageActivated)
@@ -84,23 +115,7 @@ def pageOpened (page):
 	pageDetectType(page)
 
 menuFormat = win.menus.format
-menuProject = win.menus.add(label=msg('&Project'), submenu=True, index=-2)
-items = []
-for item in (
-	{ 'name': 'buildDebug', 'label': 'Build debug', 'accelerator': 'F9' },
-	{ 'name': 'buildRelease', 'label': 'Build release', 'accelerator': 'Shift+F9' },
-	{ 'name': 'buildTests', 'label': 'Build tests' },
-	{ 'name': 'buildDoc', 'label': 'Build documentation' },
-	{ 'name': 'clean', 'label': 'Clean' },
-	{ 'name': 'update', 'label': 'Update' },
-	{ 'name': 'runDebug', 'label': 'Run debug', 'accelerator': 'Ctrl+F9' },
-	{ 'name': 'runRelease', 'label': 'Run release', 'accelerator': 'Ctrl+Shift+F9' },
-	{ 'name': 'runTests', 'label': 'Run tests' },
-	{ 'name': 'deploy', 'label': 'Deploy' },
-):
-	def f():
-		getattr(win.curPage.project, item['name'])()
-	items.append( menuProject.add(action=f, **item) )
+menuProject = win.menus.add(label=msg('&Project'), submenu=True, index=-2, name='project')
 
 quickJumpCommands = {
 	':': qjGoToLineColumn,

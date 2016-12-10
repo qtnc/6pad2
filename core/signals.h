@@ -17,10 +17,14 @@ return re;
 struct AnySignalCombiner {
 typedef any result_type;
 template<class I> any operator() (I start, I end) {
+int count=0;
 any re;
 while(start!=end) {
-any re = *start++;
-if (!re.empty() && isoftype(re,bool) && !any_cast<bool>(re)) break;
+re = *start++;
+if (!re.empty()) {
+bool* b = any_cast<bool>(&re);
+if (b&&!*b) break;
+}
 }
 return re;
 }};

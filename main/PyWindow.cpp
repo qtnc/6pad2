@@ -36,16 +36,17 @@ int PyShowPopupMenu (const vector<tstring>&);
 PyObject* PyShowTaskDialog (PyObject* unused, PyObject* args, PyObject* kwds); 
 
 static int PyAddAccelerator (const tstring& kn, PyFunc<void()> cb, OPT, bool specific, tstring groupName) {
-int k=0, kf=0;
+int k=0, kf=0, cmd=0;
 KeyNameToCode(kn, kf, k);
 if (k<=0) return 0;
 function<void()> f = cb;
-int cmd = AddUserCommand(f);
-if (cmd<=0) return 0;
 shared_ptr<PageGroup> group;
 if (specific && curPage) groupName = tsnprintf(32, TEXT("Page@%p"), curPage.get());
 if (!groupName.empty()) group = PageGroup::getGroup(groupName);
 HACCEL& accel = group? group->accel : sp.hAccel;
+if (!groupName.empty() && FindAccelerator(accel, cmd, kf, k)) return cmd;
+cmd = AddUserCommand(f);
+if (cmd<=0) return 0;
 if (AddAccelerator(accel, kf, k, cmd)) return cmd;
 else return 0;
 }
