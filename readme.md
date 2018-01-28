@@ -3,9 +3,15 @@
 6pad++ is a simple and lightweight, yet powerful text editor for windows.
 Its main goal is to keep the accessibility and responsiveness of standard notepad, while providing a few not especially spectacular but useful features.
 
-If you have an improvement to suggest, if you found a bug, or if you have any question, feel free to contact me or post on the issue tracker.
+# This project is non longer maintained
+This project is non longer maintained and kept here only for archive. Once more, I started it again from the beginning.
 
-Have fun !
+C++ is quite a complex language, and integrating a scripting API in python into C++ isn't that easy. I was also directly using Win32API for the GUI. Win32API itself is quite complex without mentioning C++, and nowadays, there is more and more demand for multiplatform support.
+
+Therefore, I decided to switch entirely to python, and use WXPython for the GUI. 
+I hope that using a simpler language and toolbox will solve a serie of unknown bugs that are still present after many years, and encourage contributions.
+
+Check out my new project: [Jane: just another editor](http://github.com/qtnc/jane).
 
 # Download
 

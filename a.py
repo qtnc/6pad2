@@ -46,7 +46,7 @@ def fTreeDlgFill (dlg):
 				subsubitem = subitem.appendChild('Item ' + str(i) + '.' + str(j) + '.' + str(k), 100*i+10*j+k, checked=k==1)
 
 def fTreeDlg ():
-	dlg = dlgs.TreeViewDialog.open(title='TreeViewDialog', hint='Example', modal=True, multiple=True, editable=True, callback=fTreeDlgFill)
+	dlg = dlgs.TreeViewDialog.open(title='TreeViewDialog', text='Example', modal=True, multiple=True, editable=True, callback=fTreeDlgFill)
 	print(dlg)
 
 def fTaskDlg ():
@@ -69,6 +69,9 @@ def fTaskDlg ():
 			commandLinksNoIcon=True
 	))
 
+def fDlg2():
+	print(win.curPage.selectionStart, win.curPage.selectionEnd)
+
 def oenter (p, *args, **kwargs):
 	return str(1+p.curLine) + ': '
 
@@ -83,10 +86,16 @@ def opo (p):
 
 win.addEvent('pageOpened', opo)
 
+cbmi = None
+def fcb3 (*args, **kwargs):
+	cbmi.checked = not cbmi.checked
+	win.beep(3000 if cbmi.checked else 500, 125)
+cbmi = win.menus.tools.add(label='Test checkbox', accelerator='Ctrl+E', action=fcb3)
+
 
 for i  in [
 	{ 'label': 'Simple beep', 'action': fBeep, 'accelerator': 'Ctrl+1' },
-	{ 'label': 'Progress dialog', 'action': fProgressThd, 'accelerator': 'Ctrl+2'  },
+	{ 'label': 'Progress dialog', 'action': fDlg2, 'accelerator': 'Ctrl+2'  },
 	{ 'label': 'ListBox dialog', 'action': fListDlg, 'accelerator': 'Ctrl+3'  },
 	{ 'label': 'TreeView dialog', 'action': fTreeDlg, 'accelerator': 'Ctrl+4'  },
 	{ 'label': 'Task dialog', 'action': fTaskDlg, 'accelerator': 'Ctrl+5' },

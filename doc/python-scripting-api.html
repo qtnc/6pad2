@@ -281,6 +281,12 @@
 <dt>lineIndentLevel(lineNumber) -&gt; int:</dt>
 <dd>Return the indentation level of the given line, according to current indentation settings.
 </dd>
+<dt>licol (int pos) -&gt; (int,int):</dt>
+<dd>Converts an offset position into a tuple (line,column)
+</dd>
+<dt>licol (int line, int column) -&gt; int</dt>
+<dd>Converts (line,column) into an offset position.
+</dd>
 <dt>substring(start, end) -&gt; str:</dt>
 <dd>Gets a substring of the whole text currently being edited.
 </dd>
@@ -320,7 +326,7 @@
 <dt>pushUndoState(UndoStateCompatibleObject) -&gt; None:</dt>
 <dd>Push an undoable operation on the top of the undo stack. The object passed must have the two methods undo(self,page) and redo(self,page).
 </dd>
-<dt>doteditorconfig(key, defaultValue = ’’) -&gt; str</dt>
+<dt>doteditorconfig(key, defaultValue = None) -&gt; str</dt>
 <dd>Get the value of a configuration key that can be found in .editorconfig files for the current file. If the key is not found, defaultValue is returned. Note that .editorconfig configuration directives are loaded/updated when the file is loaded, reloaded or saved.
 </dd>
 </dl>
@@ -353,6 +359,9 @@
 <dt>bool autoLineBreak:</dt>
 <dd>Whether or not lines are broken automatically when displaying the text in the edition field.
 </dd>
+<dt>bool readOnly:</dt>
+<dd>Whether or not the zone is read only, i.e. don’t allow any modification
+</dd>
 <dt>int selectionStart:</dt>
 <dd>The anchor point of the current selection.
 </dd>
@@ -361,9 +370,6 @@
 </dd>
 <dt>int position</dt>
 <dd>Same as selectionEnd. Modifying this attribute is the same as doint <code>select(value, value)</code>, i.e. the selection is collapsed at given position.
-</dd>
-<dt>int curColumn (read only):</dt>
-<dd>The current column where the caret is. If there is a selection, selectionEnd is taken as being the current position.
 </dd>
 <dt>int curLine:</dt>
 <dd>The current line number where the caret is. If there is a selection, selectionEnd is taken as being the current position. Modifying this value is the same as doing <code>position = lineStartIndex(value)</code>, i.e. the cursor is placed at the beginning of the line.

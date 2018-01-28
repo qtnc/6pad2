@@ -198,16 +198,16 @@ return (0!=(mii.fState&flag));
 
 void PyMenuItem::set_checked (bool checked) {
 if (submenu) return;
-checked = checked? MF_CHECKED : MF_UNCHECKED;
+int iChecked = checked? MF_CHECKED : MF_UNCHECKED;
 RunSync([&]()mutable{
-CheckMenuItem(menu, cmd, MF_BYCOMMAND | checked);
+int re = CheckMenuItem(menu, cmd, MF_BYCOMMAND | iChecked);
 });//RunSync
 }
 
 void PyMenuItem::set_enabled (bool enabled) {
-enabled = enabled? MF_ENABLED :  MF_GRAYED  | MF_DISABLED;
+int iEnabled = enabled? MF_ENABLED :  MF_GRAYED  | MF_DISABLED;
 RunSync([&]()mutable{
-EnableMenuItem(menu, getID(), MF_BYCOMMAND | enabled);
+EnableMenuItem(menu, getID(), MF_BYCOMMAND | iEnabled);
 });//RunSync
 }
 
